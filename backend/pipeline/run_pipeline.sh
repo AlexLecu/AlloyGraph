@@ -52,14 +52,14 @@ python enrich_jsonl_with_features.py "$SOURCE_FILE" "$DATA_FILE"
 # 4. Populate GraphDB
 echo "[4/5] Populating GraphDB from $DATA_FILE..."
 export ALLOY_JSON=$DATA_FILE
-python enrich_graphdb.py
+python enrich_graphdb_new.py
 
 # 5. Weaviate Ingestion
 echo "[5/5] Setting up Weaviate..."
 echo "      Creating Schema..."
-python weaviate_schema.py
+python weaviate_schema_new.py
 echo "      Ingesting Data..."
-python weaviate_ingest.py
+python weaviate_ingest_new.py
 
 echo "==========================================="
 echo "   Pipeline Completed Successfully! 🚀"

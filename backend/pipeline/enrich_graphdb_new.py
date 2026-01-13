@@ -12,13 +12,62 @@ import requests
 
 from backend.alloy_crew.models.feature_engineering import compute_alloy_features
 
+# =============================================================================
+# Configuration
+# =============================================================================
+
 GRAPHDB_URL = os.getenv("GRAPHDB_URL", "http://localhost:7200")
 REPO_ID = os.getenv("GRAPHDB_REPO", "NiSuperAlloy")
 JSON_FILE = os.getenv("ALLOY_JSON", "../superalloy_preprocess/output_data/all_alloys.jsonl")
-NAMED_GRAPH = URIRef("http://www.semanticweb.org/alexlecu/ontologies/nisuperalloy")
+print(JSON_FILE)
 
-BASE = "http://www.semanticweb.org/alexlecu/ontologies/nisuperalloy#"
-NS = Namespace(BASE)
+# =============================================================================
+# AlloyMind URI policy
+# =============================================================================
+
+BASE = "https://w3id.org/alloygraph/"
+
+# Ontology (TBox) - Classes & Properties
+ONTOLOGY_BASE = f"{BASE}ont#"
+NS = Namespace(ONTOLOGY_BASE)
+
+# Resources (ABox) - Data Instances
+RESOURCE_BASE = f"{BASE}res/"
+RES = Namespace(RESOURCE_BASE)
+
+# Named graph - Dataset Container
+NAMED_GRAPH = URIRef(f"{BASE}data/alloys")
+
+# --- EMMO / EMBO / QUDT namespaces -----------------------------------------
+EMMO = Namespace("http://emmo.info/emmo#")
+EMBO = Namespace("http://emmo.info/emmo/domain/emo#")
+QUDT = Namespace("http://qudt.org/schema/qudt/")
+UNIT = Namespace("http://qudt.org/vocab/unit/")
+
+# ChEBI for chemical elements
+CHEBI = Namespace("http://purl.obolibrary.org/obo/CHEBI_")
+
+ELEMENT_MAP = {
+    "Ni": CHEBI.CHEBI_28112,  # nickel atom
+    "Cr": CHEBI.CHEBI_28073,
+    "Mo": CHEBI.CHEBI_28685,
+    "Nb": CHEBI.CHEBI_33345,
+    "Al": CHEBI.CHEBI_28938,
+    "Ti": CHEBI.CHEBI_28948,
+    "C":  CHEBI.CHEBI_27594,
+    "B":  CHEBI.CHEBI_27563,
+    "Zr": CHEBI.CHEBI_33332,
+    "Co": CHEBI.CHEBI_27638,
+    "W":  CHEBI.CHEBI_27998,
+    "Ta": CHEBI.CHEBI_33348,
+    "Re": CHEBI.CHEBI_30189,
+    "Hf": CHEBI.CHEBI_33343,
+    "Fe": CHEBI.CHEBI_18248,
+    "Mn": CHEBI.CHEBI_18291,
+    "Si": CHEBI.CHEBI_27573,
+    "Cu": CHEBI.CHEBI_28694,
+    "V":  CHEBI.CHEBI_27698,
+}
 
 PROPERTY_MAP: Dict[str, str] = {
     "yield_strength": "YieldStrength",
@@ -27,30 +76,73 @@ PROPERTY_MAP: Dict[str, str] = {
     "elasticity": "Elasticity"
 }
 
+UNIT_MAP = {
+    "MPa": UNIT.MegaPA,
+    "GPa": UNIT.GigaPA,
+    "%": UNIT.PERCENT,
+    "°C": UNIT.DEG_C,
+}
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s  %(message)s")
 log = logging.getLogger("json->graphdb")
 
 
 def iri_local(s: str) -> str:
-    out = "".join(ch if ch.isalnum() or ch in "_+.-" else "_" for ch in s)
+    """Normalize string for safe URI local part."""
+    out = "".join(ch if ch.isalnum() or ch in "_-." else "_" for ch in s.strip())
     if out and out[0].isdigit():
         out = "_" + out
     return out
 
 
-def mint(prefix: str, hint: str) -> URIRef:
-    return URIRef(BASE + f"{prefix}_{iri_local(hint)}_{uuid.uuid4().hex[:8]}")
+# ---------------------------------------------------------------------------
+# Ontology (TBox): classes & properties ONLY
+# ---------------------------------------------------------------------------
+
+def mint_class(local_name: str) -> URIRef:
+    """
+    Mint an ontology class URI.
+    Example: NickelBasedSuperalloy
+    """
+    return NS[iri_local(local_name)]
 
 
-def mint_stable(prefix: str, hint: str) -> URIRef:
-    return URIRef(BASE + f"{prefix}_{iri_local(hint)}")
+def mint_property(local_name: str) -> URIRef:
+    """
+    Mint an ontology property URI.
+    Example: hasGammaPrimeFraction
+    """
+    return NS[iri_local(local_name)]
+
+
+# ---------------------------------------------------------------------------
+# Resources (ABox): individuals ONLY
+# ---------------------------------------------------------------------------
+
+def mint_res(path: str) -> URIRef:
+    """
+    Mint a resource URI using a path-like structure.
+
+    Examples:
+      alloy/Alloy713C
+      variant/Alloy713C_cast
+      quantity/Alloy713C_cast_GP
+    """
+    return RES[path]
+
+
+def mint_res_uuid(path: str) -> URIRef:
+    """
+    Mint a resource URI with a UUID suffix (use ONLY when needed).
+    """
+    return RES[f"{path}_{uuid.uuid4().hex[:8]}"]
 
 
 def add_quantity(g: Graph, unit: Optional[str], data: Dict[str, Any]) -> URIRef:
-    q = mint("Qty", unit or "qty")
-    g.add((q, RDF.type, NS.Quantity))
+    q = mint_res_uuid(f"quantity/{iri_local(unit or 'quantity')}")
+    g.add((q, RDF.type, mint_class("Quantity")))
     if unit:
-        g.add((q, NS.unitSymbol, Literal(unit)))
+        g.add((q, mint_property("unitSymbol"), Literal(unit)))
 
     min_v = data.get("min")
     max_v = data.get("max")
@@ -58,33 +150,33 @@ def add_quantity(g: Graph, unit: Optional[str], data: Dict[str, Any]) -> URIRef:
         min_v, max_v = float(max_v), float(min_v)
 
     if data.get("value") is not None:
-        g.add((q, NS.numericValue, Literal(float(data["value"]), datatype=XSD.decimal)))
+        g.add((q, mint_property("numericValue"), Literal(float(data["value"]), datatype=XSD.decimal)))
     if min_v is not None:
-        g.add((q, NS.minInclusive, Literal(float(min_v), datatype=XSD.decimal)))
+        g.add((q, mint_property("minInclusive"), Literal(float(min_v), datatype=XSD.decimal)))
     if max_v is not None:
-        g.add((q, NS.maxInclusive, Literal(float(max_v), datatype=XSD.decimal)))
+        g.add((q, mint_property("maxInclusive"), Literal(float(max_v), datatype=XSD.decimal)))
     if data.get("approx"):
-        g.add((q, NS.isApproximate, Literal(True, datatype=XSD.boolean)))
+        g.add((q, mint_property("isApproximate"), Literal(True, datatype=XSD.boolean)))
     if data.get("qualifier"):
-        g.add((q, NS.qualifier, Literal(data["qualifier"])))
+        g.add((q, mint_property("qualifier"), Literal(data["qualifier"])))
     if data.get("raw"):
-        g.add((q, NS.rawString, Literal(data["raw"])))
+        g.add((q, mint_property("rawString"), Literal(data["raw"])))
 
     return q
 
 
 def add_comp_entry(g: Graph, comp_uri: URIRef, elem_uri: URIRef, data: Dict[str, Any], alloy_name: str):
     elem_name = Path(str(elem_uri)).name.replace("Element_", "")
-    entry = mint_stable("Entry", f"{alloy_name}_{elem_name}")
-    g.add((entry, RDF.type, NS.CompositionEntry))
-    g.add((comp_uri, NS.hasComponent, entry))
-    g.add((entry, NS.element, elem_uri))
-    
+    entry = mint_res(f"composition-entry/{iri_local(alloy_name)}_{iri_local(elem_name)}")
+    g.add((entry, RDF.type, mint_class("CompositionEntry")))
+    g.add((comp_uri, mint_property("hasComponent"), entry))
+    g.add((entry, mint_property("element"), elem_uri))
+
     if isinstance(data, (int, float)):
         data = {"value": data}
         
     if data.get("is_balance_remainder"):
-        g.add((entry, NS.isBalanceRemainder, Literal(True, datatype=XSD.boolean)))
+        g.add((entry, mint_property("isBalanceRemainder"), Literal(True, datatype=XSD.boolean)))
     else:
         q_data = {}
         if data.get("value") is not None:
@@ -103,35 +195,41 @@ def add_comp_entry(g: Graph, comp_uri: URIRef, elem_uri: URIRef, data: Dict[str,
         if q_data:
             q_suffix = f"{alloy_name}_{elem_name}_Mass"
 
-            q = mint_stable("Qty", q_suffix)
-            g.add((q, RDF.type, NS.Quantity))
-            g.add((entry, NS.hasMassFraction, q))
+            q = mint_res(f"quantity/{iri_local(q_suffix)}")
+            g.add((q, RDF.type, mint_class("Quantity")))
+            g.add((entry, mint_property("hasMassFraction"), q))
 
             unit = data.get("unit", "%")
             if unit:
-                g.add((q, NS.unitSymbol, Literal(unit)))
-            
+                g.add((q, mint_property("unitSymbol"), Literal(unit)))
+
             if q_data.get("value") is not None:
-                g.add((q, NS.numericValue, Literal(float(q_data["value"]), datatype=XSD.decimal)))
+                g.add((q, mint_property("numericValue"), Literal(float(q_data["value"]), datatype=XSD.decimal)))
             if q_data.get("min") is not None:
-                g.add((q, NS.minInclusive, Literal(float(q_data["min"]), datatype=XSD.decimal)))
+                g.add((q, mint_property("minInclusive"), Literal(float(q_data["min"]), datatype=XSD.decimal)))
             if q_data.get("max") is not None:
-                g.add((q, NS.maxInclusive, Literal(float(q_data["max"]), datatype=XSD.decimal)))
+                g.add((q, mint_property("maxInclusive"), Literal(float(q_data["max"]), datatype=XSD.decimal)))
             if q_data.get("approx"):
-                g.add((q, NS.isApproximate, Literal(True, datatype=XSD.boolean)))
+                g.add((q, mint_property("isApproximate"), Literal(True, datatype=XSD.boolean)))
             if q_data.get("qualifier"):
-                g.add((q, NS.qualifier, Literal(q_data["qualifier"])))
+                g.add((q, mint_property("qualifier"), Literal(q_data["qualifier"])))
             if q_data.get("raw"):
-                g.add((q, NS.rawString, Literal(q_data["raw"])))
+                g.add((q, mint_property("rawString"), Literal(q_data["raw"])))
 
 
 def build_graph(json_path: str) -> Graph:
     log.info("Reading JSON: %s", json_path)
 
     g = Graph()
-    g.bind("ns", NS);
-    g.bind("rdf", RDF);
-    g.bind("rdfs", RDFS);
+    g.bind("ns", NS)
+    g.bind("res", RES)
+    g.bind("emmo", EMMO)
+    g.bind("embo", EMBO)
+    g.bind("qudt", QUDT)
+    g.bind("unit", UNIT)
+    g.bind("chebi", CHEBI)
+    g.bind("rdf", RDF)
+    g.bind("rdfs", RDFS)
     g.bind("xsd", XSD)
 
     alloys = []
@@ -163,52 +261,49 @@ def build_graph(json_path: str) -> Graph:
         processing = alloy_data.get("processing")
         form_val = alloy_data.get("form")
 
-        a_uri = mint_stable("Alloy", alloy_name)
-        g.add((a_uri, RDF.type, NS.NickelBasedSuperalloy))
+        a_uri = mint_res(f"alloy/{iri_local(alloy_name)}")
+        g.add((a_uri, RDF.type, mint_class("NickelBasedSuperalloy")))
         g.add((a_uri, RDFS.label, Literal(alloy_name)))
-        g.add((a_uri, NS.tradeDesignation, Literal(alloy_name)))
-        
+        g.add((a_uri, mint_property("tradeDesignation"), Literal(alloy_name)))
+
         uns = alloy_data.get("uns", "")
         if uns:
-            g.add((a_uri, NS.unsNumber, Literal(uns)))
-            
+            g.add((a_uri, mint_property("unsNumber"), Literal(uns)))
+
         if alloy_data.get("family"):
-            g.add((a_uri, NS.family, Literal(alloy_data["family"])))
+            g.add((a_uri, mint_property("family"), Literal(alloy_data["family"])))
 
         parts = [alloy_name]
         if processing: parts.append(processing)
         if form_val: parts.append(form_val)
         unique_token = "_".join(parts)
         
-        v_uri = mint_stable("Variant", unique_token)
-        g.add((v_uri, RDF.type, NS.Variant))
+        v_uri = mint_res(f"variant/{iri_local(unique_token)}")
+        g.add((v_uri, RDF.type, mint_class("Variant")))
         g.add((v_uri, RDFS.label, Literal(unique_token.replace("_", " "))))
 
-        g.add((a_uri, NS.hasVariant, v_uri))
+        g.add((a_uri, mint_property("hasVariant"), v_uri))
 
         if processing:
-            g.add((v_uri, NS.processingMethod, Literal(processing)))
-            pm_uri = mint_stable("Method", processing)
-            g.add((pm_uri, RDF.type, NS.ProcessingMethod))
+            g.add((v_uri, mint_property("processingMethod"), Literal(processing)))
+            pm_uri = mint_res(f"method/{iri_local(processing)}")
+            g.add((pm_uri, RDF.type, mint_class("ProcessingMethod")))
             g.add((pm_uri, RDFS.label, Literal(processing)))
-            g.add((v_uri, NS.hasProcessingMethod, pm_uri))
-            
-        if form_val:
-            f_uri = mint_stable("Form", form_val)
-            g.add((f_uri, RDF.type, NS.Form))
-            g.add((f_uri, RDFS.label, Literal(form_val)))
-            g.add((f_uri, NS.form, Literal(form_val)))
-            g.add((v_uri, NS.hasForm, f_uri))
-            
-        if alloy_data.get("density_gcm3"):
-            g.add((v_uri, NS.density, Literal(float(alloy_data["density_gcm3"]), datatype=XSD.decimal)))
-        if alloy_data.get("gamma_prime_vol_pct") is not None:
-            g.add((v_uri, NS.gammaPrimeVolPct, Literal(float(alloy_data["gamma_prime_vol_pct"]), datatype=XSD.decimal)))
-        if alloy_data.get("typical_heat_treatment"):
-            g.add((v_uri, NS.typicalHeatTreatment, Literal(alloy_data["typical_heat_treatment"])))
+            g.add((v_uri, mint_property("hasProcessingMethod"), pm_uri))
 
+        if form_val:
+            f_uri = mint_res(f"form/{iri_local(form_val)}")
+            g.add((f_uri, RDF.type, mint_class("Form")))
+            g.add((f_uri, RDFS.label, Literal(form_val)))
+            g.add((f_uri, mint_property("form"), Literal(form_val)))
+            g.add((v_uri, mint_property("hasForm"), f_uri))
+
+        if alloy_data.get("density_gcm3"):
+            g.add((v_uri, mint_property("density"), Literal(float(alloy_data["density_gcm3"]), datatype=XSD.decimal)))
+        if alloy_data.get("gamma_prime_vol_pct") is not None:
+            g.add((v_uri, mint_property("gammaPrimeVolPct"), Literal(float(alloy_data["gamma_prime_vol_pct"]), datatype=XSD.decimal)))
         if alloy_data.get("typical_heat_treatment"):
-            g.add((v_uri, NS.typicalHeatTreatment, Literal(alloy_data["typical_heat_treatment"])))
+            g.add((v_uri, mint_property("typicalHeatTreatment"), Literal(alloy_data["typical_heat_treatment"])))
 
         try:
             computed = compute_alloy_features(alloy_data)
@@ -216,37 +311,37 @@ def build_graph(json_path: str) -> Graph:
             log.info(f"[{alloy_name}] Computed Md_avg: {computed.get('Md_avg')}, TCP: {computed.get('TCP_risk')}")
 
             if "Md_avg" in computed:
-                g.add((v_uri, NS.hasMdAverage, Literal(float(computed["Md_avg"]), datatype=XSD.decimal)))
-            
+                g.add((v_uri, mint_property("hasMdAverage"), Literal(float(computed["Md_avg"]), datatype=XSD.decimal)))
+
             if "gamma_prime_estimated_vol_pct" in computed:
-                g.add((v_uri, NS.hasGammaPrimeEstimate, Literal(float(computed["gamma_prime_estimated_vol_pct"]), datatype=XSD.decimal)))
-            
+                g.add((v_uri, mint_property("hasGammaPrimeEstimate"), Literal(float(computed["gamma_prime_estimated_vol_pct"]), datatype=XSD.decimal)))
+
             if "density_calculated_gcm3" in computed:
-                g.add((v_uri, NS.hasDensityCalculated, Literal(float(computed["density_calculated_gcm3"]), datatype=XSD.decimal)))
-            
+                g.add((v_uri, mint_property("hasDensityCalculated"), Literal(float(computed["density_calculated_gcm3"]), datatype=XSD.decimal)))
+
             if "TCP_risk" in computed:
-                g.add((v_uri, NS.hasTcpRisk, Literal(computed["TCP_risk"])))
+                g.add((v_uri, mint_property("hasTcpRisk"), Literal(computed["TCP_risk"])))
 
             mapping = {
-                "SSS_total_wt_pct": NS.hasSSSTotalWtPct,
-                "refractory_total_wt_pct": NS.hasRefractoryTotalWtPct,
-                "GP_formers_wt_pct": NS.hasGPFormersWtPct,
-                "Al_Ti_ratio": NS.hasAlTiRatio,
-                "Cr_Co_ratio": NS.hasCrCoRatio,
-                "Cr_Ni_ratio": NS.hasCrNiRatio,
-                "Mo_W_ratio": NS.hasMoWRatio,
-                "Al_Ti_at_ratio": NS.hasAlTiAtRatio,
-                "GP_formers_at_pct": NS.hasGPFormersAtPct,
+                "SSS_total_wt_pct": "hasSSSTotalWtPct",
+                "refractory_total_wt_pct": "hasRefractoryTotalWtPct",
+                "GP_formers_wt_pct": "hasGPFormersWtPct",
+                "Al_Ti_ratio": "hasAlTiRatio",
+                "Cr_Co_ratio": "hasCrCoRatio",
+                "Cr_Ni_ratio": "hasCrNiRatio",
+                "Mo_W_ratio": "hasMoWRatio",
+                "Al_Ti_at_ratio": "hasAlTiAtRatio",
+                "GP_formers_at_pct": "hasGPFormersAtPct",
             }
             
-            for key, pred in mapping.items():
+            for key, prop_name in mapping.items():
                 if key in computed:
-                    g.add((v_uri, pred, Literal(float(computed[key]), datatype=XSD.decimal)))
+                    g.add((v_uri, mint_property(prop_name), Literal(float(computed[key]), datatype=XSD.decimal)))
 
             if "atomic_percent" in computed:
                 ap_json = json.dumps(computed["atomic_percent"])
-                g.add((v_uri, NS.hasAtomicCompositionJson, Literal(ap_json)))
-                
+                g.add((v_uri, mint_property("hasAtomicCompositionJson"), Literal(ap_json)))
+
         except Exception as e:
             log.warning(f"Failed to compute features for {alloy_name}: {e}")
 
@@ -257,29 +352,29 @@ def build_graph(json_path: str) -> Graph:
             composition = primary_compositions.get(alloy_name, {})
 
         if has_own_comp:
-            c_uri = mint_stable("Comp", unique_token)
+            c_uri = mint_res(f"composition/{iri_local(unique_token)}")
             comp_seed = unique_token
         else:
-            c_uri = mint_stable("Comp", alloy_name)
+            c_uri = mint_res(f"composition/{iri_local(alloy_name)}")
             comp_seed = alloy_name
 
-        g.add((c_uri, RDF.type, NS.Composition))
-        g.add((v_uri, NS.hasComposition, c_uri))
+        g.add((c_uri, RDF.type, mint_class("Composition")))
+        g.add((v_uri, mint_property("hasComposition"), c_uri))
 
         others = alloy_data.get("other_constituents")
         if others:
-            g.add((c_uri, NS.otherConstituents, Literal(others)))
+            g.add((c_uri, mint_property("otherConstituents"), Literal(others)))
 
         for elem_symbol, elem_data in composition.items():
             if elem_symbol == "other": continue
             
             if elem_symbol not in elements_seen:
-                e_uri = mint_stable("Element", elem_symbol)
-                g.add((e_uri, RDF.type, NS.Element))
+                e_uri = mint_res(f"element/{iri_local(elem_symbol)}")
+                g.add((e_uri, RDF.type, mint_class("Element")))
                 g.add((e_uri, RDFS.label, Literal(elem_symbol)))
                 elements_seen.add(elem_symbol)
 
-            add_comp_entry(g, c_uri, mint_stable("Element", elem_symbol), elem_data, comp_seed)
+            add_comp_entry(g, c_uri, mint_res(f"element/{iri_local(elem_symbol)}"), elem_data, comp_seed)
 
         for prop_key, prop_class in PROPERTY_MAP.items():
             measurements = alloy_data.get(prop_key, [])
@@ -293,28 +388,28 @@ def build_graph(json_path: str) -> Graph:
             if not measurements:
                 continue
 
-            propset_uri = mint_stable("PropSet", f"{unique_token}_{prop_class}")
-            g.add((propset_uri, RDF.type, NS.PropertySet))
-            g.add((v_uri, NS.hasPropertySet, propset_uri))
-            g.add((propset_uri, NS.measuresProperty, URIRef(BASE + prop_class)))
+            propset_uri = mint_res(f"property-set/{iri_local(unique_token)}_{iri_local(prop_class)}")
+            g.add((propset_uri, RDF.type, mint_class("PropertySet")))
+            g.add((v_uri, mint_property("hasPropertySet"), propset_uri))
+            g.add((propset_uri, mint_property("measuresProperty"), mint_class(prop_class)))
 
             for meas_data in measurements:
-                meas = mint("Meas", f"{unique_token}_{prop_class}")
-                g.add((meas, RDF.type, NS.Measurement))
-                g.add((propset_uri, NS.hasMeasurement, meas))
+                meas = mint_res_uuid(f"measurement/{iri_local(unique_token)}_{iri_local(prop_class)}")
+                g.add((meas, RDF.type, mint_class("Measurement")))
+                g.add((propset_uri, mint_property("hasMeasurement"), meas))
 
                 temp_c = meas_data.get("temp_c")
                 temp_category = meas_data.get("temp_category")
                 if temp_category:
-                    g.add((meas, NS.temperatureCategory, Literal(temp_category)))
+                    g.add((meas, mint_property("temperatureCategory"), Literal(temp_category)))
                 if temp_c is not None:
                     temp_qty = add_quantity(g, "°C", {"value": temp_c})
-                    g.add((meas, NS.hasTestTemperature, temp_qty))
-                    
+                    g.add((meas, mint_property("hasTestTemperature"), temp_qty))
+
                 if "stress_mpa" in meas_data:
-                    g.add((meas, NS.stress, Literal(float(meas_data["stress_mpa"]), datatype=XSD.decimal)))
+                    g.add((meas, mint_property("stress"), Literal(float(meas_data["stress_mpa"]), datatype=XSD.decimal)))
                 if "life_hours" in meas_data:
-                    g.add((meas, NS.lifeHours, Literal(float(meas_data["life_hours"]), datatype=XSD.decimal)))
+                    g.add((meas, mint_property("lifeHours"), Literal(float(meas_data["life_hours"]), datatype=XSD.decimal)))
 
                 q_data = {}
                 if meas_data.get("value") is not None:
@@ -343,7 +438,7 @@ def build_graph(json_path: str) -> Graph:
                         unit = meas_data["scale"]
 
                 q_uri = add_quantity(g, unit, q_data)
-                g.add((meas, NS.hasQuantity, q_uri))
+                g.add((meas, mint_property("hasQuantity"), q_uri))
 
     log.info("Graph built with %d triples", len(g))
     return g
