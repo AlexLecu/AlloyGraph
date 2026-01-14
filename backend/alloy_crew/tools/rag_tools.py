@@ -7,6 +7,9 @@ import os
 import json
 import ast
 import logging
+import hashlib
+
+logger = logging.getLogger(__name__)
 
 class AlloySearchInput(BaseModel):
     """Input for Weaviate search."""
@@ -91,6 +94,76 @@ class AlloySearchInput(BaseModel):
                 return 3
         return int(value)
 
+
+# ============================================================
+# KG SEARCH CACHING
+# ============================================================
+def _create_cache_key(composition: Dict[str, float], limit: int) -> str:
+    """
+    Create stable hash key for composition + limit.
+
+    Normalizes composition to handle rounding variations:
+    - {Ni: 60.0, Al: 5.0} and {Ni: 60.01, Al: 4.99} → same key
+    """
+    # Normalize to 2 decimal places and sort for consistent hashing
+    normalized = {k: round(v, 2) for k, v in composition.items() if v > 0}
+    sorted_comp = json.dumps(normalized, sort_keys=True)
+    cache_str = f"{sorted_comp}|{limit}"
+    return hashlib.md5(cache_str.encode()).hexdigest()
+
+_kg_search_cache = {}
+_cache_hits = 0
+_cache_misses = 0
+
+
+def _get_cached_search(composition: Dict[str, float], limit: int) -> tuple:
+    """
+    Get cached KG search result if available.
+    """
+    global _cache_hits, _cache_misses
+
+    cache_key = _create_cache_key(composition, limit)
+
+    if cache_key in _kg_search_cache:
+        _cache_hits += 1
+        logging.debug(f"✓ KG Cache HIT (hits={_cache_hits}, misses={_cache_misses})")
+        return _kg_search_cache[cache_key], True
+    else:
+        _cache_misses += 1
+        logging.debug(f"✗ KG Cache MISS (hits={_cache_hits}, misses={_cache_misses})")
+        return None, False
+
+
+def _store_cached_search(composition: Dict[str, float], limit: int, result: str):
+    """Store KG search result in cache."""
+    global _kg_search_cache
+
+    cache_key = _create_cache_key(composition, limit)
+
+    # Simple LRU: if cache exceeds 128 entries, remove oldest
+    if len(_kg_search_cache) >= 128:
+        # Remove first (oldest) entry
+        oldest_key = next(iter(_kg_search_cache))
+        _kg_search_cache.pop(oldest_key)
+
+    _kg_search_cache[cache_key] = result
+
+
+def get_cache_stats() -> dict:
+    """Get KG search cache statistics."""
+    global _cache_hits, _cache_misses
+
+    total = _cache_hits + _cache_misses
+    hit_rate = (_cache_hits / total * 100) if total > 0 else 0
+
+    return {
+        "hits": _cache_hits,
+        "misses": _cache_misses,
+        "hit_rate_pct": round(hit_rate, 1),
+        "cache_size": len(_kg_search_cache)
+    }
+
+
 class AlloySearchTool(BaseTool):
     name: str = "AlloyKnowledgeGraphSearch"
     description: str = (
@@ -103,7 +176,11 @@ class AlloySearchTool(BaseTool):
     args_schema: Type[BaseModel] = AlloySearchInput
 
     def _run(self, composition: Dict[str, float], limit: int = 3, **kwargs: Any) -> Any:
-        
+        # Check cache first
+        cached_result, cache_hit = _get_cached_search(composition, limit)
+        if cache_hit:
+            return cached_result
+
         client = None
         try:
             WEAVIATE_HOST = os.getenv('WEAVIATE_HOST', 'localhost')
@@ -214,8 +291,14 @@ class AlloySearchTool(BaseTool):
                 candidate["_distance"] = dist
                 candidates.append(candidate)
 
+                if len(candidates) <= 3:
+                     logger.debug(f"Distance calc: {candidate.get('name', 'Unknown')}: {dist:.4f} | Test(norm): {test_norm} | Cand(norm): {cand_norm}")
+
             candidates.sort(key=lambda x: x["_distance"])
             top_results = candidates[:limit]
+
+            top_summaries = [f"{c.get('name')} (d={c.get('_distance', 'N/A')})" for c in top_results]
+            logger.info(f"Top {limit} KG Results: {top_summaries}")
 
             for cand in top_results:
                 try:
@@ -229,6 +312,7 @@ class AlloySearchTool(BaseTool):
                 serialized = {
                     "name": c.get("name"),
                     "processing": c.get("processing"),
+                    "_distance": c.get("_distance", 999.0),
                     "metallurgy": {
                         "md_avg": c.get("md_avg"),
                         "tcp_risk": c.get("tcp_risk"),
@@ -263,9 +347,13 @@ class AlloySearchTool(BaseTool):
                 
                 final_output.append(serialized)
 
-            return json.dumps(final_output, indent=2)
+            result_json = json.dumps(final_output, indent=2)
+            _store_cached_search(composition, limit, result_json)
+
+            return result_json
 
         except Exception as e:
+            logger.error(f"RAG Search failed: {e}")
             return f"Error executing RAG search: {str(e)}"
         finally:
             if client:

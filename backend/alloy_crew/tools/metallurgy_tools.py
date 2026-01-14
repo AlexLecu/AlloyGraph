@@ -328,26 +328,7 @@ class MetallurgyVerifierTool(BaseTool):
 
             fusion_meta = input_data.get("fusion_meta", {})
             is_kg_anchored = fusion_meta.get("is_kg_anchored", False)
-            
-            confidence = input_data.get("confidence")
-            if not isinstance(confidence, dict):
-                # Handle simplified input from agents (float/int)
-                if isinstance(confidence, (float, int)):
-                     confidence = {
-                        "score": float(confidence),
-                        "level": "MEDIUM" if confidence > 0.6 else "LOW", 
-                        "note": "Reconstructed from scalar"
-                     }
-                else:
-                    # Default fallback
-                    confidence = {
-                        "score": 0.50,
-                        "level": "MEDIUM",
-                        "kg_weight_used": 0.0,
-                        "similarity_distance": 999.0,
-                        "temperature_delta": 0.0,
-                        "matched_alloy": "None"
-                    }
+            confidence = input_data.get("confidence", {})
 
             if is_kg_anchored:
                 final_ys = raw_ys
