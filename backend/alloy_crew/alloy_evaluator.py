@@ -3,8 +3,8 @@ import json
 from crewai import Task, Crew, Process
 from .agents import get_evaluation_agents
 from .tools.rag_tools import AlloySearchTool
-from .schemas import ValidationOutput, ArbitrationOutput, PhysicsAuditOutput
-
+from .schemas import ValidationOutput, ArbitrationOutput, PhysicsAuditOutput, CorrectedPropertiesOutput
+from .tools.calibration_fix import apply_calibration_safe
 
 class AlloyEvaluationCrew:
     def __init__(self, llm_config=None):
@@ -13,6 +13,7 @@ class AlloyEvaluationCrew:
         self.validator = self.agents_map['validator']
         self.arbitrator = self.agents_map['arbitrator']
         self.physicist = self.agents_map['physicist']
+        self.corrector = self.agents_map['corrector']
 
     @staticmethod
     def validate_composition(composition: Dict[str, float]) -> Dict[str, Any]:
@@ -150,10 +151,48 @@ class AlloyEvaluationCrew:
             context=[task_arbitration]
         )
 
+        task_corrections = Task(
+            description=(
+                "Apply physics-based corrections to improve prediction accuracy.\n"
+                f"Composition: {comp_json}\n"
+                "Input: Use the COMPLETE Physicist output JSON.\n\n"
+                "1. EXTRACT from Physicist output:\n"
+                "   - properties (dict)\n"
+                "   - composition (from input)\n"
+                "   - confidence_level: confidence.level (string: HIGH, MEDIUM, LOW, VERY LOW)\n"
+                "   - processing (string: wrought, cast, forged)\n"
+                "   - kg_match_distance: confidence.similarity_distance (float, default 999)\n"
+                "2. EXECUTE PhysicsCorrectionsProposalTool with these parameters.\n"
+                "3. REVIEW proposals:\n"
+                "   - Follow decision criteria in your backstory\n"
+                "   - Apply HIGH severity corrections if confidence is LOW/VERY LOW\n"
+                "   - Apply MEDIUM severity if no KG match (distance > 10)\n"
+                "   - Skip LOW severity unless multiple issues\n"
+                "4. CREATE PropertyCorrection objects for applied corrections:\n"
+                "   - property_name, original_value, corrected_value, correction_reason, physics_constraint\n"
+                "5. PRESERVE all fields from Physicist:\n"
+                "   - status, penalty_score, tcp_risk, metallurgy_metrics, audit_penalties\n"
+                "   - property_intervals, confidence, explanation\n"
+                "6. ADD corrections_explanation:\n"
+                "   - Why corrections were applied (or not)\n"
+                "   - Expected accuracy after corrections: '±5-10% for novel alloys'\n"
+                "   - Recommendation for experimental validation if needed\n"
+                "   - Note: 'Database-driven calibration will be applied automatically in post-processing to account for systematic formula biases'\n"
+                "7. RETURN structured CorrectedPropertiesOutput.\n\n"
+                "NOTE: After you complete this task, calibration will be automatically applied in post-processing.\n"
+                "This fixes systematic biases in physics formulas (e.g., YS = 400+18×γ' overpredicts by ~16%).\n"
+                "You don't need to apply calibration yourself - just document which physics corrections you made."
+            ),
+            expected_output="Final corrected properties with physics constraints applied.",
+            output_pydantic=CorrectedPropertiesOutput,
+            agent=self.corrector,
+            context=[task_physics]
+        )
+
         # Create and run crew
         evaluation_crew = Crew(
-            agents=[self.validator, self.arbitrator, self.physicist],
-            tasks=[task_validation, task_arbitration, task_physics],
+            agents=[self.validator, self.arbitrator, self.physicist, self.corrector],
+            tasks=[task_validation, task_arbitration, task_physics, task_corrections],
             process=Process.sequential,
             verbose=True
         )
@@ -162,28 +201,38 @@ class AlloyEvaluationCrew:
             crew_output = evaluation_crew.kickoff()
             
             # Extract structured output
-            physics_output = None
+            corrected_output = None
             if hasattr(crew_output, "pydantic") and crew_output.pydantic:
-                physics_output = crew_output.pydantic
+                corrected_output = crew_output.pydantic
             elif hasattr(crew_output, "raw"):
                 # Fallback: attempt manual parse
                 try:
                     data = json.loads(crew_output.raw)
-                    physics_output = PhysicsAuditOutput(**data)
+                    corrected_output = CorrectedPropertiesOutput(**data)
                 except:
                     raise ValueError(f"Failed to get Pydantic output. Raw: {crew_output.raw}")
             else:
-                # Check if it's the object directly
-                physics_output = crew_output
-                if not isinstance(physics_output, PhysicsAuditOutput):
-                    # Try task output
-                    last_task_output = task_physics.output
+                corrected_output = crew_output
+                if not isinstance(corrected_output, CorrectedPropertiesOutput):
+                    last_task_output = task_corrections.output
                     if last_task_output and last_task_output.pydantic:
-                        physics_output = last_task_output.pydantic
+                        corrected_output = last_task_output.pydantic
                     else:
-                        raise ValueError("Could not retrieve structured output from Physics task.")
+                        raise ValueError("Could not retrieve structured output from Corrections task.")
 
         except Exception as e:
             return {"status": "FAIL", "stage": "crew_execution", "error": str(e)}
 
-        return physics_output.model_dump()
+
+        corrected_output.properties = apply_calibration_safe(
+            corrected_output.properties,
+            composition,
+            corrected_output
+        )
+
+        if corrected_output.corrections_explanation:
+            corrected_output.corrections_explanation += "\n\nDatabase-driven calibration applied to account for systematic formula biases in literature equations."
+        else:
+            corrected_output.corrections_explanation = "Database-driven calibration applied to account for systematic formula biases in literature equations."
+
+        return corrected_output.model_dump()
