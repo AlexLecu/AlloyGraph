@@ -1,0 +1,34 @@
+{
+  "target_key": "uts",
+  "target_name": "Ultimate Tensile Strength",
+  "best_r2": 0.7717174468634063,
+  "best_mae": 118.88063238091209,
+  "xgb_params": {
+    "n_estimators": 900,
+    "learning_rate": 0.03283012124619912,
+    "max_depth": 7,
+    "min_child_weight": 5,
+    "subsample": 0.8620850165523906,
+    "colsample_bytree": 0.6648419220458098,
+    "colsample_bylevel": 0.785034937139631,
+    "reg_lambda": 4.739944133197763,
+    "reg_alpha": 0.19939725711331796,
+    "gamma": 0.11110454005644771,
+    "tree_method": "hist",
+    "random_state": 42
+  },
+  "rf_params": {
+    "n_estimators": 600,
+    "max_depth": 16,
+    "min_samples_split": 5,
+    "min_samples_leaf": 2,
+    "max_features": "sqrt",
+    "bootstrap": true,
+    "random_state": 42
+  },
+  "exclude_phase_compositions": false,
+  "bounds": [
+    50,
+    2500
+  ]
+}

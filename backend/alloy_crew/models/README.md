@@ -41,9 +41,27 @@ Provides a clean API for the rest of the application:
 - [**saved_models/**](file:///Users/alexlecu/PycharmProjects/AlloyMind/backend/alloy_crew/models/saved_models/): Contains the serialized `.pkg` files. These files bundle the trained ensemble along with the feature names required for alignment.
 
 ## Accuracy (Current Benchmarks)
-| Metric | Avg R² (5-Fold CV) | Avg MAE |
-| :--- | :--- | :--- |
-| Yield Strength | 0.743 | 108 MPa |
-| Tensile Strength | 0.712 | 132 MPa |
-| Elongation | 0.418 | 10.2% |
-| Elastic Modulus | 0.498 | 16.5 GPa |
+| Metric | CV R² (5-Fold) | CV MAE | Holdout R² | Holdout MAE |
+| :--- | :--- | :--- | :--- | :--- |
+| Yield Strength | 0.806 | 90.4 MPa | 0.611 | 143.9 MPa |
+| Tensile Strength | 0.758 | 125.6 MPa | 0.873 | 96.5 MPa |
+| Elongation | 0.452 | 8.7% | 0.442 | 7.9% |
+| Elastic Modulus | 0.504 | 15.1 GPa | 0.869 | 9.1 GPa |
+
+## Hyperparameter Tuning
+
+Tuned parameters are stored in `tuned_params/` folder:
+- `ys.json` - Yield Strength (tuned R²: 0.765)
+- `uts.json` - Ultimate Tensile Strength (tuned R²: 0.772)
+- `el.json` - Elongation (tuned R²: 0.530)
+- `em.json` - Elastic Modulus (tuned R²: 0.656)
+
+To re-tune hyperparameters:
+```bash
+python tune_hyperparameters.py
+```
+
+To train models with tuned parameters:
+```bash
+python train_ml_models.py
+```
