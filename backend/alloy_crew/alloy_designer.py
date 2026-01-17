@@ -7,7 +7,8 @@ from crewai import Crew, Task
 from .agents import get_design_agents
 from .tools.rag_tools import AlloySearchTool
 from .tools.calibration_fix import apply_calibration_safe
-from .schemas import ValidationOutput, ArbitrationOutput, PhysicsAuditOutput, CorrectedPropertiesOutput, DesignOutput, OptimizationOutput
+from .tools.metallurgy_tools import validate_property_coherency, enforce_physics_constraints, cleanup_llm_output, cleanup_confidence, warnings_to_penalties
+from .schemas import ValidationOutput, ArbitrationOutput, PhysicsAuditOutput, CorrectedPropertiesOutput, DesignOutput, OptimizationOutput, AuditPenalty
 
 class FailureMode(Enum):
     """Structured classification of design failure reasons."""
@@ -419,6 +420,34 @@ class IterativeDesignCrew:
             physics_output
         )
 
+        # === PHYSICS ENFORCEMENT (Hard Constraints) ===
+        confidence = physics_output.confidence if isinstance(physics_output.confidence, dict) else {}
+        kg_distance = confidence.get("similarity_distance", 999)
+        confidence_level = confidence.get("level", "MEDIUM")
+
+        physics_output.properties, physics_corrections = enforce_physics_constraints(
+            properties=physics_output.properties,
+            composition=designer_comp,
+            temperature_c=temperature,
+            processing=processed_route,
+            confidence_level=confidence_level,
+            kg_distance=kg_distance
+        )
+
+        if physics_corrections:
+            print(f"⚡ Physics enforcement applied {len(physics_corrections)} corrections:")
+            for corr in physics_corrections:
+                print(f"   - {corr}")
+
+        # Re-run coherency checks with POST-calibration values
+        non_coherency_penalties = [
+            p for p in physics_output.audit_penalties
+            if not any(x in p.name.lower() for x in ["coherency", "mismatch"])
+        ]
+        fresh_warnings = validate_property_coherency(physics_output.properties, designer_comp)
+        fresh_penalties = [AuditPenalty(**p) for p in warnings_to_penalties(fresh_warnings)]
+        physics_output.audit_penalties = non_coherency_penalties + fresh_penalties
+
         try:
             summarizer = self.summarizer
             comp_str = ", ".join([f"{elem}: {wt:.1f}%" for elem, wt in sorted(designer_comp.items(), key=lambda x: x[1], reverse=True)[:5]])
@@ -456,13 +485,21 @@ class IterativeDesignCrew:
             print(f"⚠️  Could not generate summary: {e}")
             summary_text = physics_output.explanation  # Fallback to physicist explanation
 
+        # Cleanup LLM output (normalize keys, filter invalid metrics)
+        clean_properties, clean_intervals, clean_metrics = cleanup_llm_output(
+            physics_output.properties,
+            physics_output.property_intervals,
+            physics_output.metallurgy_metrics or {},
+            designer_comp
+        )
+
         return {
             "composition": designer_comp,
             "processing": processed_route,
-            "properties": physics_output.properties,
-            "property_intervals": physics_output.property_intervals,
-            "metallurgy_metrics": physics_output.metallurgy_metrics,
-            "confidence": physics_output.confidence,
+            "properties": clean_properties,
+            "property_intervals": clean_intervals,
+            "metallurgy_metrics": clean_metrics,
+            "confidence": cleanup_confidence(physics_output.confidence),
             "explanation": summary_text,
             "novelty": novelty_new_design,
             "penalty_score": physics_output.penalty_score,
@@ -698,6 +735,17 @@ class IterativeDesignCrew:
                             result["properties"],
                             current_comp,
                             phys_output
+                        )
+
+                        # Physics enforcement for direct mode
+                        conf = phys_output.confidence if isinstance(phys_output.confidence, dict) else {}
+                        result["properties"], _ = enforce_physics_constraints(
+                            properties=result["properties"],
+                            composition=current_comp,
+                            temperature_c=temperature,
+                            processing=processing,
+                            confidence_level=conf.get("level", "MEDIUM"),
+                            kg_distance=conf.get("similarity_distance", 999)
                         )
                     else:
                         raw_phys = getattr(self.task_physics.output, "raw", "")
