@@ -18,6 +18,7 @@ together>=1.5.33
 # AI/ML - Data Science
 # ============================================
 numpy>=2.4.0
+optuna>=4.3.0
 pandas>=2.3.3
 scikit-learn>=1.8.0
 xgboost>=3.1.2

@@ -1,0 +1,34 @@
+{
+  "target_key": "elongation",
+  "target_name": "Elongation",
+  "best_r2": 0.5297431169300469,
+  "best_mae": 7.982236456438204,
+  "xgb_params": {
+    "n_estimators": 600,
+    "learning_rate": 0.014126805332235972,
+    "max_depth": 8,
+    "min_child_weight": 8,
+    "subsample": 0.8995377972291558,
+    "colsample_bytree": 0.6311218869220119,
+    "colsample_bylevel": 0.9481778978942556,
+    "reg_lambda": 9.089037536525568,
+    "reg_alpha": 1.3909270755519283,
+    "gamma": 0.22353657086483925,
+    "tree_method": "hist",
+    "random_state": 42
+  },
+  "rf_params": {
+    "n_estimators": 300,
+    "max_depth": 9,
+    "min_samples_split": 3,
+    "min_samples_leaf": 2,
+    "max_features": "sqrt",
+    "bootstrap": true,
+    "random_state": 42
+  },
+  "exclude_phase_compositions": true,
+  "bounds": [
+    0,
+    80
+  ]
+}

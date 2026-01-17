@@ -4,6 +4,12 @@ from typing import Type, Dict, Any
 import json
 import math
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+from ..models.feature_engineering import compute_alloy_features
+
 class DataFusionInput(BaseModel):
     """Input for data fusion."""
     composition: Dict[str, float] = Field(..., description="The composition of the alloy being evaluated.")
@@ -77,7 +83,22 @@ class DataFusionTool(BaseTool):
             confidence_level = "MEDIUM"
         else:
             confidence_level = "LOW"
-        
+
+        # Fusion Weighting Transparency
+        ml_weight = 1.0 - kg_weight
+        kg_pct = round(kg_weight * 100, 1)
+        ml_pct = round(ml_weight * 100, 1)
+
+        # Generate clear decision rationale
+        if similarity_dist < 0.5:
+            rationale = f"Excellent match to {matched_alloy_name} (distance={similarity_dist:.2f}) → Heavily anchored to experimental data"
+        elif similarity_dist < 2.0:
+            rationale = f"Good similarity to {matched_alloy_name} (distance={similarity_dist:.2f}) → Blended experimental + ML"
+        elif similarity_dist < 3.5:
+            rationale = f"Moderate match to {matched_alloy_name} (distance={similarity_dist:.2f}) → Balanced fusion"
+        else:
+            rationale = f"Weak match (distance={similarity_dist:.2f}) → ML-dominated prediction"
+
         return {
             "score": round(final_score, 3),
             "level": confidence_level,
@@ -90,7 +111,14 @@ class DataFusionTool(BaseTool):
             "kg_weight_used": round(kg_weight, 3),
             "similarity_distance": round(similarity_dist, 4),
             "temperature_delta": round(abs(temp_delta), 1),
-            "matched_alloy": matched_alloy_name
+            "matched_alloy": matched_alloy_name,
+            # Explicit fusion weighting breakdown
+            "fusion_weighting": {
+                "kg_contribution_pct": kg_pct,
+                "ml_contribution_pct": ml_pct,
+                "decision_rationale": rationale,
+                "data_source_primary": "Knowledge Graph" if kg_weight > 0.5 else "ML Model"
+            }
         }
 
     def _infer_processing_type(self, composition: Dict[str, float]) -> str:
@@ -119,7 +147,7 @@ class DataFusionTool(BaseTool):
         
         return sum(agreements) / len(agreements) if agreements else 0.5
 
-    def _parse_property_string(self, prop_str: str, target_temp: float) -> tuple:
+    def _parse_property_string(self, prop_str: str, target_temp: float, is_strength: bool = True) -> tuple:
         """Parse property string like '725.0 MPa @ 538.0C' and return (value, temp) if match."""
         for entry in prop_str.split(','):
             try:
@@ -129,7 +157,7 @@ class DataFusionTool(BaseTool):
                     
                 val_str, temp_str = parts
                 val = float(val_str.replace('MPa', '').replace('%', '').replace('GPa', '').strip())
-                if 'GPa' in entry: 
+                if 'GPa' in entry and is_strength:
                     val *= 1000
                     
                 temp = float(temp_str.replace('C', '').strip())
@@ -168,7 +196,8 @@ class DataFusionTool(BaseTool):
                 rag_props = candidate.get("properties", {})
                 prop_str = rag_props.get(alt_key, "")
                 if prop_str:
-                    val, temp = self._parse_property_string(prop_str, target_temp)
+                    is_strength = (target_key != "Elastic Modulus")
+                    val, temp = self._parse_property_string(prop_str, target_temp, is_strength=is_strength)
                     if val is not None:
                         extracted[target_key] = val
                         matched_temp = temp
@@ -227,24 +256,34 @@ class DataFusionTool(BaseTool):
             matched_candidate = None
             similarity_dist = 999.0
             detected_family = "unknown"
-            
+
+            # Extract user's processing choice first (before KG matching)
+            input_processing = kwargs.get("processing", "unknown")
+            if input_processing == "unknown":
+                input_processing = self._infer_processing_type(composition)
+
             try:
                 candidates = json.loads(rag_context)
-                
+
+                logger.info(f"KG Search: Mode={kwargs.get('mode', 'evaluate')}, Found={len(candidates) if candidates else 0} candidates")
+
                 if candidates and isinstance(candidates, list) and len(candidates) > 0:
                     matched_candidate = candidates[0]
                     similarity_dist = matched_candidate.get("_distance", 0.0)
+
+                    # Log selected match
+                    logger.info(f"Selected KG Match: {matched_candidate.get('name', 'Unknown')} (dist={similarity_dist})")
+                    
+                    if similarity_dist == 0.0 and "_distance" not in matched_candidate:
+                         logger.warning("KG Match missing _distance field, defaulting to 0.0")
                     
                     raw_proc = matched_candidate.get("processing", "unknown").lower()
-                    if any(x in raw_proc for x in ["cast", "crystal", "ds"]): 
+                    if any(x in raw_proc for x in ["cast", "crystal", "ds"]):
                         detected_family = "cast"
-                    else: 
+                    else:
                         detected_family = "wrought"
-                    
-                    input_processing = kwargs.get("processing", "unknown")
-                    if input_processing == "unknown":
-                        input_processing = self._infer_processing_type(composition)
-                    
+
+                    # Check for processing mismatch (user vs KG candidate)
                     cand_proc = matched_candidate.get("processing", "unknown").lower()
                     processing_mismatch = False
                     if input_processing == "cast" and "cast" not in cand_proc:
@@ -256,8 +295,8 @@ class DataFusionTool(BaseTool):
                         matched_candidate = None
                         similarity_dist = 999.0
 
-            except Exception:
-                pass
+            except Exception as e:
+                logger.error(f"KG Search processing failed: {e}")
 
             # 3. ANCHORING DECISION
             kg_props = {}
@@ -317,7 +356,7 @@ class DataFusionTool(BaseTool):
             else:
                 ml_weight = 1.0
                 kg_weight = 0.0
-                
+
                 confidence = {
                     "score": round(ml_confidence * 0.7, 3),
                     "level": "MEDIUM" if ml_confidence > 0.65 else "LOW",
@@ -330,7 +369,14 @@ class DataFusionTool(BaseTool):
                     "kg_weight_used": 0.0,
                     "similarity_distance": 999.0,
                     "temperature_delta": 0.0,
-                    "matched_alloy": "None"
+                    "matched_alloy": "None",
+                    # Fusion weighting (ML-only case)
+                    "fusion_weighting": {
+                        "kg_contribution_pct": 0.0,
+                        "ml_contribution_pct": 100.0,
+                        "decision_rationale": "No similar alloys found in database → Pure ML prediction (exploratory composition)",
+                        "data_source_primary": "ML Model"
+                    }
                 }
 
             # Calculate fused property values with uncertainty intervals
@@ -339,7 +385,7 @@ class DataFusionTool(BaseTool):
             final_el = (raw_el * ml_weight) + (kg_props.get("Elongation", raw_el) * kg_weight)
             final_em = (raw_em * ml_weight) + (kg_props.get("Elastic Modulus", raw_em) * kg_weight)
             
-            conf_score = confidence.get("score", 0.7)
+            conf_score = float(confidence.get("score", 0.7))
             if conf_score > 0.80:
                 uncertainty_multiplier = 0.6  # Narrow intervals for high confidence
             elif conf_score > 0.55:
@@ -384,9 +430,25 @@ class DataFusionTool(BaseTool):
             
             # Add KG computed features if available
             if kg_metallurgy.get("Density"):
-                final_properties_flat["Density"] = kg_metallurgy["Density"]
+                dens_val = kg_metallurgy["Density"]
+                final_properties_flat["Density"] = dens_val
             if kg_metallurgy.get("Gamma Prime"):
-                final_properties_flat["Gamma Prime"] = kg_metallurgy["Gamma Prime"]
+                gp_val = kg_metallurgy["Gamma Prime"]
+                final_properties_flat["Gamma Prime"] = gp_val
+            
+            # FALLBACK: If KG did not provide Density/GP, calculate them now using physics models
+            if "Density" not in final_properties_flat or "Gamma Prime" not in final_properties_flat:
+                # Calculate features
+                calc_features = compute_alloy_features(composition)
+                
+                if "Density" not in final_properties_flat:
+                    dens_val = calc_features.get("density_calculated_gcm3", 8.5)
+                    final_properties_flat["Density"] = round(dens_val, 2)
+                
+                if "Gamma Prime" not in final_properties_flat:
+                    # feature_engineering returns fraction (0.0-1.0), convert to %
+                    gp_val = calc_features.get("gamma_prime_estimated_vol_pct", 0.0) 
+                    final_properties_flat["Gamma Prime"] = round(gp_val, 1)
 
             metrics = {
                 "rag_match_similarity": similarity_dist,
@@ -401,9 +463,11 @@ class DataFusionTool(BaseTool):
                     "kg_sss_wt_pct": kg_metallurgy.get("SSS_wt_pct")
                 })
             
+            final_processing = input_processing if input_processing != "unknown" else detected_family
+
             output = {
                 "summary": f"Data Fusion Complete. Status: {kg_note}",
-                "processing": detected_family,
+                "processing": final_processing,
                 "anchored_properties": final_properties_flat,
                 "property_intervals": final_intervals,
                 "metallurgy_metrics": metrics,

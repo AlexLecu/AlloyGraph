@@ -163,3 +163,36 @@ class PhysicsAuditOutput(BaseModel):
     errors: List[str] = []
     confidence: Dict[str, Any] = Field(default_factory=dict)
     explanation: str = ""
+
+
+class PropertyCorrection(BaseModel):
+    """Single property correction with reasoning."""
+    property_name: str = Field(..., description="Property that was corrected")
+    original_value: float = Field(..., description="Original ML/fusion prediction")
+    corrected_value: float = Field(..., description="Physics-corrected value")
+    correction_reason: str = Field(..., description="Why this correction was applied")
+    physics_constraint: str = Field("", description="The physics rule or constraint applied")
+
+
+class CorrectedPropertiesOutput(BaseModel):
+    """Output from physics corrections agent."""
+    status: Literal["PASS", "REJECT", "FAIL"]
+    processing: str = Field(..., description="Alloy processing type")
+    penalty_score: float = 0.0
+    tcp_risk: str = "LOW"
+    properties: Dict[str, Any] = Field(..., description="FINAL corrected properties")
+    property_intervals: Dict[str, Any] = Field(default_factory=dict)
+    metallurgy_metrics: Dict[str, Any]
+    audit_penalties: List[AuditPenalty] = []
+    recommended_repairs: List[str] = []
+    errors: List[str] = []
+    confidence: Dict[str, Any] = Field(default_factory=dict)
+    explanation: str = Field("", description="Metallurgical analysis from Physicist")
+    corrections_applied: List[PropertyCorrection] = Field(
+        default_factory=list,
+        description="List of corrections applied with reasoning"
+    )
+    corrections_explanation: str = Field(
+        "",
+        description="Overall explanation of why corrections were needed and their implications"
+    )

@@ -1,0 +1,34 @@
+{
+  "target_key": "elasticity",
+  "target_name": "Elastic Modulus",
+  "best_r2": 0.6555373205730078,
+  "best_mae": 13.192457891402492,
+  "xgb_params": {
+    "n_estimators": 500,
+    "learning_rate": 0.03757654095462535,
+    "max_depth": 10,
+    "min_child_weight": 1,
+    "subsample": 0.7686752485707877,
+    "colsample_bytree": 0.8070613535861747,
+    "colsample_bylevel": 0.6410561821136915,
+    "reg_lambda": 9.848637039269562,
+    "reg_alpha": 1.4018260875936444,
+    "gamma": 0.31819610715153834,
+    "tree_method": "hist",
+    "random_state": 42
+  },
+  "rf_params": {
+    "n_estimators": 200,
+    "max_depth": 11,
+    "min_samples_split": 12,
+    "min_samples_leaf": 3,
+    "max_features": "sqrt",
+    "bootstrap": true,
+    "random_state": 42
+  },
+  "exclude_phase_compositions": true,
+  "bounds": [
+    50,
+    350
+  ]
+}

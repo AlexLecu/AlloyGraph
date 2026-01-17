@@ -2,6 +2,9 @@ from crewai.tools import BaseTool
 from pydantic import BaseModel
 from typing import Dict, Type, Any, List
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 from ..models.feature_engineering import compute_alloy_features, MD_VALUES
 from ..schemas import ElementSuggestion, SuggestionGroup, CompositionSensitivityInput
@@ -11,8 +14,8 @@ from ..schemas import ElementSuggestion, SuggestionGroup, CompositionSensitivity
 # =============================================================================
 
 # TCP risk thresholds (Reed 2006, Pollock & Tin 2006)
-MD_TCP_THRESHOLD = 0.98  # TCP risk threshold
-MD_HIGH_RISK = 0.99      # High risk threshold
+MD_TCP_THRESHOLD = 1.00  # Elevated risk threshold - suggest optimization above this
+MD_HIGH_RISK = 1.05      # Critical risk threshold - strongly recommend optimization
 
 # Strengthening coefficients
 GP_STRENGTH_COEFFICIENT = 35.0  # MPa per vol% γ' (Pollock & Tin 2006)
@@ -81,7 +84,7 @@ class AlloyOptimizationAdvisor(BaseTool):
             if current > 1.0:  # Only suggest if element is present
                 sensitivity = self._calculate_md_sensitivity(composition, elem)
                 
-                # Calculate reduction needed (aim for Md < 0.98)
+                # Calculate reduction needed (aim for Md < 1.0 for optimal stability)
                 delta_needed = min(current - 0.5, current * 0.3)  # Reduce by 30% or to 0.5%, whichever is less
                 expected_md_change = sensitivity * (-delta_needed)
                 
@@ -193,6 +196,49 @@ class AlloyOptimizationAdvisor(BaseTool):
             rationale=f"Need +{int(delta_needed)} MPa. Increase γ' formers (Al, Ti, Ta) or solid solution strengtheners (Mo, W)."
         )
 
+    def _generate_gp_reduction_suggestions(
+        self,
+        composition: Dict[str, float],
+        current_gp: float,
+        target_gp: float
+    ) -> SuggestionGroup:
+        """Generate suggestions to reduce gamma prime fraction (for low-γ' alloys like NIMOCAST 263)."""
+        suggestions = []
+
+        gp_excess = current_gp - target_gp
+
+        # Suggest reducing formers (Al, Ti, Ta have biggest impact)
+        former_priorities = [("Al", "Primary"), ("Ti", "Secondary"), ("Ta", "Tertiary")]
+
+        for elem, priority in former_priorities:
+            current = composition.get(elem, 0)
+            if current > 0.5:  # Only if element is present
+                sensitivity = self._calculate_gp_sensitivity(composition, elem)
+
+                if abs(sensitivity) > 0.1:  # Only if sensitive
+                    # Calculate reduction needed
+                    wt_reduction = min(current - 0.2, gp_excess / (abs(sensitivity) + 0.01))
+                    wt_reduction = max(0.5, min(wt_reduction, current * 0.5))  # Reduce by 50% max
+
+                    expected_gp_change = -wt_reduction * abs(sensitivity)
+
+                    suggestions.append(ElementSuggestion(
+                        element=elem,
+                        current_wt=round(current, 2),
+                        suggested_wt=round(current - wt_reduction, 2),
+                        delta_wt=round(-wt_reduction, 2),
+                        reason=f"Reduce {elem} to lower γ' fraction (currently {current_gp:.1f}%, target {target_gp:.1f}%)",
+                        expected_gp_change=round(expected_gp_change, 1),
+                        trade_offs=f"Will reduce YS by ~{int(abs(expected_gp_change) * GP_STRENGTH_COEFFICIENT)} MPa"
+                    ))
+
+        return SuggestionGroup(
+            issue=f"Gamma Prime Too High ({current_gp:.1f}% >> {target_gp:.1f}%)",
+            priority="CRITICAL",
+            suggestions=suggestions[:3],
+            rationale=f"Current γ'={current_gp:.1f}% far exceeds target {target_gp:.1f}%. This is WRONG alloy class! Reduce Al+Ti+Ta content significantly."
+        )
+
     def _run(
         self,
         composition: Dict[str, float],
@@ -218,15 +264,42 @@ class AlloyOptimizationAdvisor(BaseTool):
                 tcp_group = self._generate_tcp_suggestions(composition, current_md, processing)
                 suggestion_groups.append(tcp_group)
             
-            # Check if strength is an issue
+            # CRITICAL: Check if gamma prime target exists and is violated
+            target_gp = target_properties.get("Gamma Prime", 0)
+            gp_tolerance = 2.0  # Default minimum tolerance
+            
+            if target_gp > 0:
+                gp_tolerance = max(2.0, target_gp * 0.2)  # Same as in alloy_designer.py
+                gp_max = target_gp + gp_tolerance
+
+                if current_gp > gp_max:
+                    # γ' is TOO HIGH - this is the MOST CRITICAL issue for low-γ' alloys!
+                    gp_group = self._generate_gp_reduction_suggestions(
+                        composition, current_gp, target_gp
+                    )
+                    # Put this FIRST - it's critical!
+                    suggestion_groups.insert(0, gp_group)
+                elif current_gp < (target_gp - gp_tolerance):
+                    # γ' is too LOW - need to add formers (handled by strength suggestions)
+                    pass
+
+            # Check if strength is an issue (but not if γ' is way too high)
             current_ys = current_properties.get("Yield Strength", 0)
             target_ys = target_properties.get("Yield Strength", 0)
+
+            # Only suggest adding formers if we're not already way over γ' target
             if target_ys > 0 and current_ys < target_ys:
-                strength_group = self._generate_strength_suggestions(
-                    composition, current_ys, target_ys, processing
-                )
-                suggestion_groups.append(strength_group)
-            
+                # Check if we can afford to add more γ' formers
+                can_add_formers = True
+                if target_gp > 0 and current_gp > (target_gp + gp_tolerance):
+                    can_add_formers = False  # Don't suggest adding Al/Ti if γ' already too high!
+
+                if can_add_formers:
+                    strength_group = self._generate_strength_suggestions(
+                        composition, current_ys, target_ys, processing
+                    )
+                    suggestion_groups.append(strength_group)
+
             # Build output
             output = {
                 "status": "OK",
@@ -242,4 +315,5 @@ class AlloyOptimizationAdvisor(BaseTool):
             return json.dumps(output, indent=2)
             
         except Exception as e:
+            logger.error(f"Optimization failed: {e}")
             return json.dumps({"status": "ERROR", "error": str(e)})

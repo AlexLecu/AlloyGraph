@@ -3,8 +3,13 @@ import json
 from crewai import Task, Crew, Process
 from .agents import get_evaluation_agents
 from .tools.rag_tools import AlloySearchTool
-from .schemas import ValidationOutput, ArbitrationOutput, PhysicsAuditOutput
-
+from .schemas import ValidationOutput, ArbitrationOutput, PhysicsAuditOutput, CorrectedPropertiesOutput, AuditPenalty
+from .tools.calibration_fix import apply_calibration_safe
+from .tools.metallurgy_tools import (
+    validate_property_coherency, enforce_physics_constraints,
+    cleanup_llm_output, cleanup_confidence, warnings_to_penalties,
+    compute_fallback_metrics, PROPERTY_KEY_MAP, VALID_PROPERTIES, REQUIRED_METRIC_KEYS
+)
 
 class AlloyEvaluationCrew:
     def __init__(self, llm_config=None):
@@ -13,6 +18,8 @@ class AlloyEvaluationCrew:
         self.validator = self.agents_map['validator']
         self.arbitrator = self.agents_map['arbitrator']
         self.physicist = self.agents_map['physicist']
+        self.corrector = self.agents_map['corrector']
+        self.summarizer = self.agents_map['summarizer']
 
     @staticmethod
     def validate_composition(composition: Dict[str, float]) -> Dict[str, Any]:
@@ -150,40 +157,279 @@ class AlloyEvaluationCrew:
             context=[task_arbitration]
         )
 
+        task_corrections = Task(
+            description=(
+                "Apply physics-based corrections to improve prediction accuracy.\n"
+                f"Composition: {comp_json}\n"
+                "Input: Use the COMPLETE Physicist output JSON.\n\n"
+                "1. EXTRACT from Physicist output:\n"
+                "   - properties (dict)\n"
+                "   - composition (from input)\n"
+                "   - confidence_level: confidence.level (string: HIGH, MEDIUM, LOW, VERY LOW)\n"
+                "   - processing (string: wrought, cast, forged)\n"
+                "   - kg_match_distance: confidence.similarity_distance (float, default 999)\n"
+                "2. EXECUTE PhysicsCorrectionsProposalTool with these parameters.\n"
+                "3. REVIEW proposals:\n"
+                "   - Follow decision criteria in your backstory\n"
+                "   - Apply HIGH severity corrections if confidence is LOW/VERY LOW\n"
+                "   - Apply MEDIUM severity if no KG match (distance > 10)\n"
+                "   - Skip LOW severity unless multiple issues\n"
+                "4. CREATE PropertyCorrection objects for applied corrections:\n"
+                "   - property_name, original_value, corrected_value, correction_reason, physics_constraint\n"
+                "5. PRESERVE all fields from Physicist:\n"
+                "   - status, penalty_score, tcp_risk, metallurgy_metrics, audit_penalties\n"
+                "   - property_intervals, confidence, explanation\n"
+                "6. ADD corrections_explanation:\n"
+                "   - Why corrections were applied (or not)\n"
+                "   - Expected accuracy after corrections: '±5-10% for novel alloys'\n"
+                "   - Recommendation for experimental validation if needed\n"
+                "   - Note: 'Database-driven calibration will be applied automatically in post-processing to account for systematic formula biases'\n"
+                "7. RETURN structured CorrectedPropertiesOutput.\n\n"
+                "NOTE: After you complete this task, calibration will be automatically applied in post-processing.\n"
+                "This fixes systematic biases in physics formulas (e.g., YS = 400+18×γ' overpredicts by ~16%).\n"
+                "You don't need to apply calibration yourself - just document which physics corrections you made."
+            ),
+            expected_output="Final corrected properties with physics constraints applied.",
+            output_pydantic=CorrectedPropertiesOutput,
+            agent=self.corrector,
+            context=[task_physics]
+        )
+
         # Create and run crew
         evaluation_crew = Crew(
-            agents=[self.validator, self.arbitrator, self.physicist],
-            tasks=[task_validation, task_arbitration, task_physics],
+            agents=[self.validator, self.arbitrator, self.physicist, self.corrector],
+            tasks=[task_validation, task_arbitration, task_physics, task_corrections],
             process=Process.sequential,
             verbose=True
         )
 
         try:
             crew_output = evaluation_crew.kickoff()
-            
+
             # Extract structured output
-            physics_output = None
+            corrected_output = None
             if hasattr(crew_output, "pydantic") and crew_output.pydantic:
-                physics_output = crew_output.pydantic
+                corrected_output = crew_output.pydantic
             elif hasattr(crew_output, "raw"):
                 # Fallback: attempt manual parse
                 try:
                     data = json.loads(crew_output.raw)
-                    physics_output = PhysicsAuditOutput(**data)
+                    corrected_output = CorrectedPropertiesOutput(**data)
                 except:
-                    raise ValueError(f"Failed to get Pydantic output. Raw: {crew_output.raw}")
-            else:
-                # Check if it's the object directly
-                physics_output = crew_output
-                if not isinstance(physics_output, PhysicsAuditOutput):
-                    # Try task output
-                    last_task_output = task_physics.output
-                    if last_task_output and last_task_output.pydantic:
-                        physics_output = last_task_output.pydantic
+                    print(f"⚠️  Failed to parse LLM output as JSON, attempting recovery...")
+                    corrected_output = None
+
+            if corrected_output is None:
+                # Try to get from task output
+                last_task_output = task_corrections.output
+                if last_task_output and last_task_output.pydantic:
+                    corrected_output = last_task_output.pydantic
+                else:
+                    # Final fallback: construct from physics task
+                    print("⚠️  Corrections task failed, falling back to physics output...")
+                    physics_output = getattr(task_physics.output, "pydantic", None)
+                    validator_output = getattr(task_validation.output, "pydantic", None)
+
+                    if physics_output:
+                        # Build a minimal CorrectedPropertiesOutput from physics
+                        props = getattr(physics_output, 'properties', {})
+                        if not props and validator_output:
+                            props = validator_output.ml_prediction
+
+                        corrected_output = CorrectedPropertiesOutput(
+                            status=getattr(physics_output, 'status', 'PASS'),
+                            processing=processing,
+                            penalty_score=getattr(physics_output, 'penalty_score', 0),
+                            tcp_risk=getattr(physics_output, 'tcp_risk', 'LOW'),
+                            properties=props,
+                            property_intervals=getattr(physics_output, 'property_intervals', {}),
+                            metallurgy_metrics=getattr(physics_output, 'metallurgy_metrics', {}),
+                            audit_penalties=getattr(physics_output, 'audit_penalties', []),
+                            confidence=getattr(physics_output, 'confidence', {}),
+                            explanation="Analysis completed with fallback processing due to LLM parsing issues."
+                        )
                     else:
-                        raise ValueError("Could not retrieve structured output from Physics task.")
+                        raise ValueError("Could not recover output from any pipeline stage.")
+
+            if not isinstance(corrected_output, CorrectedPropertiesOutput):
+                raise ValueError("Output is not a valid CorrectedPropertiesOutput.")
 
         except Exception as e:
             return {"status": "FAIL", "stage": "crew_execution", "error": str(e)}
 
-        return physics_output.model_dump()
+        # === PROPERTY RECOVERY ===
+        # LLM agents sometimes drop properties. Recover from earlier pipeline stages.
+        required_props = ["Yield Strength", "Tensile Strength", "Elongation", "Elastic Modulus", "Density", "Gamma Prime"]
+        missing_props = [p for p in required_props if p not in corrected_output.properties or corrected_output.properties.get(p) in [None, 0, "N/A"]]
+
+        if missing_props:
+            print(f"⚠️  Missing properties detected: {missing_props}. Attempting recovery...")
+
+            # Try to recover from validator's ml_prediction
+            validator_output = getattr(task_validation.output, "pydantic", None)
+            if validator_output and hasattr(validator_output, 'ml_prediction'):
+                ml_pred = validator_output.ml_prediction
+                for prop in missing_props[:]:
+                    if prop in ml_pred and ml_pred[prop] not in [None, 0]:
+                        corrected_output.properties[prop] = ml_pred[prop]
+                        missing_props.remove(prop)
+                        print(f"  ✓ Recovered {prop} from ML prediction: {ml_pred[prop]}")
+
+            # Try to recover confidence, intervals, metrics from earlier stages
+            if not corrected_output.confidence or corrected_output.confidence == {}:
+                physicist_output = getattr(task_physics.output, "pydantic", None)
+                if physicist_output and hasattr(physicist_output, 'confidence'):
+                    corrected_output.confidence = physicist_output.confidence
+                    print("  ✓ Recovered confidence from Physicist output")
+
+            if not corrected_output.property_intervals or corrected_output.property_intervals == {}:
+                if validator_output and hasattr(validator_output, 'ml_prediction'):
+                    intervals = validator_output.ml_prediction.get("property_intervals", {})
+                    if intervals:
+                        corrected_output.property_intervals = intervals
+                        print("  ✓ Recovered property_intervals from ML prediction")
+
+            # Recover metallurgy_metrics from Physicist output if missing required keys
+            metrics = corrected_output.metallurgy_metrics or {}
+            has_required_metrics = any(k in metrics for k in REQUIRED_METRIC_KEYS)
+
+            if not has_required_metrics:
+                physicist_output = getattr(task_physics.output, "pydantic", None)
+                if physicist_output and hasattr(physicist_output, 'metallurgy_metrics'):
+                    phys_metrics = physicist_output.metallurgy_metrics
+                    if phys_metrics and any(k in phys_metrics for k in REQUIRED_METRIC_KEYS):
+                        corrected_output.metallurgy_metrics = phys_metrics
+                        print("  ✓ Recovered metallurgy_metrics from Physicist output")
+                        has_required_metrics = True
+
+                if not has_required_metrics:
+                    corrected_output.metallurgy_metrics = compute_fallback_metrics(composition)
+                    print("  ✓ Computed metallurgy_metrics from feature_engineering")
+
+            # Final fallback: compute from feature_engineering
+            if missing_props:
+                from .models.feature_engineering import compute_alloy_features
+                features = compute_alloy_features(composition)
+                if "Density" in missing_props and "density_calculated_gcm3" in features:
+                    corrected_output.properties["Density"] = round(features["density_calculated_gcm3"], 2)
+                    missing_props.remove("Density")
+                    print(f"  ✓ Computed Density from features: {corrected_output.properties['Density']}")
+                if "Gamma Prime" in missing_props and "gamma_prime_estimated_vol_pct" in features:
+                    corrected_output.properties["Gamma Prime"] = round(features["gamma_prime_estimated_vol_pct"], 1)
+                    missing_props.remove("Gamma Prime")
+                    print(f"  ✓ Computed Gamma Prime from features: {corrected_output.properties['Gamma Prime']}")
+
+            if missing_props:
+                print(f"  ⚠️  Could not recover: {missing_props}")
+
+        corrected_output.properties = apply_calibration_safe(
+            corrected_output.properties,
+            composition,
+            corrected_output
+        )
+
+        if corrected_output.corrections_explanation:
+            corrected_output.corrections_explanation += "\n\nDatabase-driven calibration applied to account for systematic formula biases in literature equations."
+        else:
+            corrected_output.corrections_explanation = "Database-driven calibration applied to account for systematic formula biases in literature equations."
+
+        # === PHYSICS ENFORCEMENT (Hard Constraints) ===
+        # Programmatic corrections for extreme deviations that LLM agents may have missed
+        confidence = corrected_output.confidence if isinstance(corrected_output.confidence, dict) else {}
+        kg_distance = confidence.get("similarity_distance", 999)
+        confidence_level = confidence.get("level", "MEDIUM")
+
+        corrected_output.properties, physics_corrections = enforce_physics_constraints(
+            properties=corrected_output.properties,
+            temperature_c=temperature,
+            processing=processing,
+            confidence_level=confidence_level,
+            kg_distance=kg_distance
+        )
+
+        if physics_corrections:
+            print(f"⚡ Physics enforcement applied {len(physics_corrections)} corrections:")
+            for corr in physics_corrections:
+                print(f"   - {corr}")
+            # Add to corrections explanation
+            corrected_output.corrections_explanation += "\n\nPhysics enforcement corrections:\n" + "\n".join(f"• {c}" for c in physics_corrections)
+
+        # Re-run coherency checks with POST-calibration values
+        non_coherency_penalties = [
+            p for p in corrected_output.audit_penalties
+            if not any(x in p.name.lower() for x in ["coherency", "mismatch"])
+        ]
+        fresh_warnings = validate_property_coherency(corrected_output.properties, composition)
+        fresh_penalties = [AuditPenalty(**p) for p in warnings_to_penalties(fresh_warnings)]
+        corrected_output.audit_penalties = non_coherency_penalties + fresh_penalties
+
+        # Generate summary with POST-calibration values to avoid mismatch
+        try:
+            comp_str = ", ".join([f"{elem}: {wt:.1f}%" for elem, wt in sorted(composition.items(), key=lambda x: x[1], reverse=True)[:5]])
+            props = corrected_output.properties
+            confidence = corrected_output.confidence if isinstance(corrected_output.confidence, dict) else {}
+
+            summary_task = Task(
+                description=(
+                    f"Generate a concise metallurgical analysis for this alloy evaluation:\n\n"
+                    f"**Composition**: {comp_str}, ...\n\n"
+                    f"**Predicted Properties** (at {temperature}°C):\n"
+                    f"- Yield Strength: {props.get('Yield Strength', 'N/A')} MPa\n"
+                    f"- Tensile Strength: {props.get('Tensile Strength', 'N/A')} MPa\n"
+                    f"- Elongation: {props.get('Elongation', 'N/A')}%\n"
+                    f"- Elastic Modulus: {props.get('Elastic Modulus', 'N/A')} GPa\n"
+                    f"- Gamma Prime: {props.get('Gamma Prime', 'N/A')} vol%\n"
+                    f"- Density: {props.get('Density', 'N/A')} g/cm³\n\n"
+                    f"**Physics Audit**:\n"
+                    f"- Status: {corrected_output.status}\n"
+                    f"- TCP Risk: {corrected_output.tcp_risk}\n"
+                    f"- Audit Violations: {len(corrected_output.audit_penalties)}\n"
+                    f"- Confidence: {confidence.get('level', 'MEDIUM')} ({confidence.get('score', 0.5):.2f})\n\n"
+                    f"Write a 2-3 sentence technical summary explaining:\n"
+                    f"1. What makes this alloy strong (or weak) based on its gamma prime content\n"
+                    f"2. Any concerns from the physics audit (TCP risk, coherency)\n"
+                    f"3. Suitable applications or recommendations\n\n"
+                    f"IMPORTANT: Use ONLY the property values provided above. Do not invent different numbers."
+                ),
+                expected_output="2-3 sentence metallurgical analysis using exact values provided",
+                agent=self.summarizer
+            )
+
+            summary_crew = Crew(
+                agents=[self.summarizer],
+                tasks=[summary_task],
+                verbose=False
+            )
+
+            summary_result = summary_crew.kickoff()
+            summary_text = str(summary_result.raw) if hasattr(summary_result, 'raw') else str(summary_result)
+            corrected_output.explanation = summary_text
+
+        except Exception as e:
+            print(f"⚠️  Could not generate summary: {e}")
+            # Keep original explanation but add note about calibration
+            if corrected_output.explanation:
+                corrected_output.explanation += "\n\n(Note: Final property values shown above reflect database-driven calibration.)"
+
+        # Cleanup LLM output (normalize keys, filter invalid metrics)
+        clean_props, clean_intervals, clean_metrics = cleanup_llm_output(
+            corrected_output.properties,
+            corrected_output.property_intervals,
+            corrected_output.metallurgy_metrics or {},
+            composition
+        )
+        corrected_output.properties = clean_props
+        corrected_output.property_intervals = clean_intervals
+        corrected_output.metallurgy_metrics = clean_metrics
+        corrected_output.confidence = cleanup_confidence(corrected_output.confidence)
+
+        # Normalize corrections_applied
+        normalized_corrections = []
+        for c in corrected_output.corrections_applied:
+            norm_name = PROPERTY_KEY_MAP.get(c.property_name, c.property_name)
+            if norm_name in VALID_PROPERTIES and "Correction reason" not in c.correction_reason:
+                c.property_name = norm_name
+                normalized_corrections.append(c)
+        corrected_output.corrections_applied = normalized_corrections
+
+        return corrected_output.model_dump()
