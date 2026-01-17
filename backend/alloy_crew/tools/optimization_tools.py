@@ -14,8 +14,8 @@ from ..schemas import ElementSuggestion, SuggestionGroup, CompositionSensitivity
 # =============================================================================
 
 # TCP risk thresholds (Reed 2006, Pollock & Tin 2006)
-MD_TCP_THRESHOLD = 0.98  # TCP risk threshold
-MD_HIGH_RISK = 0.99      # High risk threshold
+MD_TCP_THRESHOLD = 1.00  # Elevated risk threshold - suggest optimization above this
+MD_HIGH_RISK = 1.05      # Critical risk threshold - strongly recommend optimization
 
 # Strengthening coefficients
 GP_STRENGTH_COEFFICIENT = 35.0  # MPa per vol% γ' (Pollock & Tin 2006)
@@ -84,7 +84,7 @@ class AlloyOptimizationAdvisor(BaseTool):
             if current > 1.0:  # Only suggest if element is present
                 sensitivity = self._calculate_md_sensitivity(composition, elem)
                 
-                # Calculate reduction needed (aim for Md < 0.98)
+                # Calculate reduction needed (aim for Md < 1.0 for optimal stability)
                 delta_needed = min(current - 0.5, current * 0.3)  # Reduce by 30% or to 0.5%, whichever is less
                 expected_md_change = sensitivity * (-delta_needed)
                 

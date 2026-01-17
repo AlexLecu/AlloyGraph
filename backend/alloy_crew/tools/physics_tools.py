@@ -145,6 +145,16 @@ class PhysicsCorrectionsProposalTool(BaseTool):
 
             proposals = []
 
+            # SKIP CORRECTIONS FOR EXCELLENT KG MATCHES
+            if kg_match_distance < 1.0:
+                return json.dumps({
+                    "status": "SKIPPED",
+                    "proposals": [],
+                    "recommendation": "TRUST_KG",
+                    "reasoning": f"Excellent KG match (distance={kg_match_distance:.2f}) - trusting experimental data over physics formula.",
+                    "confidence_tier": "VERY_HIGH"
+                })
+
             # Extract properties
             ys = properties.get("Yield Strength", 0)
             uts = properties.get("Tensile Strength", 0)

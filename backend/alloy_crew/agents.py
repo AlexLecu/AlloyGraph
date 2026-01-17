@@ -139,9 +139,13 @@ def create_physicist_agent(llm=None, memory=False):
             "1. YOU MUST Execute `MetallurgyVerifierTool`. Do NOT skip this.\n"
             "2. The tool returns a complete JSON structure. YOU MUST PRESERVE IT EXACTLY.\n"
             "3. Add a concise 'explanation' field (3-5 sentences) that interprets the results.\n"
-            "4. Check `penalty_score`. If > 20, the design is UNSAFE.\n"
-            "5. Check TCP Risk: High `Md_gamma_matrix` (>0.96) = REJECT.\n"
-            "6. Check Lattice Mismatch: High `lattice_mismatch_pct` (>0.8%) = REJECT.\n\n"
+            "4. Check `penalty_score`. If > 50, the design is UNSAFE.\n"
+            "5. TCP Risk Assessment (Md_gamma_matrix):\n"
+            "   - Md < 0.96: Low risk (PASS)\n"
+            "   - Md 0.96-1.05: Moderate risk - WARN but PASS (many proven alloys like IN738LC operate here)\n"
+            "   - Md > 1.05: High risk - REJECT only if extremely high\n"
+            "   Note: TCP risk is a concern, not an automatic rejection. Industrial alloys often have Md > 0.98.\n"
+            "6. Check Lattice Mismatch: High `lattice_mismatch_pct` (>1.0%) = WARN, (>1.5%) = REJECT.\n\n"
             "7. **🚀 PROPERTY COHERENCY VALIDATION**: The tool now performs cross-property consistency checks:\n"
             "   - Rule 1: High strength requires adequate γ' fraction\n"
             "   - Rule 2: Density should correlate with refractory content\n"
@@ -333,6 +337,7 @@ def get_evaluation_agents(llm=None):
         "arbitrator": create_arbitrator_agent(llm, memory=False),
         "physicist": create_physicist_agent(llm, memory=False),
         "corrector": create_corrector_agent(llm, memory=False),
+        "summarizer": create_summarizer_agent(llm),
     }
 
 def get_design_agents(llm=None):

@@ -147,7 +147,7 @@ class DataFusionTool(BaseTool):
         
         return sum(agreements) / len(agreements) if agreements else 0.5
 
-    def _parse_property_string(self, prop_str: str, target_temp: float) -> tuple:
+    def _parse_property_string(self, prop_str: str, target_temp: float, is_strength: bool = True) -> tuple:
         """Parse property string like '725.0 MPa @ 538.0C' and return (value, temp) if match."""
         for entry in prop_str.split(','):
             try:
@@ -157,7 +157,7 @@ class DataFusionTool(BaseTool):
                     
                 val_str, temp_str = parts
                 val = float(val_str.replace('MPa', '').replace('%', '').replace('GPa', '').strip())
-                if 'GPa' in entry: 
+                if 'GPa' in entry and is_strength:
                     val *= 1000
                     
                 temp = float(temp_str.replace('C', '').strip())
@@ -196,7 +196,8 @@ class DataFusionTool(BaseTool):
                 rag_props = candidate.get("properties", {})
                 prop_str = rag_props.get(alt_key, "")
                 if prop_str:
-                    val, temp = self._parse_property_string(prop_str, target_temp)
+                    is_strength = (target_key != "Elastic Modulus")
+                    val, temp = self._parse_property_string(prop_str, target_temp, is_strength=is_strength)
                     if val is not None:
                         extracted[target_key] = val
                         matched_temp = temp
@@ -256,6 +257,11 @@ class DataFusionTool(BaseTool):
             similarity_dist = 999.0
             detected_family = "unknown"
 
+            # Extract user's processing choice first (before KG matching)
+            input_processing = kwargs.get("processing", "unknown")
+            if input_processing == "unknown":
+                input_processing = self._infer_processing_type(composition)
+
             try:
                 candidates = json.loads(rag_context)
 
@@ -272,15 +278,12 @@ class DataFusionTool(BaseTool):
                          logger.warning("KG Match missing _distance field, defaulting to 0.0")
                     
                     raw_proc = matched_candidate.get("processing", "unknown").lower()
-                    if any(x in raw_proc for x in ["cast", "crystal", "ds"]): 
+                    if any(x in raw_proc for x in ["cast", "crystal", "ds"]):
                         detected_family = "cast"
-                    else: 
+                    else:
                         detected_family = "wrought"
-                    
-                    input_processing = kwargs.get("processing", "unknown")
-                    if input_processing == "unknown":
-                        input_processing = self._infer_processing_type(composition)
-                    
+
+                    # Check for processing mismatch (user vs KG candidate)
                     cand_proc = matched_candidate.get("processing", "unknown").lower()
                     processing_mismatch = False
                     if input_processing == "cast" and "cast" not in cand_proc:
@@ -460,9 +463,11 @@ class DataFusionTool(BaseTool):
                     "kg_sss_wt_pct": kg_metallurgy.get("SSS_wt_pct")
                 })
             
+            final_processing = input_processing if input_processing != "unknown" else detected_family
+
             output = {
                 "summary": f"Data Fusion Complete. Status: {kg_note}",
-                "processing": detected_family,
+                "processing": final_processing,
                 "anchored_properties": final_properties_flat,
                 "property_intervals": final_intervals,
                 "metallurgy_metrics": metrics,
