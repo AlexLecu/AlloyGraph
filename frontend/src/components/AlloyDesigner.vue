@@ -88,6 +88,24 @@ const getConfidenceClass = (confidence) => {
   return 'confidence-low'
 }
 
+// --- PREDICTION INFO HELPERS ---
+const getTcpEmoji = (risk) => {
+  if (!risk) return ''
+  const r = risk.toLowerCase()
+  if (r === 'moderate') return '🟡'
+  if (r === 'elevated') return '🟠'
+  if (r === 'critical') return '🔴'
+  return ''
+}
+
+const hasUsefulPredictionInfo = (results) => {
+  if (!results) return false
+  // Show panel if there's a similar alloy match OR if TCP risk is elevated+
+  const hasMatch = results.confidence?.matched_alloy && results.confidence.matched_alloy !== 'None'
+  const hasTcpWarning = results.metallurgyMetrics?.tcp_risk && results.metallurgyMetrics.tcp_risk !== 'Low'
+  return hasMatch || hasTcpWarning
+}
+
 // --- DESIGN HISTORY HELPERS ---
 const loadHistory = () => {
   try {
@@ -242,15 +260,98 @@ watch(() => props.initialAlloy, (newVal) => {
 })
 
 const PRESETS = {
-  "Waspaloy": {"Ni": 58.0, "Cr": 19.5, "Co": 13.5, "Mo": 4.3, "Al": 1.3, "Ti": 3.0, "C": 0.08, "B": 0.006, "Zr": 0.06},
-  "Inconel 718": { "Ni": 52.5, "Cr": 19.0, "Fe": 19.0, "Nb": 5.1, "Mo": 3.0, "Ti": 0.9, "Al": 0.5 },
-  "Udimet 720": { "Ni": 55.0, "Cr": 16.0, "Co": 14.7, "Ti": 5.0, "Al": 2.5, "Mo": 3.0, "W": 1.25 },
-  "Udimet 500": { "Ni": 54.0, "Cr": 18.0, "Co": 18.5, "Mo": 4.0, "Al": 2.9, "Ti": 2.9, "C": 0.08, "B": 0.006, "Zr": 0.05 }
+  "Waspaloy": { composition: {"Ni": 58.0, "Cr": 19.5, "Co": 13.5, "Mo": 4.3, "Al": 1.3, "Ti": 3.0, "C": 0.08, "B": 0.006, "Zr": 0.06}, processing: "wrought" },
+  "Inconel 718": { composition: { "Ni": 52.5, "Cr": 19.0, "Fe": 19.0, "Nb": 5.1, "Mo": 3.0, "Ti": 0.9, "Al": 0.5 }, processing: "wrought" },
+  "Udimet 720": { composition: { "Ni": 55.0, "Cr": 16.0, "Co": 14.7, "Ti": 5.0, "Al": 2.5, "Mo": 3.0, "W": 1.25 }, processing: "wrought" },
+  "IN738LC": { composition: {"Ni": 61.5, "Cr": 16.0, "Co": 8.5, "Mo": 1.75, "W": 2.6, "Al": 3.4, "Ti": 3.4, "Ta": 1.75, "Nb": 0.9, "C": 0.11, "B": 0.01, "Zr": 0.05}, processing: "cast" },
+  "Udimet 500": { composition: { "Ni": 54.0, "Cr": 18.0, "Co": 18.5, "Mo": 4.0, "Al": 2.9, "Ti": 2.9, "C": 0.08, "B": 0.006, "Zr": 0.05 }, processing: "wrought" },
+  "Haynes 282": { composition: { "Ni": 57.0, "Cr": 19.5, "Co": 10.0, "Mo": 8.5, "Ti": 2.1, "Al": 1.5, "Fe": 1.0, "Mn": 0.15, "Si": 0.1, "C": 0.06, "B": 0.005 }, processing: "wrought" },
+  "CMSX-4": { composition: {"Ni": 61.7, "Cr": 6.5, "Co": 9.0, "Mo": 0.6, "W": 6.0, "Al": 5.6, "Ti": 1.0, "Ta": 6.5, "Re": 3.0, "Hf": 0.1}, processing: "cast" },
+  "René 65": { composition: {"Ni": 51.6, "Cr": 16.0, "Co": 13.0, "Mo": 4.0, "W": 4.0, "Al": 2.1, "Ti": 3.7, "Nb": 0.7, "Fe": 1.0, "B": 0.016, "Zr": 0.05, "C": 0.01}, processing: "wrought" }
 }
 
+// Track selected preset
+const selectedPreset = ref(null)
+
 const loadPreset = (name) => {
-  manualComp.value = { ...PRESETS[name] }
+  const preset = PRESETS[name]
+  manualComp.value = { ...preset.composition }
+  manualProcessing.value = preset.processing
+  selectedPreset.value = name
   result.value = null
+}
+
+// Clear all composition values
+const clearComposition = () => {
+  manualComp.value = {}
+  selectedPreset.value = null
+  result.value = null
+}
+
+// JSON Import Modal state
+const showJsonImport = ref(false)
+const jsonInput = ref('')
+const jsonError = ref('')
+
+const openJsonImport = () => {
+  jsonInput.value = ''
+  jsonError.value = ''
+  showJsonImport.value = true
+}
+
+const closeJsonImport = () => {
+  showJsonImport.value = false
+  jsonInput.value = ''
+  jsonError.value = ''
+}
+
+const importJsonComposition = () => {
+  jsonError.value = ''
+
+  if (!jsonInput.value.trim()) {
+    jsonError.value = 'Please enter a JSON composition'
+    return
+  }
+
+  try {
+    // Try to parse the JSON
+    let parsed = JSON.parse(jsonInput.value.trim())
+
+    // Handle wrapped format like { "composition": { ... } }
+    if (parsed.composition && typeof parsed.composition === 'object') {
+      parsed = parsed.composition
+    }
+
+    // Validate it's an object with numeric values
+    if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+      jsonError.value = 'Invalid format: Expected an object like {"Ni": 60, "Cr": 20}'
+      return
+    }
+
+    // Filter to only valid element entries (string keys, numeric values)
+    const cleaned = {}
+    for (const [key, value] of Object.entries(parsed)) {
+      const numVal = parseFloat(value)
+      if (!isNaN(numVal) && numVal > 0) {
+        // Capitalize first letter of element symbol
+        const element = key.charAt(0).toUpperCase() + key.slice(1).toLowerCase()
+        cleaned[element] = Math.round(numVal * 1000) / 1000  // Round to 3 decimals
+      }
+    }
+
+    if (Object.keys(cleaned).length === 0) {
+      jsonError.value = 'No valid elements found. Use format: {"Ni": 60, "Cr": 20}'
+      return
+    }
+
+    // Success - update composition and close modal
+    manualComp.value = cleaned
+    result.value = null
+    closeJsonImport()
+
+  } catch (e) {
+    jsonError.value = `Invalid JSON: ${e.message}`
+  }
 }
 
 const copyToEvaluation = () => {
@@ -812,12 +913,54 @@ const parsedResults = computed(() => {
   })
   
   // Separate physics metrics from audit penalties for dedicated display
+  // Skip tcp_risk since it's displayed in the dedicated prediction-info-panel
+  // Filter to ONLY valid metrics from MetallurgyVerifierTool (prevent LLM hallucinations)
+  const VALID_METRICS = new Set([
+    // Core metrics from MetallurgyVerifierTool
+    'Md (TCP Stability)', 'TCP Risk', 'γ/γ\' Misfit (%)', 'Refractory Content (wt%)',
+    'Matrix + SSS Strength (MPa)', 'Al+Ti (weldability)', 'Cr (oxidation)',
+    // Legacy/alternative formats that may appear
+    'md_average', 'md_avg', 'gamma_prime_vol', 'gamma_prime_fraction',
+    'sss_wt_pct', 'lattice_misfit', 'density_gcm3',
+    // KG-derived metrics
+    'kg_md_avg', 'kg_tcp_risk', 'kg_sss_wt_pct'
+  ])
   const physicsMetrics = []
   if (metallurgyMetrics) {
     Object.entries(metallurgyMetrics).forEach(([key, value]) => {
+      // Skip tcp_risk - already shown in dedicated TCP tag
+      if (key === 'tcp_risk' || key === 'TCP Risk') return
+
+      // Filter out hallucinated metrics (e.g., "Grain Size", "Inclusion Content")
+      if (!VALID_METRICS.has(key)) {
+        console.warn(`Filtered out unknown metric: ${key}`)
+        return
+      }
+
+      let displayValue = typeof value === 'number' ? value.toFixed(2) : value
+      let warning = null
+
+      // Add contextual warnings for materials scientists
+      if (key.includes('weldability') && typeof value === 'number') {
+        if (value > 6.5) warning = '⚠️ Difficult to weld'
+        else if (value > 5.0) warning = '⚡ Weld with care'
+      }
+      if (key.includes('oxidation') && typeof value === 'number') {
+        if (value >= 18) displayValue = value.toFixed(1) + ' (excellent)'
+        else if (value >= 15) displayValue = value.toFixed(1) + ' (good)'
+        else if (value >= 10) displayValue = value.toFixed(1) + ' (moderate)'
+        else displayValue = value.toFixed(1) + ' (limited)'
+      }
+      if (key.includes('Misfit') && typeof value === 'number') {
+        if (Math.abs(value) < 0.3) displayValue = value.toFixed(3) + ' (optimal)'
+        else if (Math.abs(value) < 0.5) displayValue = value.toFixed(3) + ' (good)'
+        else displayValue = value.toFixed(3) + ' (high)'
+      }
+
       physicsMetrics.push({
         label: formatMetricLabel(key),
-        value: typeof value === 'number' ? value.toFixed(2) : value,
+        value: displayValue,
+        warning,
         key
       })
     })
@@ -987,12 +1130,21 @@ const parsedResults = computed(() => {
       <h3>Define Alloy Composition</h3>
       <p class="helper-text">Enter element percentages (should sum to ~100%). Use presets or add custom elements.</p>
       
-      <!-- Quick Presets -->
+      <!-- Quick Presets & Actions -->
       <div class="presets-section">
         <label class="section-label">Quick Start:</label>
         <div class="preset-buttons">
-          <button v-for="(comp, name) in PRESETS" :key="name" @click="loadPreset(name)" class="preset-btn">
+          <button v-for="(comp, name) in PRESETS" :key="name"
+                  @click="loadPreset(name)"
+                  :class="['preset-btn', { 'preset-selected': selectedPreset === name }]">
             {{ name }}
+          </button>
+          <span class="preset-divider">|</span>
+          <button @click="openJsonImport" class="preset-btn action-btn" title="Import composition from JSON">
+            📋 Import JSON
+          </button>
+          <button @click="clearComposition" class="preset-btn action-btn clear-btn" title="Clear all elements">
+            🗑️ Clear
           </button>
         </div>
       </div>
@@ -1162,6 +1314,19 @@ const parsedResults = computed(() => {
           {{ parsedResults.status === 'PASS' ? '✅ PASS' : parsedResults.status === 'REJECT' ? '⚠️ REJECT' : '❌ FAIL' }}
         </div>
 
+        <!-- PREDICTION INFO PANEL - Only show when there's useful info -->
+        <div v-if="hasUsefulPredictionInfo(parsedResults)" class="prediction-info-panel">
+          <!-- Similar Alloy Match - only when found -->
+          <span v-if="parsedResults.confidence?.matched_alloy && parsedResults.confidence.matched_alloy !== 'None'" class="info-tag similar-alloy">
+            🔗 Similar to <strong>{{ parsedResults.confidence.matched_alloy }}</strong>
+          </span>
+          <!-- TCP Risk - only when elevated or higher -->
+          <span v-if="parsedResults.metallurgyMetrics?.tcp_risk && parsedResults.metallurgyMetrics.tcp_risk !== 'Low'"
+                :class="['info-tag', 'tcp-' + parsedResults.metallurgyMetrics.tcp_risk.toLowerCase()]">
+            {{ getTcpEmoji(parsedResults.metallurgyMetrics.tcp_risk) }} TCP: {{ parsedResults.metallurgyMetrics.tcp_risk }}
+          </span>
+        </div>
+
         <!-- 1. COMPOSITION FIRST (for Design mode) -->
         <div v-if="parsedResults.comp && mode === 'auto'" class="final-comp-section">
              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -1263,13 +1428,14 @@ const parsedResults = computed(() => {
           </div>
         </div>
 
-        <!-- PHYSICS METRICS (only show if NO design issues or audit violations, to avoid duplication) -->
-        <div v-if="parsedResults.physicsMetrics && parsedResults.physicsMetrics.length > 0 && (!parsedResults.issues || parsedResults.issues.length === 0) && (!parsedResults.auditPenalties || parsedResults.auditPenalties.length === 0)" class="metrics-panel">
-          <div class="panel-header">🔬 Physics-Based Metrics</div>
+        <!-- METALLURGICAL INDICATORS - always show when available -->
+        <div v-if="parsedResults.physicsMetrics && parsedResults.physicsMetrics.length > 0" class="metrics-panel">
+          <div class="panel-header">🔬 Metallurgical Indicators</div>
           <div class="metrics-grid">
             <div v-for="metric in parsedResults.physicsMetrics" :key="metric.key" class="metric-item">
               <span class="metric-label">{{ metric.label }}:</span>
               <span class="metric-value">{{ metric.value }}</span>
+              <span v-if="metric.warning" class="metric-warning">{{ metric.warning }}</span>
             </div>
           </div>
         </div>
@@ -1303,6 +1469,46 @@ const parsedResults = computed(() => {
       </div>
     </div>
   </div>
+
+  <!-- JSON Import Modal -->
+  <transition name="modal-fade">
+    <div v-if="showJsonImport" class="modal-overlay" @click.self="closeJsonImport">
+      <div class="modal-content json-import-modal">
+        <div class="modal-header">
+          <h3>📋 Import Composition from JSON</h3>
+          <button class="modal-close" @click="closeJsonImport">×</button>
+        </div>
+
+        <div class="modal-body">
+          <p class="modal-help">
+            Paste a JSON object with element symbols and weight percentages.
+          </p>
+
+          <div class="json-examples">
+            <span class="example-label">Examples:</span>
+            <code>{"Ni": 60, "Cr": 20, "Al": 5}</code>
+            <code>{"composition": {"Ni": 58, "Co": 13}}</code>
+          </div>
+
+          <textarea
+            v-model="jsonInput"
+            class="json-textarea"
+            placeholder='{"Ni": 60, "Cr": 20, "Co": 10, "Al": 5, "Ti": 3}'
+            rows="6"
+            @keydown.ctrl.enter="importJsonComposition"
+            @keydown.meta.enter="importJsonComposition"
+          ></textarea>
+
+          <p v-if="jsonError" class="json-error">{{ jsonError }}</p>
+        </div>
+
+        <div class="modal-footer">
+          <button class="cancel-btn" @click="closeJsonImport">Cancel</button>
+          <button class="import-btn" @click="importJsonComposition">Import Composition</button>
+        </div>
+      </div>
+    </div>
+  </transition>
 </template>
 
 <style scoped>
@@ -1359,6 +1565,23 @@ const parsedResults = computed(() => {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
+}
+
+.preset-btn.preset-selected {
+  background: rgba(0, 212, 255, 0.2);
+  border-color: #00d4ff;
+  color: #00d4ff;
+}
+
+.preset-btn.action-btn {
+  background: var(--bg-glass);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.preset-btn.action-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: none;
 }
 
 /* === EVAL CONTROLS === */
@@ -1792,7 +2015,6 @@ const parsedResults = computed(() => {
 }
 
 /* Panels */
-.confidence-panel,
 .explanation-panel,
 .audit-panel,
 .metrics-panel {
@@ -1812,6 +2034,40 @@ const parsedResults = computed(() => {
   font-size: 0.9rem;
   color: #ccc;
   line-height: 1.6;
+}
+
+/* Prediction Info Panel - compact inline tags */
+.prediction-info-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.info-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ddd;
+}
+.info-tag.similar-alloy {
+  background: rgba(0, 212, 255, 0.15);
+  color: #00d4ff;
+}
+.info-tag.tcp-moderate {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+}
+.info-tag.tcp-elevated {
+  background: rgba(255, 152, 0, 0.15);
+  color: #ff9800;
+}
+.info-tag.tcp-critical {
+  background: rgba(220, 53, 69, 0.15);
+  color: #dc3545;
 }
 .explanation-text {
   font-size: 0.95rem;
@@ -1881,6 +2137,12 @@ const parsedResults = computed(() => {
 .metric-value {
   color: #00d4ff;
   font-weight: bold;
+}
+.metric-warning {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: #ff9800;
 }
 
 .final-comp-section {
@@ -2721,5 +2983,210 @@ const parsedResults = computed(() => {
   opacity: 0.6;
   font-style: italic;
   margin-top: 2px;
+}
+
+/* Preset divider and action buttons */
+.preset-divider {
+  color: var(--text-muted);
+  margin: 0 var(--space-sm);
+  opacity: 0.5;
+}
+
+/* Action buttons match regular preset buttons */
+.action-btn {
+  background: var(--bg-glass);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: none;
+}
+
+.clear-btn:hover {
+  background: rgba(255, 80, 80, 0.15);
+  border-color: rgba(255, 80, 80, 0.4);
+  box-shadow: none;
+}
+
+/* JSON Import Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.json-import-modal {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 550px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--border);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.modal-close:hover {
+  color: var(--text-primary);
+}
+
+.modal-body {
+  padding: var(--space-lg);
+}
+
+.modal-help {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+  font-size: 0.9rem;
+}
+
+.json-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm);
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-sm);
+}
+
+.example-label {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.json-examples code {
+  background: rgba(17, 153, 250, 0.15);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: var(--primary);
+}
+
+.json-textarea {
+  width: 100%;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  padding: var(--space-md);
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 0.9rem;
+  resize: vertical;
+  min-height: 120px;
+}
+
+.json-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(17, 153, 250, 0.2);
+}
+
+.json-textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.json-error {
+  color: #ff6b6b;
+  font-size: 0.85rem;
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
+  background: rgba(255, 80, 80, 0.1);
+  border-radius: var(--radius-sm);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border-top: 1px solid var(--border);
+}
+
+.cancel-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.import-btn {
+  background: var(--primary);
+  border: none;
+  color: white;
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.import-btn:hover {
+  background: var(--primary-dark, #0d8ae0);
+  transform: translateY(-1px);
+}
+
+/* Modal animation */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.modal-fade-enter-active .json-import-modal,
+.modal-fade-leave-active .json-import-modal {
+  transition: transform 0.2s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-fade-enter-from .json-import-modal,
+.modal-fade-leave-to .json-import-modal {
+  transform: scale(0.95) translateY(-10px);
 }
 </style>
