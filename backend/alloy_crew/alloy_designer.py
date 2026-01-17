@@ -427,7 +427,6 @@ class IterativeDesignCrew:
 
         physics_output.properties, physics_corrections = enforce_physics_constraints(
             properties=physics_output.properties,
-            composition=designer_comp,
             temperature_c=temperature,
             processing=processed_route,
             confidence_level=confidence_level,
@@ -741,7 +740,6 @@ class IterativeDesignCrew:
                         conf = phys_output.confidence if isinstance(phys_output.confidence, dict) else {}
                         result["properties"], _ = enforce_physics_constraints(
                             properties=result["properties"],
-                            composition=current_comp,
                             temperature_c=temperature,
                             processing=processing,
                             confidence_level=conf.get("level", "MEDIUM"),

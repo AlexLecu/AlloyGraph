@@ -1,6 +1,6 @@
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
-from typing import Type, Dict, Any, Literal
+from typing import Type, Dict, Any, Literal, List
 import json
 
 from ..models.feature_engineering import compute_alloy_features
@@ -211,11 +211,172 @@ def calculate_em_rule_of_mixtures(composition: Dict[str, float]) -> float:
         "W": 411.0,
         "Fe": 211.0
     }
-    
-    em = sum(composition.get(element, 0) / 100.0 * modulus 
+
+    em = sum(composition.get(element, 0) / 100.0 * modulus
              for element, modulus in elemental_moduli.items())
-    
+
     return em
+
+
+# ============================================================
+# Physics Enforcement Layer (Hard Constraints)
+# ============================================================
+def enforce_physics_constraints(
+    properties: Dict[str, Any],
+    temperature_c: float = 20,
+    processing: str = "cast",
+    confidence_level: str = "MEDIUM",
+    kg_distance: float = 999
+) -> tuple[Dict[str, Any], list[str]]:
+    """
+    Enforce physics constraints by correcting extreme deviations.
+
+    Unlike validation (which only warns), this function CORRECTS values
+    that are physically impossible or highly unlikely.
+
+    Applied AFTER LLM corrections and calibration as a safety net.
+
+    Returns:
+        tuple: (corrected_properties, list of corrections applied)
+    """
+    corrections = []
+    props = properties.copy()
+
+    ys = props.get("Yield Strength", 0)
+    uts = props.get("Tensile Strength", 0)
+    gp = props.get("Gamma Prime", 0)
+    el = props.get("Elongation", 0)
+
+    # Skip if we have a strong KG match (trust experimental data)
+    if kg_distance < 3.0:
+        logger.info(f"Physics enforcement skipped: KG match distance={kg_distance:.2f}")
+        return props, []
+
+    # ============================================================
+    # Processing-Composition Compatibility Note
+    # ============================================================
+    # Note: P/M (powder metallurgy) wrought alloys like RR1000 can have high γ' (>40%)
+    # Trust user's processing selection - don't auto-correct
+
+    # ============================================================
+    # Constraint 1: YS must be consistent with γ' content
+    # ============================================================
+    # Formula: YS_RT ≈ base + coeff × γ'
+    # Temperature derating: ~0.3-0.5 MPa per °C above RT
+    if gp > 5 and ys > 0:
+        # Base formula (room temperature)
+        if processing in ["wrought", "forged"]:
+            base_ys = 400
+            gp_coeff = 18
+        else:
+            base_ys = 450
+            gp_coeff = 20
+
+        physics_ys_rt = base_ys + gp_coeff * gp
+
+        # Temperature derating (empirical: ~0.4 MPa/°C for superalloys)
+        temp_derating = max(0, (temperature_c - 20) * 0.4)
+        physics_ys = max(200, physics_ys_rt - temp_derating)
+
+        # Calculate deviation
+        deviation_pct = abs(ys - physics_ys) / physics_ys * 100
+
+        # Thresholds based on confidence
+        if confidence_level in ["LOW", "VERY LOW"] or kg_distance > 10:
+            threshold_pct = 25  # Stricter for low confidence
+        elif confidence_level == "MEDIUM":
+            threshold_pct = 35
+        else:
+            threshold_pct = 50  # More lenient for high confidence
+
+        if deviation_pct > threshold_pct:
+            # Blend towards physics value
+            if confidence_level in ["LOW", "VERY LOW"]:
+                blend_factor = 0.8  # 80% physics, 20% ML
+            else:
+                blend_factor = 0.6  # 60% physics, 40% ML
+
+            corrected_ys = round(ys * (1 - blend_factor) + physics_ys * blend_factor, 1)
+
+            corrections.append(
+                f"YS: {ys:.0f}→{corrected_ys:.0f} MPa (physics expects ~{physics_ys:.0f} for γ'={gp:.1f}% at {temperature_c}°C, "
+                f"deviation was {deviation_pct:.0f}%)"
+            )
+            props["Yield Strength"] = corrected_ys
+            ys = corrected_ys  # Update for UTS calculation
+
+            logger.info(f"Physics enforcement: YS corrected {properties.get('Yield Strength'):.0f}→{corrected_ys:.0f} MPa")
+
+    # ============================================================
+    # Constraint 2: UTS must maintain valid ratio with YS
+    # ============================================================
+    if ys > 0 and uts > 0:
+        ratio = uts / ys
+
+        # Expected ratio based on processing and γ' content
+        # Key insight: Wrought alloys have MUCH higher work hardening than cast
+        # - Cast: UTS/YS ≈ 1.15-1.25 (limited by coarse microstructure)
+        # - Wrought: UTS/YS ≈ 1.40-1.55 (fine grains enable work hardening)
+        if processing in ["wrought", "forged"]:
+            base_ratio = 1.40  # Wrought base ratio
+            expected_ratio = base_ratio + (gp / 100) * 0.15
+            min_ratio = 1.30
+            max_ratio = 1.60
+        else:
+            base_ratio = 1.15  # Cast base ratio
+            expected_ratio = base_ratio + (gp / 100) * 0.2
+            min_ratio = 1.08
+            max_ratio = min(1.5, expected_ratio + 0.15)
+
+        if ratio < min_ratio or ratio > max_ratio:
+            target_ratio = max(min_ratio, min(max_ratio, expected_ratio))
+            corrected_uts = round(ys * target_ratio, 1)
+
+            corrections.append(
+                f"UTS: {uts:.0f}→{corrected_uts:.0f} MPa (ratio {ratio:.2f}→{target_ratio:.2f}, expected ~{expected_ratio:.2f} for {processing})"
+            )
+            props["Tensile Strength"] = corrected_uts
+
+            logger.info(f"Physics enforcement: UTS corrected {properties.get('Tensile Strength'):.0f}→{corrected_uts:.0f} MPa")
+
+    # ============================================================
+    # Constraint 3: Elongation sanity bounds
+    # ============================================================
+    if el > 0:
+        # High γ' alloys have lower ductility (upper bounds)
+        if gp > 60 and el > 20:
+            corrected_el = min(el, 18.0)
+            if corrected_el != el:
+                corrections.append(f"Elongation: {el:.1f}→{corrected_el:.1f}% (high γ' reduces ductility)")
+                props["Elongation"] = corrected_el
+                el = corrected_el
+        elif gp > 40 and el > 30:
+            corrected_el = min(el, 25.0)
+            if corrected_el != el:
+                corrections.append(f"Elongation: {el:.1f}→{corrected_el:.1f}% (moderate γ' limits ductility)")
+                props["Elongation"] = corrected_el
+                el = corrected_el
+
+        # Wrought alloys have HIGHER minimum ductility (lower bounds)
+        # Wrought processing gives finer grains and better ductility
+        if processing in ["wrought", "forged"]:
+            # Wrought alloys with low-moderate γ' should have good ductility
+            if gp < 25 and el < 20:
+                min_el = 22.0 - (gp * 0.3)  # ~20% at γ'=7%, ~15% at γ'=25%
+                if el < min_el:
+                    corrected_el = min_el
+                    corrections.append(f"Elongation: {el:.1f}→{corrected_el:.1f}% (wrought alloys have better ductility)")
+                    props["Elongation"] = round(corrected_el, 1)
+            elif gp < 40 and el < 15:
+                min_el = 15.0
+                corrected_el = min_el
+                corrections.append(f"Elongation: {el:.1f}→{corrected_el:.1f}% (wrought processing improves ductility)")
+                props["Elongation"] = round(corrected_el, 1)
+
+    if corrections:
+        logger.info(f"Physics enforcement applied {len(corrections)} corrections")
+
+    return props, corrections
 
 
 class MetallurgyVerifierInput(BaseModel):
@@ -284,6 +445,29 @@ class MetallurgyVerifierTool(BaseTool):
                 processing = "cast"
             elif "wrought" in processing or "forged" in processing:
                 processing = "wrought"
+
+            # === PROCESSING-COMPOSITION COMPATIBILITY CHECK ===
+            # High γ' alloys (>40%) are almost always cast - warn if specified as wrought
+            # Low γ' alloys (<20%) are typically wrought - warn if specified as cast
+            original_processing = processing
+            processing_warning = None
+
+            if processing == "wrought" and gp > 40:
+                # Note: P/M (powder metallurgy) wrought alloys like RR1000 can have high γ' (>40%)
+                # while still being wrought, so we warn but DON'T auto-correct
+                processing_warning = (
+                    f"ℹ️ Composition has {gp:.1f}% γ' - high for conventional wrought processing, "
+                    f"but valid for P/M (powder metallurgy) alloys like RR1000."
+                )
+                warnings.append(processing_warning)
+                logger.info(processing_warning)
+            elif processing == "cast" and gp < 15 and composition.get("Fe", 0) > 10:
+                processing_warning = (
+                    f"⚠️ Composition has only {gp:.1f}% γ' with high Fe ({composition.get('Fe', 0):.1f}%) - "
+                    f"this looks like a wrought alloy (e.g., IN718). Keeping as specified but results may be inaccurate."
+                )
+                warnings.append(processing_warning)
+                logger.warning(processing_warning)
 
             if processing == "cast":
                  base_ductility = 20.0
@@ -363,23 +547,36 @@ class MetallurgyVerifierTool(BaseTool):
                 })
                 warnings.append(reason)
             
-            # 3. TCP Risk (Using Matrix Md)
-            if md_gamma > 0.98:
-                 reason = f"Matrix Md ({md_gamma:.3f}) exceeds critical limit of 0.98. High risk of topologically close-packed (TCP) phase formation like Sigma or Mu."
+            # 3. TCP Risk (Using Matrix Md) - Tiered approach
+            # Note: Many proven industrial alloys (IN738LC, GTD-111) operate with Md 0.98-1.05
+            if md_gamma > 1.05:
+                 # Critical risk - strongly discouraged
+                 reason = f"Matrix Md ({md_gamma:.3f}) exceeds 1.05 - CRITICAL TCP phase risk. Sigma/Mu phases highly likely without careful heat treatment."
                  penalties_list.append({
-                     "name": "TCP Risk",
+                     "name": "TCP Risk - Critical",
                      "value": f"Md_gamma={md_gamma:.3f}",
                      "reason": reason
                  })
                  warnings.append(reason)
-            elif md_gamma > 0.95 and md_avg > 0.985:
-                 reason = f"Elevated Stability Risk: Matrix Md ({md_gamma:.3f}) and Global Md ({md_avg:.3f}) are dangerously close to instability limits."
+            elif md_gamma > 0.98:
+                 # Elevated risk - common in industrial alloys, manageable with proper processing
+                 reason = f"Matrix Md ({md_gamma:.3f}) is elevated (0.98-1.05 range). TCP phase formation possible but manageable - common in proven alloys like IN738LC."
                  penalties_list.append({
-                     "name": "Phase Stability",
-                     "value": f"Md={md_gamma:.3f}",
+                     "name": "TCP Risk - Elevated",
+                     "value": f"Md_gamma={md_gamma:.3f}",
                      "reason": reason
                  })
                  warnings.append(reason)
+            elif md_gamma > 0.96:
+                 # Moderate risk - only warn if combined with other factors
+                 if md_avg > 0.985:
+                     reason = f"Moderate Stability Concern: Matrix Md ({md_gamma:.3f}) with Global Md ({md_avg:.3f}) approaching stability limits."
+                     penalties_list.append({
+                         "name": "Phase Stability",
+                         "value": f"Md={md_gamma:.3f}",
+                         "reason": reason
+                     })
+                     warnings.append(reason)
                  
             # 4. Strength Scaling for TS if not KG anchored
             if not is_kg_anchored:
@@ -427,12 +624,16 @@ class MetallurgyVerifierTool(BaseTool):
             # Calculate Penalty Score for Agents
             penalty_score = 0
             if penalties_list:
-                penalty_score += len(penalties_list) * 10
-            
-            # Additional penalty for very high Md even if not warned (soft limit)
-            if md_gamma > 0.96:
-                penalty_score += 15
-            
+                penalty_score += len(penalties_list) * 5  # Reduced from 10 - penalties are now more informational
+
+            # Tiered penalty for TCP risk (Md)
+            # Note: Many successful industrial alloys have Md 0.98-1.05
+            if md_gamma > 1.05:
+                penalty_score += 30  # Critical - strong discouragement
+            elif md_gamma > 0.98:
+                penalty_score += 5   # Elevated - minor concern (IN738LC operates here)
+            # No penalty for Md < 0.98
+
             if abs(delta) > 1.5:
                 penalty_score += 20  # Severe mismatch penalty
 
@@ -477,20 +678,47 @@ class MetallurgyVerifierTool(BaseTool):
                     "uncertainty": round(em_unc, 1)
                 }
 
+            # Generate user-friendly summary
+            confidence_level = confidence.get("level", "MEDIUM")
+            kg_match = confidence.get("matched_alloy", "None")
+            kg_distance = confidence.get("similarity_distance", 999)
+
+            if kg_distance < 2.0 and kg_match != "None":
+                summary_text = f"Strong match to {kg_match} - high confidence predictions based on experimental data."
+            elif kg_distance < 5.0 and kg_match != "None":
+                summary_text = f"Similar to {kg_match} - predictions calibrated with experimental reference."
+            elif confidence_level == "HIGH":
+                summary_text = "High confidence ML predictions within model's training domain."
+            elif confidence_level == "MEDIUM":
+                summary_text = "Moderate confidence predictions. Review flagged items below."
+            else:
+                summary_text = "Exploratory composition - predictions have higher uncertainty."
+
+            # Add TCP risk warning if elevated
+            tcp_risk = "Critical" if md_gamma > 1.05 else ("Elevated" if md_gamma > 0.98 else ("Moderate" if md_gamma > 0.96 else "Low"))
+            if tcp_risk == "Critical":
+                summary_text += " TCP phase risk is critical."
+            elif tcp_risk == "Elevated":
+                summary_text += " TCP phase risk is elevated (common in industrial alloys)."
+
             output_data = {
-                "summary": f"Physics Audit Complete. Penalty: {penalty_score}. {len(penalties_list)} Penalties detected.",
+                "summary": summary_text,
                 "processing": processing,
                 "penalty_score": penalty_score,
                 "properties": verified_props,
                 "property_intervals": intervals,
 
                 "metallurgy_metrics": {
-                    "md_gamma_matrix": round(md_gamma, 3),
-                    "lattice_mismatch_pct": round(delta, 3),
-                    "vec_avg": round(vec, 3),
-                    "tcp_risk": "High" if md_gamma > 0.98 else ("Medium" if md_gamma > 0.95 else "Low"),
-                    "sss_wt_pct": round(sss_wt, 2),
-                    "base_contribution": int(BASE_STRENGTH)
+                    # Phase Stability
+                    "Md (TCP Stability)": round(md_gamma, 3),
+                    "TCP Risk": tcp_risk,
+                    # Strengthening
+                    "γ/γ' Misfit (%)": round(delta, 3),
+                    "Refractory Content (wt%)": round(sss_wt, 2),
+                    "Matrix + SSS Strength (MPa)": int(BASE_STRENGTH),
+                    # Processing Indicators
+                    "Al+Ti (weldability)": round(composition.get("Al", 0) + composition.get("Ti", 0), 2),
+                    "Cr (oxidation)": round(composition.get("Cr", 0), 1),
                 },
                 "audit_penalties": penalties_list,
                 "warnings": warnings,
@@ -502,3 +730,155 @@ class MetallurgyVerifierTool(BaseTool):
         except Exception as e:
             logger.error(f"Physics Constraint Error: {e}")
             return json.dumps({"status": "FAIL", "error": f"Physics Constraint Error: {str(e)}", "properties": {}})
+
+
+# =============================================================================
+# SHARED UTILITIES FOR LLM OUTPUT CLEANUP
+# =============================================================================
+
+PROPERTY_KEY_MAP = {
+    "YS": "Yield Strength",
+    "Yield": "Yield Strength",
+    "yield_strength": "Yield Strength",
+    "UTS": "Tensile Strength",
+    "Tensile": "Tensile Strength",
+    "tensile_strength": "Tensile Strength",
+    "EM": "Elastic Modulus",
+    "E": "Elastic Modulus",
+    "Modulus": "Elastic Modulus",
+    "elastic_modulus": "Elastic Modulus",
+    "El": "Elongation",
+    "elongation": "Elongation",
+    "Ductility": "Elongation",
+    "GP": "Gamma Prime",
+    "Gamma_Prime": "Gamma Prime",
+    "gamma_prime": "Gamma Prime",
+    "γ'": "Gamma Prime",
+    "density": "Density",
+}
+
+VALID_PROPERTIES = {
+    "Yield Strength", "Tensile Strength", "Elongation", "Elastic Modulus",
+    "Density", "Gamma Prime", "Creep Life", "Fatigue Life", "Oxidation Resistance"
+}
+
+VALID_METRICS = {
+    "Md (TCP Stability)", "TCP Risk", "γ/γ' Misfit (%)", "Refractory Content (wt%)",
+    "Matrix + SSS Strength (MPa)", "Al+Ti (weldability)", "Cr (oxidation)",
+    "Md_gamma", "lattice_mismatch_pct", "refractory_total_wt_pct",
+    "gamma_prime_vol", "gamma_prime_fraction", "sss_wt_pct", "density_gcm3",
+    "kg_md_avg", "kg_tcp_risk", "kg_sss_wt_pct"
+}
+
+REQUIRED_METRIC_KEYS = {"Md (TCP Stability)", "γ/γ' Misfit (%)", "Al+Ti (weldability)"}
+
+
+def compute_fallback_metrics(composition: Dict[str, float]) -> Dict[str, Any]:
+    """Compute metallurgy metrics from feature_engineering when LLM output is invalid."""
+    features = compute_alloy_features(composition)
+    md_val = features.get("Md_gamma", 0)
+    return {
+        "Md (TCP Stability)": round(md_val, 3),
+        "TCP Risk": "Critical" if md_val > 1.05 else (
+            "Elevated" if md_val > 0.98 else ("Moderate" if md_val > 0.96 else "Low")
+        ),
+        "γ/γ' Misfit (%)": round(features.get("lattice_mismatch_pct", 0), 3),
+        "Refractory Content (wt%)": round(features.get("refractory_total_wt_pct", 0), 2),
+        "Al+Ti (weldability)": round(composition.get("Al", 0) + composition.get("Ti", 0), 2),
+        "Cr (oxidation)": round(composition.get("Cr", 0), 1),
+    }
+
+
+def cleanup_llm_output(
+    properties: Dict[str, Any],
+    property_intervals: Dict[str, Any],
+    metallurgy_metrics: Dict[str, Any],
+    composition: Dict[str, float]
+) -> tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+    """
+    Normalize and clean LLM output: property keys, intervals, and metrics.
+    Returns: (clean_properties, clean_intervals, clean_metrics)
+    """
+    # 1. Normalize property keys
+    clean_props = {}
+    for key, value in properties.items():
+        norm_key = PROPERTY_KEY_MAP.get(key, key)
+        if norm_key in VALID_PROPERTIES:
+            clean_props[norm_key] = value
+
+    # Fix Gamma Prime if given as fraction
+    gp = clean_props.get("Gamma Prime", 0)
+    if gp is not None and 0 < gp < 1:
+        clean_props["Gamma Prime"] = round(gp * 100, 1)
+        print(f"  ✓ Converted Gamma Prime from fraction ({gp}) to percentage ({clean_props['Gamma Prime']}%)")
+
+    # 2. Normalize intervals
+    clean_intervals = {}
+    for key, value in property_intervals.items():
+        norm_key = PROPERTY_KEY_MAP.get(key, key)
+        if norm_key in VALID_PROPERTIES:
+            clean_intervals[norm_key] = value
+
+    # 3. Clean metrics (whitelist)
+    clean_metrics = {}
+    if metallurgy_metrics:
+        for key, value in metallurgy_metrics.items():
+            if key in VALID_METRICS:
+                clean_metrics[key] = value
+            else:
+                print(f"  ⚠️ Filtered out invalid metric: {key}")
+
+    # Fallback if missing required metrics
+    if not any(k in clean_metrics for k in REQUIRED_METRIC_KEYS):
+        print("  ⚠️ Missing required metrics - computing from feature_engineering...")
+        clean_metrics = compute_fallback_metrics(composition)
+
+    return clean_props, clean_intervals, clean_metrics
+
+
+VALID_CONFIDENCE_KEYS = {"level", "similarity_distance", "model_confidence", "data_quality"}
+
+
+def cleanup_confidence(confidence: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Clean LLM confidence output - filter out hallucinated keys like 'confidence1', 'confidence2'.
+    Returns a valid confidence dict with proper structure.
+    """
+    if not confidence or not isinstance(confidence, dict):
+        return {"level": "Medium", "similarity_distance": None}
+
+    clean_conf = {}
+    for key, value in confidence.items():
+        if key in VALID_CONFIDENCE_KEYS:
+            clean_conf[key] = value
+
+    # If no valid keys found, return default
+    if not clean_conf:
+        return {"level": "Medium", "similarity_distance": None}
+
+    # Ensure 'level' exists
+    if "level" not in clean_conf:
+        clean_conf["level"] = "Medium"
+
+    return clean_conf
+
+
+def warnings_to_penalties(warnings: List[str]) -> List[dict]:
+    """Convert coherency warning strings to AuditPenalty-compatible dicts."""
+    penalties = []
+    for warning in warnings:
+        name = "Coherency Audit"
+        if "Density" in warning:
+            name = "Density Coherency"
+        elif "Elastic" in warning:
+            name = "Elastic Modulus Coherency"
+        elif "Yield" in warning or "strength" in warning.lower():
+            name = "Strength/Gamma Prime Coherency"
+        elif "Ductility" in warning or "Elongation" in warning:
+            name = "Ductility Coherency"
+        penalties.append({
+            "name": name,
+            "value": "MEDIUM",
+            "reason": warning.replace("⚠️ Coherency Warning: ", "")
+        })
+    return penalties

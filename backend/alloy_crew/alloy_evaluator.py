@@ -341,7 +341,6 @@ class AlloyEvaluationCrew:
 
         corrected_output.properties, physics_corrections = enforce_physics_constraints(
             properties=corrected_output.properties,
-            composition=composition,
             temperature_c=temperature,
             processing=processing,
             confidence_level=confidence_level,
