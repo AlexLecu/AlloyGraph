@@ -1,8 +1,8 @@
 services:
   # Backend Flask API
-  alloymind-backend:
+  alloygraph-backend:
     build: ./backend
-    container_name: alloymind-backend
+    container_name: alloygraph-backend
     ports:
       - "5001:5001"
     env_file:
@@ -27,13 +27,13 @@ services:
       start_period: 40s
 
   # Frontend Vue.js app with nginx
-  alloymind-frontend:
+  alloygraph-frontend:
     build: ./frontend
-    container_name: alloymind-frontend
+    container_name: alloygraph-frontend
     ports:
       - "3000:80" # Frontend accessible on port 3000
     depends_on:
-      - alloymind-backend
+      - alloygraph-backend
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/" ]
@@ -43,4 +43,4 @@ services:
 
 networks:
   default:
-    name: alloymind-network
+    name: alloygraph-network

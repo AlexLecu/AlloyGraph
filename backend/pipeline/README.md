@@ -1,4 +1,4 @@
-# AlloyMind Data Pipeline
+# AlloyGraph Data Pipeline
 
 This pipeline automates the ingestion of superalloy data into the Knowledge Graph (GraphDB) and Vector Database (Weaviate).
 

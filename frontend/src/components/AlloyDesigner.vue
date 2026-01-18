@@ -1030,7 +1030,7 @@ const parsedResults = computed(() => {
       <div v-if="showInfo" class="modal-overlay" @click.self="showInfo = false">
         <div class="modal-content glass-card">
           <div class="modal-header">
-            <h3>AlloyMind Guide</h3>
+            <h3>AlloyGraph Guide</h3>
             <button class="close-btn" @click="showInfo = false">×</button>
           </div>
           <div class="modal-body">

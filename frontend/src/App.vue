@@ -46,7 +46,7 @@ onUnmounted(() => {
       <div class="header-content">
         <div class="logo">
           <span class="logo-icon">🧬</span>
-          <h1>AlloyMind</h1>
+          <h1>AlloyGraph</h1>
         </div>
         <div :class="['status-badge', { offline: !isBackendOnline }]">
           <span class="status-dot"></span>
