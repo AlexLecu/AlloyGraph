@@ -8,6 +8,7 @@ import { API_BASE_URL } from './config'
 const activeTab = ref('chat')
 const isBackendOnline = ref(false)
 const designContext = ref(null) // Stores alloy data for design handoff
+const showInfo = ref(false)
 let healthCheckInterval = null
 
 const handleDesign = (alloy) => {
@@ -57,33 +58,95 @@ onUnmounted(() => {
 
     <!-- Modern Tab Navigation -->
     <nav class="tab-nav">
-      <button 
-        :class="['tab-button', { active: activeTab === 'chat' }]" 
+      <button
+        :class="['tab-button', { active: activeTab === 'chat' }]"
         @click="activeTab = 'chat'"
       >
         <span class="tab-icon">🔬</span>
         <span class="tab-label">Research</span>
       </button>
-      <button 
-        :class="['tab-button', { active: activeTab === 'design' }]" 
+      <button
+        :class="['tab-button', { active: activeTab === 'design' }]"
         @click="activeTab = 'design'"
       >
         <span class="tab-icon">🧪</span>
         <span class="tab-label">Evaluate & Design</span>
       </button>
+      <button
+        class="info-button"
+        @click="showInfo = true"
+        title="Help & Information"
+      >
+        <span>ℹ️</span>
+      </button>
     </nav>
+
+    <!-- INFO MODAL -->
+    <transition name="fade">
+      <div v-if="showInfo" class="modal-overlay" @click.self="showInfo = false">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>AlloyGraph Guide</h3>
+            <button class="close-btn" @click="showInfo = false">×</button>
+          </div>
+          <div class="modal-body">
+            <h4>🧬 Inverse Design Mode (Auto)</h4>
+            <p><strong>Purpose:</strong> AI-driven composition synthesis to meet target mechanical properties using multi-agent optimization.</p>
+            <ul>
+              <li><strong>Target Properties:</strong> Specify minimum values for YS (Yield Strength), UTS (Ultimate Tensile Strength), Elongation, Elastic Modulus, or maximum Density. Set to <strong>0</strong> to exclude from optimization.</li>
+              <li><strong>Processing Route:</strong> Select <em>wrought</em> or <em>cast</em> based on your intended manufacturing method.</li>
+              <li><strong>Iterations:</strong> Higher values (5-10) explore more compositional space but increase runtime (~2-5 min per iteration).</li>
+            </ul>
+
+            <h4>🧪 Property Prediction Mode (Manual)</h4>
+            <p><strong>Purpose:</strong> ML/KG data fusion to predict properties for known compositions, validated against physics constraints.</p>
+            <ul>
+              <li><strong>Input:</strong> Enter weight percentages (should sum to ~100%).</li>
+              <li><strong>ML Models:</strong> Trained on Ni-based superalloy database with engineered metallurgical features (γ' fraction, Md parameter, lattice mismatch, VEC).</li>
+              <li><strong>Knowledge Graph Fusion:</strong> If composition closely matches known alloys in the database, predictions are weighted toward experimental data.</li>
+            </ul>
+
+            <h4>📊 Physics Validation & Confidence</h4>
+            <ul>
+              <li><span class="status-pass">PASS</span> No critical violations. Md (phase stability) &lt; 0.98, lattice mismatch &lt; 0.8%, properties within known ranges.</li>
+              <li><span class="status-reject">REJECT</span> Physics constraints violated (e.g., TCP phase risk, excessive lattice mismatch, γ' incoherence).</li>
+              <li><strong>Confidence Level:</strong> HIGH (database match + model agreement), MEDIUM (model interpolation), LOW (extrapolation beyond training data).</li>
+              <li><strong>Prediction Intervals:</strong> Uncertainty ranges shown for each property based on model confidence and nearest-neighbor distances.</li>
+            </ul>
+
+            <h4>🔬 Research & Chat Mode</h4>
+            <p><strong>Purpose:</strong> Query the knowledge graph to find similar alloys, explore literature data, or ask metallurgical questions.</p>
+            <ul>
+              <li><strong>Search by Composition:</strong> "Find alloys similar to Inconel 718" or "Show me high-γ' superalloys"</li>
+              <li><strong>Property Queries:</strong> "What alloys have YS > 1000 MPa?" or "Compare Waspaloy and Inconel 718"</li>
+              <li><strong>Metallurgical Questions:</strong> Ask about phase stability, strengthening mechanisms, or processing effects.</li>
+            </ul>
+
+            <h4>⚙️ Known Limitations</h4>
+            <ul>
+              <li>Predictions assume room temperature (20°C) unless otherwise specified.</li>
+              <li>γ' (gamma prime) volume fraction uses a composition-based solubility model; accuracy may vary for non-standard compositions.</li>
+              <li>TCP risk assessment is based on composition; actual phase formation depends on heat treatment and kinetics.</li>
+              <li>For optimal accuracy, experimental validation is recommended for novel alloy designs.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </transition>
 
     <!-- Content Area -->
     <main class="content-area">
-      <transition name="fade" mode="out-in">
-        <KeepAlive>
-          <component 
-            :is="activeTab === 'chat' ? ResearchChat : AlloyDesigner"
-            v-bind="activeTab === 'design' ? { initialAlloy: designContext } : {}"
-            @design="handleDesign"
-          />
-        </KeepAlive>
-      </transition>
+      <KeepAlive>
+        <ResearchChat
+          v-if="activeTab === 'chat'"
+          @design="handleDesign"
+        />
+      </KeepAlive>
+      <AlloyDesigner
+        v-if="activeTab === 'design'"
+        :initialAlloy="designContext"
+        @design="handleDesign"
+      />
     </main>
   </div>
 </template>
@@ -231,6 +294,134 @@ onUnmounted(() => {
 
 .tab-label {
   font-weight: var(--font-weight-semibold);
+}
+
+/* === INFO BUTTON === */
+.info-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-width: 44px;
+  padding: var(--space-md);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.info-button:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* === INFO MODAL === */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-xl);
+}
+
+.modal-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  max-width: 700px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  color: var(--text-primary);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: color var(--transition-base);
+}
+
+.close-btn:hover {
+  color: var(--text-primary);
+}
+
+.modal-body {
+  padding: var(--space-lg);
+  overflow-y: auto;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.modal-body h4 {
+  margin: var(--space-lg) 0 var(--space-sm);
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
+}
+
+.modal-body h4:first-child {
+  margin-top: 0;
+}
+
+.modal-body p {
+  margin: 0 0 var(--space-sm);
+}
+
+.modal-body ul {
+  margin: 0;
+  padding-left: var(--space-lg);
+}
+
+.modal-body li {
+  margin-bottom: var(--space-xs);
+}
+
+.status-pass {
+  display: inline-block;
+  background: rgba(6, 214, 160, 0.2);
+  color: var(--success);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-reject {
+  display: inline-block;
+  background: rgba(239, 71, 111, 0.2);
+  color: var(--danger);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 /* === CONTENT AREA === */

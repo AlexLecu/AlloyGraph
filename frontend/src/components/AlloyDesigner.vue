@@ -32,7 +32,6 @@ let elapsedTimer = null
 // --- DESIGN HISTORY STATE ---
 const designHistory = ref([])
 const showHistory = ref(false)
-const showInfo = ref(false)
 const maxHistoryItems = 20
 
 // --- ERROR HANDLING HELPERS ---
@@ -1015,68 +1014,7 @@ const parsedResults = computed(() => {
         <span class="mode-label">History</span>
         <span v-if="designHistory.length > 0" class="history-badge">{{ designHistory.length }}</span>
       </button>
-      <button
-        class="history-toggle-btn"
-        @click="showInfo = true"
-        title="Help & Information"
-        style="margin-left: 0.5rem;"
-      >
-        <span class="mode-icon">ℹ️</span>
-      </button>
     </div>
-
-    <!-- INFO MODAL -->
-    <transition name="fade">
-      <div v-if="showInfo" class="modal-overlay" @click.self="showInfo = false">
-        <div class="modal-content glass-card">
-          <div class="modal-header">
-            <h3>AlloyGraph Guide</h3>
-            <button class="close-btn" @click="showInfo = false">×</button>
-          </div>
-          <div class="modal-body">
-            <h4>🧬 Inverse Design Mode (Auto)</h4>
-            <p><strong>Purpose:</strong> AI-driven composition synthesis to meet target mechanical properties using multi-agent optimization.</p>
-            <ul>
-              <li><strong>Target Properties:</strong> Specify minimum values for YS (Yield Strength), UTS (Ultimate Tensile Strength), Elongation, Elastic Modulus, or maximum Density. Set to <strong>0</strong> to exclude from optimization.</li>
-              <li><strong>Processing Route:</strong> Select <em>wrought</em> or <em>cast</em> based on your intended manufacturing method.</li>
-              <li><strong>Iterations:</strong> Higher values (5-10) explore more compositional space but increase runtime (~2-5 min per iteration).</li>
-            </ul>
-
-            <h4>🧪 Property Prediction Mode (Manual)</h4>
-            <p><strong>Purpose:</strong> ML/KG data fusion to predict properties for known compositions, validated against physics constraints.</p>
-            <ul>
-              <li><strong>Input:</strong> Enter weight percentages (should sum to ~100%).</li>
-              <li><strong>ML Models:</strong> Trained on Ni-based superalloy database with engineered metallurgical features (γ' fraction, Md parameter, lattice mismatch, VEC).</li>
-              <li><strong>Knowledge Graph Fusion:</strong> If composition closely matches known alloys in the database, predictions are weighted toward experimental data.</li>
-            </ul>
-
-            <h4>📊 Physics Validation & Confidence</h4>
-            <ul>
-              <li><span class="status-badge pass" style="font-size: 0.8em; padding: 2px 6px;">PASS</span> No critical violations. Md (phase stability) < 0.98, lattice mismatch < 0.8%, properties within known ranges.</li>
-              <li><span class="status-badge reject" style="font-size: 0.8em; padding: 2px 6px;">REJECT</span> Physics constraints violated (e.g., TCP (topologically close-packed) phase risk, excessive lattice mismatch, γ' incoherence).</li>
-              <li><strong>Confidence Level:</strong> HIGH (database match + model agreement), MEDIUM (model interpolation), LOW (extrapolation beyond training data).</li>
-              <li><strong>Prediction Intervals:</strong> Uncertainty ranges shown for each property based on model confidence and nearest-neighbor distances.</li>
-            </ul>
-
-            <h4>🔬 Research & Chat Mode</h4>
-            <p><strong>Purpose:</strong> Query the knowledge graph to find similar alloys, explore literature data, or ask metallurgical questions.</p>
-            <ul>
-              <li><strong>Search by Composition:</strong> "Find alloys similar to Inconel 718" or "Show me high-γ' superalloys"</li>
-              <li><strong>Property Queries:</strong> "What alloys have YS > 1000 MPa?" or "Compare Waspaloy and Inconel 718"</li>
-              <li><strong>Metallurgical Questions:</strong> Ask about phase stability, strengthening mechanisms, or processing effects.</li>
-            </ul>
-
-            <h4>⚙️ Known Limitations</h4>
-            <ul>
-              <li>Predictions assume room temperature (20°C) unless otherwise specified.</li>
-              <li>γ' (gamma prime) volume fraction uses a composition-based solubility model; accuracy may vary for non-standard compositions.</li>
-              <li>TCP risk assessment is based on composition; actual phase formation depends on heat treatment and kinetics.</li>
-              <li>For optimal accuracy, experimental validation is recommended for novel alloy designs.</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </transition>
 
     <!-- DESIGN HISTORY PANEL -->
     <transition name="slide-down">
