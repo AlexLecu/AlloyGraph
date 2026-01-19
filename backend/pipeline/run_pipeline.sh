@@ -14,7 +14,7 @@ WEAVIATE_COMPOSE="../docker/docker-compose-weaviate.yml"
 WEAVIATE_DATA_DIR="../docker/weaviate_data"
 
 echo "==========================================="
-echo "   Starting AlloyMind Data Pipeline"
+echo "   Starting AlloyGraph Data Pipeline"
 echo "==========================================="
 
 # 1. Reset Weaviate
@@ -52,14 +52,14 @@ python enrich_jsonl_with_features.py "$SOURCE_FILE" "$DATA_FILE"
 # 4. Populate GraphDB
 echo "[4/5] Populating GraphDB from $DATA_FILE..."
 export ALLOY_JSON=$DATA_FILE
-python enrich_graphdb_new.py
+python enrich_graphdb.py
 
 # 5. Weaviate Ingestion
 echo "[5/5] Setting up Weaviate..."
 echo "      Creating Schema..."
-python weaviate_schema_new.py
+python weaviate_schema.py
 echo "      Ingesting Data..."
-python weaviate_ingest_new.py
+python weaviate_ingest.py
 
 echo "==========================================="
 echo "   Pipeline Completed Successfully! 🚀"
