@@ -1,13 +1,73 @@
 import os
 import json
+import unicodedata
 from dataclasses import asdict
 from difflib import SequenceMatcher
+from typing import Optional
 from groq import Groq
-from .alloy_retriever import AlloyRetriever
+from .alloy_retriever import AlloyRetriever, AlloyData
 from .config import LLMConfig, SearchConfig, HistoryConfig, Prompts
 
-# In-memory session storage (can be externalized later)
 chat_sessions = {}
+
+# Property term mapping for search queries
+PROPERTY_SEARCH_TERMS = {
+    "strength": "strength",
+    "yield": "yield",
+    "tensile": "tensile",
+    "uts": "tensile",
+    "elongation": "elongation",
+    "density": "density",
+}
+
+
+def _map_property_term(prop_target: str) -> str:
+    """Map user property terms to search keywords. Later matches override earlier ones."""
+    prop_lower = prop_target.lower()
+    result = prop_lower
+    for key, value in PROPERTY_SEARCH_TERMS.items():
+        if key in prop_lower:
+            result = value
+    return result
+
+
+def _extract_property_value(
+    alloy: AlloyData, search_term: str, prefer_room_temp: bool = True
+) -> Optional[float]:
+    """Extract best property value from an alloy for the given search term."""
+    if "density" in search_term and alloy.density_gcm3:
+        return alloy.density_gcm3
+
+    if not alloy.properties:
+        return None
+
+    room_temp_val = None
+    any_val = None
+
+    for p in alloy.properties:
+        p_type = p.property_type.lower()
+
+        # Check if property matches search term
+        is_match = False
+        if "yield" in search_term and ("yield" in p_type or "0.2%" in p_type):
+            is_match = True
+        elif "tensile" in search_term and ("ultimate" in p_type or "tensile" in p_type or "uts" in p_type):
+            is_match = True
+        elif "elongation" in search_term and "elongation" in p_type:
+            is_match = True
+        elif search_term in p_type:
+            is_match = True
+
+        if is_match and p.value is not None:
+            temp = p.temperature_c if p.temperature_c is not None else -1
+            is_room = 20 <= temp <= 25
+
+            if is_room and prefer_room_temp:
+                room_temp_val = p.value
+            elif any_val is None:
+                any_val = p.value
+
+    return room_temp_val if room_temp_val is not None else any_val
 
 def _format_history(history: list, depth: int, max_content: int = 100) -> str:
     """Format conversation history for LLM context."""
@@ -19,6 +79,20 @@ def _format_history(history: list, depth: int, max_content: int = 100) -> str:
             hist_str = f"{role}: {content}\n" + hist_str
     return hist_str
 
+def _normalize_text(text: str) -> str:
+    """Normalize text by removing accents and converting to lowercase."""
+    # Decompose unicode characters and remove combining marks (accents)
+    normalized = unicodedata.normalize('NFD', text)
+    return ''.join(c for c in normalized if unicodedata.category(c) != 'Mn').lower()
+
+def _extract_core_name(alloy_name: str) -> str:
+    """Extract the core alloy name, removing processing suffixes."""
+    name = alloy_name.lower().replace('*', '').strip()
+    # Remove common suffixes like "(forged)", "wrought", "cast", "Bar", etc.
+    for suffix in ['(forged)', '(cast)', 'wrought', 'cast', 'bar', 'sheet', 'plate', 'forged']:
+        name = name.replace(suffix, '')
+    return name.strip()
+
 def find_best_match(target_name: str, search_results: list):
     """
     Find the best matching alloy from search results based on similarity.
@@ -26,30 +100,30 @@ def find_best_match(target_name: str, search_results: list):
     """
     if not search_results:
         return None
-    
+
     scored = []
     for alloy in search_results:
-        # Clean names for better matching (remove asterisks and normalize)
-        clean_alloy_name = alloy.name.lower().replace('*', '').strip()
-        clean_target = target_name.lower().strip()
-        
-        # Calculate similarity
+        # Normalize accents and extract core name for better matching
+        clean_alloy_name = _normalize_text(_extract_core_name(alloy.name))
+        clean_target = _normalize_text(target_name.strip())
+
+        # Calculate similarity on core names
         ratio = SequenceMatcher(None, clean_target, clean_alloy_name).ratio()
-        
+
         # Boost score if target is substring of alloy name
         if clean_target in clean_alloy_name:
             ratio += SearchConfig.SUBSTRING_MATCH_BOOST
-        
+
         scored.append((ratio, alloy))
-    
+
     # Sort by score and take best
     scored.sort(key=lambda x: x[0], reverse=True)
     best_score, best_alloy = scored[0]
-    
+
     # Return only if above minimum threshold
     if best_score >= SearchConfig.MIN_SIMILARITY_THRESHOLD:
         return best_alloy
-    
+
     return None
 
 def detect_query_intent(prompt: str, history: list) -> dict:
@@ -114,78 +188,53 @@ def get_target_alloy_from_llm(prompt: str, history: list) -> str:
         return ""
 
 def process_analytics_query(params: dict, retriever: AlloyRetriever):
-    """
-    Handle analytical queries by fetching candidates and sorting in Python.
-    """
-    prop_target = params.get('property', '').lower()
+    """Handle analytical queries by fetching candidates and sorting in Python."""
+    prop_target = params.get('property', '')
     direction = params.get('direction', 'highest')
     limit = params.get('limit', 5)
-    
-    # Map common terms to search keywords
-    search_term = prop_target
-    if "strength" in prop_target: search_term = "strength"
-    if "yield" in prop_target: search_term = "yield"
-    if "tensile" in prop_target or "uts" in prop_target: search_term = "tensile"
-    if "elongation" in prop_target: search_term = "elongation"
-    if "density" in prop_target: search_term = "density"
-    
+
+    search_term = _map_property_term(prop_target)
     candidates = retriever.get_alloys_with_property(search_term, limit=100)
-    
-    # Extract values for sorting
+
     scored = []
     for alloy in candidates:
-        # Find best value for this property
-        best_val = -1.0 if direction == 'highest' else float('inf')
-        found = False
-        selected_prop = None
-        
-        # density check
-        if "density" in search_term and alloy.density_gcm3:
-            best_val = alloy.density_gcm3
-            found = True
-            selected_prop = f"{best_val} g/cm³"
-        else:
-            # properties check
-            if alloy.properties:
-                for p in alloy.properties:
-                    p_type = p.property_type.lower()
-                    # Simple matching
-                    is_match = False
-                    if "yield" in search_term and ("yield" in p_type or "0.2%" in p_type): is_match = True
-                    elif "tensile" in search_term and ("ultimate" in p_type or "tensile" in p_type or "uts" in p_type): is_match = True
-                    elif "elongation" in search_term and "elongation" in p_type: is_match = True
-                    elif search_term in p_type: is_match = True
-                    
-                    if is_match and p.value is not None:
-                        val = p.value
-                        temp = p.temperature_c if p.temperature_c is not None else -1
-                        is_room = 20 <= temp <= 25
-                        
-                        if not found:
-                            best_val = val
-                            selected_prop = p
-                            found = True
-                        else:
-                            # Prefer room temp for general queries
-                            existing_temp = selected_prop.temperature_c if isinstance(selected_prop, object) and hasattr(selected_prop, 'temperature_c') and selected_prop.temperature_c else -1
-                            existing_is_room = 20 <= existing_temp <= 25
-                            
-                            if is_room and not existing_is_room:
-                                best_val = val
-                                selected_prop = p
-                                
-        if found:
-            scored.append({
-                "alloy": alloy,
-                "value": best_val,
-                "display": selected_prop
-            })
-            
-    # Sort
-    reverse = (direction == 'highest')
-    scored.sort(key=lambda x: x['value'], reverse=reverse)
-    
-    return [item['alloy'] for item in scored[:limit]]
+        value = _extract_property_value(alloy, search_term)
+        if value is not None:
+            scored.append((alloy, value))
+
+    scored.sort(key=lambda x: x[1], reverse=(direction == 'highest'))
+    return [alloy for alloy, _ in scored[:limit]]
+
+def process_target_query(params: dict, retriever: AlloyRetriever):
+    """Find alloys with properties closest to a target value."""
+    prop_target = params.get('property', '')
+    target_value = params.get('target_value', 0)
+    tolerance_pct = params.get('tolerance_pct', 20)
+    limit = params.get('limit', 3)
+
+    if not target_value:
+        return []
+
+    search_term = _map_property_term(prop_target)
+    candidates = retriever.get_alloys_with_property(search_term, limit=100)
+
+    scored = []
+    for alloy in candidates:
+        value = _extract_property_value(alloy, search_term)
+        if value is not None:
+            distance = abs(value - target_value)
+            pct_diff = (distance / target_value) * 100
+            scored.append((alloy, distance, pct_diff))
+
+    scored.sort(key=lambda x: x[1])  # Sort by distance
+
+    # Filter by tolerance if we have enough results
+    if tolerance_pct and len(scored) > limit:
+        filtered = [(a, d, p) for a, d, p in scored if p <= tolerance_pct * 2]
+        if len(filtered) >= limit:
+            scored = filtered
+
+    return [alloy for alloy, _, _ in scored[:limit]]
 
 def stream_chat_response(prompt: str, session_id: str, history: list):
     """
@@ -198,13 +247,60 @@ def stream_chat_response(prompt: str, session_id: str, history: list):
         target_alloys = []
         final_context = ""
         
-        if intent == "ANALYTICS":
+        if intent == "CONVERSATION":
+            # Conversational/Off-topic Path - respond without searching
+            yield json.dumps({"type": "data", "alloys": []}) + "\n"
+
+            groq_key = os.getenv("GROQ_API_KEY")
+            if groq_key:
+                client = Groq(api_key=groq_key)
+
+                conv_prompt = """You are a friendly alloy research assistant. The user sent a casual/conversational message.
+
+                Respond briefly and warmly, then remind them you can help with:
+                - Looking up alloy compositions and properties
+                - Comparing different alloys
+                - Finding alloys with specific characteristics
+                - Answering questions about superalloys and materials
+                
+                Keep it short and friendly (1-2 sentences max)."""
+
+                stream = client.chat.completions.create(
+                    model=LLMConfig.MODEL,
+                    messages=[
+                        {"role": "system", "content": conv_prompt},
+                        {"role": "user", "content": prompt}
+                    ],
+                    max_tokens=150,
+                    temperature=0.7,
+                    stream=True
+                )
+
+                for chunk in stream:
+                    content = chunk.choices[0].delta.content
+                    if content:
+                        yield json.dumps({"type": "chunk", "content": content}) + "\n"
+            else:
+                yield json.dumps({"type": "chunk", "content": "Hello! I'm an alloy research assistant. Ask me about alloy compositions, properties, or comparisons!"}) + "\n"
+            return
+
+        elif intent == "ANALYTICS":
             # Analytical Path
             print(f"📊 Analytics Query: {intent_data}")
             target_alloys = process_analytics_query(intent_data.get("params", {}), retriever)
             final_context = f"Top results for {intent_data.get('params', {}).get('property')} ({intent_data.get('params', {}).get('direction')}):\n"
             final_context += retriever.format_for_llm(target_alloys)
-            
+
+        elif intent == "TARGET":
+            # Target Value Path - find alloys closest to a specific value
+            params = intent_data.get("params", {})
+            print(f"🎯 Target Query: {params}")
+            target_alloys = process_target_query(params, retriever)
+            target_val = params.get('target_value', 0)
+            prop_name = params.get('property', 'property')
+            final_context = f"Alloys with {prop_name} closest to {target_val}:\n"
+            final_context += retriever.format_for_llm(target_alloys)
+
         elif intent == "DESIGN":
             # Design Path
             final_context = "User wants to design an alloy. Encourage them to use the Designer tool."
@@ -262,6 +358,8 @@ def stream_chat_response(prompt: str, session_id: str, history: list):
             system_prompt = Prompts.CHAT_RESPONSE
             if intent == "ANALYTICS":
                 system_prompt = Prompts.ANALYTICS_RESPONSE
+            elif intent == "TARGET":
+                system_prompt = Prompts.TARGET_RESPONSE
             
             messages = [{"role": "system", "content": system_prompt}]
             for msg in history[-HistoryConfig.MAX_CONTEXT_MESSAGES:]:

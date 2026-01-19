@@ -30,18 +30,42 @@ class PropertyMeasurement:
 class AlloyData:
     """Complete alloy data from Weaviate."""
     name: str
-    processing_method: str
+    processing_method: str    # Composition data
     composition: Optional[dict[str, float]] = None
     atomic_composition: Optional[dict[str, float]] = None
+    gamma_composition: Optional[dict[str, float]] = None
+    gamma_prime_composition: Optional[dict[str, float]] = None
+    # Physical properties
     density_gcm3: Optional[float] = None
     gamma_prime_vol_pct: Optional[float] = None
-    md_avg_c: Optional[float] = None
+    # Phase stability parameters
+    md_avg: Optional[float] = None
+    md_gamma: Optional[float] = None
+    vec_avg: Optional[float] = None
     tcp_risk: Optional[str] = None
+    lattice_mismatch_pct: Optional[float] = None
+    # Strengthening parameters
     sss_wt_pct: Optional[float] = None
+    sss_coefficient: Optional[float] = None
+    precipitation_hardening_coeff: Optional[float] = None
+    creep_resistance_param: Optional[float] = None
+    # Composition metrics
     refractory_wt_pct: Optional[float] = None
     gp_formers_wt_pct: Optional[float] = None
+    gp_formers_at_pct: Optional[float] = None
+    oxidation_resistance: Optional[float] = None
+    # Element ratios
+    al_ti_ratio: Optional[float] = None
+    al_ti_at_ratio: Optional[float] = None
+    cr_co_ratio: Optional[float] = None
+    cr_ni_ratio: Optional[float] = None
+    mo_w_ratio: Optional[float] = None
+    # Interaction terms
+    al_ti_interaction: Optional[float] = None
+    cr_al_interaction: Optional[float] = None
+    # Mechanical properties
     properties: Optional[list[PropertyMeasurement]] = None
-    
+
     def __post_init__(self):
         if self.properties is None:
             self.properties = []
@@ -49,6 +73,10 @@ class AlloyData:
             self.composition = {}
         if self.atomic_composition is None:
             self.atomic_composition = {}
+        if self.gamma_composition is None:
+            self.gamma_composition = {}
+        if self.gamma_prime_composition is None:
+            self.gamma_prime_composition = {}
 
 
 class AlloyRetriever:
@@ -97,20 +125,32 @@ class AlloyRetriever:
             List of AlloyData objects with properties and temperatures
         """
         client = self._get_client()
-        
+
         if not client.is_live():
             raise ConnectionError("Weaviate instance is not reachable")
-        
+
         collection = client.collections.get("Variant")
-        
-        # Hybrid search with full property data
+
         response = collection.query.hybrid(
             query=query,
             limit=limit,
             return_properties=[
-                "name", "processingMethod", "densityCalculated", "gammaPrimeEstimate",
-                "mdAverage", "tcpRisk", "atomicCompositionJson",
-                "sssTotalWtPct", "refractoryTotalWtPct", "gpFormersWtPct"
+                # Basic info
+                "name", "processingMethod",
+                # Physical properties
+                "densityCalculated", "gammaPrimeEstimate",
+                # Phase stability
+                "mdAverage", "mdGamma", "vecAvg", "tcpRisk", "latticeMismatchPct",
+                # Strengthening
+                "sssTotalWtPct", "sssCoefficient", "precipitationHardeningCoeff", "creepResistanceParam",
+                # Composition metrics
+                "refractoryTotalWtPct", "gpFormersWtPct", "gpFormersAtPct", "oxidationResistance",
+                # Element ratios
+                "alTiRatio", "alTiAtRatio", "crCoRatio", "crNiRatio", "moWRatio",
+                # Interaction terms
+                "alTiInteraction", "crAlInteraction",
+                # JSON composition fields
+                "atomicCompositionJson", "gammaCompositionJson", "gammaPrimeCompositionJson",
             ],
             return_references=[
                 QueryReference(
@@ -164,26 +204,69 @@ class AlloyRetriever:
             alloy = AlloyData(
                 name=str(props.get('name', 'Unknown')),
                 processing_method=str(props.get('processingMethod', 'Unknown')),
+                # Physical properties
                 density_gcm3=props.get('densityCalculated'),
                 gamma_prime_vol_pct=props.get('gammaPrimeEstimate'),
-                md_avg_c=props.get('mdAverage'),
+                # Phase stability
+                md_avg=props.get('mdAverage'),
+                md_gamma=props.get('mdGamma'),
+                vec_avg=props.get('vecAvg'),
                 tcp_risk=props.get('tcpRisk'),
+                lattice_mismatch_pct=props.get('latticeMismatchPct'),
+                # Strengthening
                 sss_wt_pct=props.get('sssTotalWtPct'),
+                sss_coefficient=props.get('sssCoefficient'),
+                precipitation_hardening_coeff=props.get('precipitationHardeningCoeff'),
+                creep_resistance_param=props.get('creepResistanceParam'),
+                # Composition metrics
                 refractory_wt_pct=props.get('refractoryTotalWtPct'),
                 gp_formers_wt_pct=props.get('gpFormersWtPct'),
+                gp_formers_at_pct=props.get('gpFormersAtPct'),
+                oxidation_resistance=props.get('oxidationResistance'),
+                # Element ratios
+                al_ti_ratio=props.get('alTiRatio'),
+                al_ti_at_ratio=props.get('alTiAtRatio'),
+                cr_co_ratio=props.get('crCoRatio'),
+                cr_ni_ratio=props.get('crNiRatio'),
+                mo_w_ratio=props.get('moWRatio'),
+                # Interaction terms
+                al_ti_interaction=props.get('alTiInteraction'),
+                cr_al_interaction=props.get('crAlInteraction'),
+                # Initialize empty collections
                 composition={},
                 atomic_composition={},
+                gamma_composition={},
+                gamma_prime_composition={},
                 properties=[]
             )
-            
+
+            # Parse atomic composition JSON
             try:
                 ac_json = props.get('atomicCompositionJson')
                 if ac_json:
-                     data = json.loads(ac_json)
-                     if "atomic_percent" in data:
-                         alloy.atomic_composition = data["atomic_percent"]
-                     else:
-                         alloy.atomic_composition = data
+                    data = json.loads(ac_json)
+                    if "atomic_percent" in data:
+                        alloy.atomic_composition = data["atomic_percent"]
+                    else:
+                        alloy.atomic_composition = data
+            except Exception:
+                pass
+
+            # Parse gamma (matrix) composition JSON
+            try:
+                gc_json = props.get('gammaCompositionJson')
+                if gc_json:
+                    data = json.loads(gc_json)
+                    alloy.gamma_composition = data
+            except Exception:
+                pass
+
+            # Parse gamma prime (precipitate) composition JSON
+            try:
+                gp_json = props.get('gammaPrimeCompositionJson')
+                if gp_json:
+                    data = json.loads(gp_json)
+                    alloy.gamma_prime_composition = data
             except Exception:
                 pass
             
@@ -284,21 +367,93 @@ class AlloyRetriever:
                 sorted_at = sorted(alloy.atomic_composition.items(), key=lambda x: x[1], reverse=True)
                 for element, value in sorted_at:
                     lines.append(f"  {element}: {value:.2f}%")
-            
+
+            if alloy.gamma_composition:
+                lines.append("\nGamma (Matrix) Phase Composition (at%):")
+                sorted_gamma = sorted(alloy.gamma_composition.items(), key=lambda x: x[1], reverse=True)
+                for element, value in sorted_gamma:
+                    lines.append(f"  {element}: {value:.2f}%")
+
+            if alloy.gamma_prime_composition:
+                lines.append("\nGamma Prime (Precipitate) Phase Composition (at%):")
+                sorted_gp = sorted(alloy.gamma_prime_composition.items(), key=lambda x: x[1], reverse=True)
+                for element, value in sorted_gp:
+                    lines.append(f"  {element}: {value:.2f}%")
+
+            # Physical Properties
+            phys_props = []
             if alloy.density_gcm3:
-                lines.append(f"\nDensity: {alloy.density_gcm3:.2f} g/cm³")
+                phys_props.append(f"Density: {alloy.density_gcm3:.2f} g/cm³")
             if alloy.gamma_prime_vol_pct:
-                lines.append(f"Gamma Prime: {alloy.gamma_prime_vol_pct:.1f} vol%")
-            if alloy.md_avg_c:
-                lines.append(f"Md (avg): {alloy.md_avg_c:.1f}°C")
+                phys_props.append(f"γ' Volume Fraction: {alloy.gamma_prime_vol_pct:.1f}%")
+            if phys_props:
+                lines.append("\nPhysical Properties:")
+                for p in phys_props:
+                    lines.append(f"  {p}")
+
+            # Phase Stability Parameters
+            stability_props = []
+            if alloy.md_avg is not None:
+                stability_props.append(f"Md (avg): {alloy.md_avg:.3f}")
+            if alloy.md_gamma is not None:
+                stability_props.append(f"Md (γ matrix): {alloy.md_gamma:.3f}")
+            if alloy.vec_avg is not None:
+                stability_props.append(f"VEC (avg): {alloy.vec_avg:.2f}")
             if alloy.tcp_risk:
-                lines.append(f"TCP Risk: {alloy.tcp_risk}")
-            if alloy.sss_wt_pct:
-                lines.append(f"SSS Content: {alloy.sss_wt_pct:.1f} wt%")
-            if alloy.refractory_wt_pct:
-                lines.append(f"Refractory Content: {alloy.refractory_wt_pct:.1f} wt%")
-            if alloy.gp_formers_wt_pct:
-                lines.append(f"Gamma Prime Formers: {alloy.gp_formers_wt_pct:.1f} wt%")
+                stability_props.append(f"TCP Risk: {alloy.tcp_risk}")
+            if alloy.lattice_mismatch_pct is not None:
+                stability_props.append(f"Lattice Mismatch: {alloy.lattice_mismatch_pct:.3f}%")
+            if stability_props:
+                lines.append("\nPhase Stability:")
+                for p in stability_props:
+                    lines.append(f"  {p}")
+
+            # Strengthening Parameters
+            strength_props = []
+            if alloy.sss_wt_pct is not None:
+                strength_props.append(f"SSS Elements: {alloy.sss_wt_pct:.1f} wt%")
+            if alloy.sss_coefficient is not None:
+                strength_props.append(f"SSS Coefficient: {alloy.sss_coefficient:.4f}")
+            if alloy.precipitation_hardening_coeff is not None:
+                strength_props.append(f"Precipitation Hardening: {alloy.precipitation_hardening_coeff:.4f}")
+            if alloy.creep_resistance_param is not None:
+                strength_props.append(f"Creep Resistance Parameter: {alloy.creep_resistance_param:.2f}")
+            if strength_props:
+                lines.append("\nStrengthening Mechanisms:")
+                for p in strength_props:
+                    lines.append(f"  {p}")
+
+            # Composition Metrics
+            comp_metrics = []
+            if alloy.refractory_wt_pct is not None:
+                comp_metrics.append(f"Refractory Elements: {alloy.refractory_wt_pct:.1f} wt%")
+            if alloy.gp_formers_wt_pct is not None:
+                comp_metrics.append(f"γ' Formers: {alloy.gp_formers_wt_pct:.1f} wt%")
+            if alloy.gp_formers_at_pct is not None:
+                comp_metrics.append(f"γ' Formers: {alloy.gp_formers_at_pct:.1f} at%")
+            if alloy.oxidation_resistance is not None:
+                comp_metrics.append(f"Oxidation Resistance Index: {alloy.oxidation_resistance:.2f}")
+            if comp_metrics:
+                lines.append("\nComposition Metrics:")
+                for p in comp_metrics:
+                    lines.append(f"  {p}")
+
+            # Element Ratios
+            ratios = []
+            if alloy.al_ti_ratio is not None:
+                ratios.append(f"Al/Ti (wt): {alloy.al_ti_ratio:.2f}")
+            if alloy.al_ti_at_ratio is not None:
+                ratios.append(f"Al/Ti (at): {alloy.al_ti_at_ratio:.2f}")
+            if alloy.cr_co_ratio is not None:
+                ratios.append(f"Cr/Co: {alloy.cr_co_ratio:.2f}")
+            if alloy.cr_ni_ratio is not None:
+                ratios.append(f"Cr/Ni: {alloy.cr_ni_ratio:.3f}")
+            if alloy.mo_w_ratio is not None:
+                ratios.append(f"Mo/W: {alloy.mo_w_ratio:.2f}")
+            if ratios:
+                lines.append("\nElement Ratios:")
+                for r in ratios:
+                    lines.append(f"  {r}")
             
             if alloy.properties:
                 lines.append("\nMechanical Properties:")

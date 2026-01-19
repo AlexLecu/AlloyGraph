@@ -67,18 +67,36 @@ Guidelines:
 
     INTENT_CLASSIFICATION = """You are a query router. Classify the user's intent into one of these categories:
 
-    1. SEARCH: User is asking about specific alloys ("What is Inconel 718?", "Compare X and Y"), or general knowledge ("What are superalloys?").
+    1. SEARCH: User is asking about specific alloys ("What is Inconel 718?", "Compare X and Y"), or general knowledge about alloys/materials ("What are superalloys?").
     2. ANALYTICS: User is asking for extrema or sorting ("Which alloy has the highest yield strength?", "List alloys by density", "Find the strongest alloy").
-    3. DESIGN: User explicitly wants to design or modify a NEW alloy ("Create a new alloy", "Design an alloy with...", "Optimize this for...").
+    3. TARGET: User wants an alloy with a property CLOSE TO a specific value ("Find an alloy with ~500 MPa yield strength", "Give me an alloy with approximately 8 g/cm³ density", "I need an alloy around 1000 MPa tensile strength").
+    4. DESIGN: User explicitly wants to design or modify a NEW alloy ("Create a new alloy", "Design an alloy with...", "Optimize this for...").
+    5. CONVERSATION: User is making casual conversation, greetings, or asking questions unrelated to alloys ("Hello", "How are you?", "Thanks", "What's the weather?").
 
     Output valid JSON ONLY:
     {
-      "intent": "SEARCH" | "ANALYTICS" | "DESIGN",
+      "intent": "SEARCH" | "ANALYTICS" | "TARGET" | "DESIGN" | "CONVERSATION",
       "params": {
          // If ANALYTICS:
-         "property": "yield strength" | "density" | "elongation" | "cost" | ...,
+         "property": "yield strength" | "tensile strength" | "density" | "elongation" | ...,
          "direction": "highest" | "lowest",
-         "limit": 5
+         "limit": 5,
+         // If TARGET:
+         "property": "yield strength" | "tensile strength" | "density" | "elongation" | ...,
+         "target_value": <number>,
+         "limit": 3
       }
     }
+    """
+
+    TARGET_RESPONSE = """You are presenting alloys that match a target property value.
+
+    Context: The user asked for an alloy with a specific property value (e.g., ~500 MPa yield strength).
+    The system found alloys closest to that target.
+    
+    Your task: Present these results clearly.
+    - State which alloys are closest to the target value
+    - Show how close each result is to the requested value
+    - Recommend the best match
+    - Be brief and precise
     """
