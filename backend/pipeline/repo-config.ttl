@@ -3,8 +3,8 @@
 @prefix config: <tag:rdf4j.org,2023:config/> .
 
 [] a config:Repository, <http://www.openrdf.org/config/repository#Repository>;
-  <http://www.openrdf.org/config/repository#repositoryID> "NiSuperAlloy";
-  rdfs:label "Nickel Superalloy Repository";
+  <http://www.openrdf.org/config/repository#repositoryID> "AlloyGraph";
+  rdfs:label "AlloyGraph Repository";
   <http://www.openrdf.org/config/repository#repositoryImpl> [
     <http://www.openrdf.org/config/repository#repositoryType> "graphdb:SailRepository";
     <http://www.openrdf.org/config/repository/sail#sailImpl> [
@@ -16,7 +16,7 @@
       <http://www.ontotext.com/config/graphdb#repository-type> "file-repository";
       <http://www.ontotext.com/config/graphdb#imports> "";
       <http://www.ontotext.com/config/graphdb#throw-QueryEvaluationException-on-timeout> "false";
-      <http://www.ontotext.com/config/graphdb#base-URL> "http://www.semanticweb.org/alexlecu/ontologies/nisuperalloy#";
+      <http://www.ontotext.com/config/graphdb#base-URL> "https://w3id.org/alloygraph/";
       <http://www.ontotext.com/config/graphdb#enablePredicateList> "true";
       <http://www.ontotext.com/config/graphdb#query-limit-results> "0";
       <http://www.ontotext.com/config/graphdb#fts-iris-index> "none";
