@@ -11,7 +11,11 @@ logger = logging.getLogger(__name__)
 WEAVIATE_HOST = os.getenv("WEAVIATE_HOST", "localhost")
 WEAVIATE_PORT = int(os.getenv("WEAVIATE_PORT", "8081"))
 WEAVIATE_GRPC_PORT = int(os.getenv("WEAVIATE_GRPC_PORT", "50052"))
-NS = "nisuperalloy"  # namespace for deterministic UUIDv5
+
+# URI Namespaces (matching enrich_graphdb_new.py)
+ONTOLOGY_BASE = "https://w3id.org/alloygraph/ont#"
+RESOURCE_BASE = "https://w3id.org/alloygraph/res/"
+NS = "alloygraph"  # namespace for deterministic UUIDv5
 
 
 def sid(ns: str, key: str) -> str:
@@ -130,20 +134,33 @@ def main():
                 Property(name="typicalHeatTreatment", data_type=DataType.TEXT),
                 Property(name="compositionSummary", data_type=DataType.TEXT),
                 Property(name="sourceUrl", data_type=DataType.TEXT),
+                # Computed metallurgical features
                 Property(name="mdAverage", data_type=DataType.NUMBER),
+                Property(name="mdGamma", data_type=DataType.NUMBER),
+                Property(name="vecAvg", data_type=DataType.NUMBER),
                 Property(name="gammaPrimeEstimate", data_type=DataType.NUMBER),
                 Property(name="densityCalculated", data_type=DataType.NUMBER),
                 Property(name="tcpRisk", data_type=DataType.TEXT),
+                Property(name="latticeMismatchPct", data_type=DataType.NUMBER),
                 Property(name="sssTotalWtPct", data_type=DataType.NUMBER),
+                Property(name="sssCoefficient", data_type=DataType.NUMBER),
+                Property(name="precipitationHardeningCoeff", data_type=DataType.NUMBER),
+                Property(name="creepResistanceParam", data_type=DataType.NUMBER),
                 Property(name="refractoryTotalWtPct", data_type=DataType.NUMBER),
                 Property(name="gpFormersWtPct", data_type=DataType.NUMBER),
+                Property(name="oxidationResistance", data_type=DataType.NUMBER),
                 Property(name="alTiRatio", data_type=DataType.NUMBER),
+                Property(name="alTiAtRatio", data_type=DataType.NUMBER),
                 Property(name="crCoRatio", data_type=DataType.NUMBER),
                 Property(name="crNiRatio", data_type=DataType.NUMBER),
                 Property(name="moWRatio", data_type=DataType.NUMBER),
-                Property(name="alTiAtRatio", data_type=DataType.NUMBER),
                 Property(name="gpFormersAtPct", data_type=DataType.NUMBER),
+                Property(name="alTiInteraction", data_type=DataType.NUMBER),
+                Property(name="crAlInteraction", data_type=DataType.NUMBER),
+                # JSON composition fields
                 Property(name="atomicCompositionJson", data_type=DataType.TEXT),
+                Property(name="gammaCompositionJson", data_type=DataType.TEXT),
+                Property(name="gammaPrimeCompositionJson", data_type=DataType.TEXT),
             ],
             vectorizer_config=vec_config,
         )

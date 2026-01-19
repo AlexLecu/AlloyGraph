@@ -8,12 +8,16 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 
 # Config
 GRAPHDB_URL = os.getenv("GRAPHDB_URL", "http://localhost:7200")
-GRAPHDB_REPO = os.getenv("GRAPHDB_REPO", "NiSuperAlloy")
+GRAPHDB_REPO = os.getenv("GRAPHDB_REPO", "AlloyGraph")
 WEAVIATE_HOST = os.getenv("WEAVIATE_HOST", "localhost")
 WEAVIATE_PORT = int(os.getenv("WEAVIATE_PORT", "8081"))
 WEAVIATE_GRPC_PORT = int(os.getenv("WEAVIATE_GRPC_PORT", "50052"))
-BASE = "http://www.semanticweb.org/alexlecu/ontologies/nisuperalloy#"
-NS = "nisuperalloy"
+
+# URI Namespaces (matching enrich_graphdb_new.py)
+ONTOLOGY_BASE = "https://w3id.org/alloygraph/ont#"
+RESOURCE_BASE = "https://w3id.org/alloygraph/res/"
+BASE = ONTOLOGY_BASE  # For backward compatibility in SPARQL queries
+NS = "alloygraph"  # Namespace for UUID generation
 
 logging.basicConfig(
     level=logging.INFO,
@@ -69,20 +73,22 @@ def fetch_alloys():
     while True:
         q = f"""
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-        PREFIX ns: <{BASE}>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        PREFIX ont: <{ONTOLOGY_BASE}>
+        PREFIX res: <{RESOURCE_BASE}>
         SELECT ?alloy ?label ?uns ?comp ?others ?family ?density ?gammaPrime ?heatTreat ?processing
         WHERE {{
-          ?alloy rdf:type ns:NickelBasedSuperalloy ;
-                 ns:tradeDesignation ?label .
-          OPTIONAL {{ ?alloy ns:unsNumber ?uns }}
-          OPTIONAL {{ ?alloy ns:family ?family }}
-          OPTIONAL {{ ?alloy ns:density ?density }}
-          OPTIONAL {{ ?alloy ns:gammaPrimeVolPct ?gammaPrime }}
-          OPTIONAL {{ ?alloy ns:typicalHeatTreatment ?heatTreat }}
-          OPTIONAL {{ ?alloy ns:hasProcessingMethod ?pm . ?pm rdfs:label ?processing }}
+          ?alloy rdf:type ont:NickelBasedSuperalloy ;
+                 ont:tradeDesignation ?label .
+          OPTIONAL {{ ?alloy ont:unsNumber ?uns }}
+          OPTIONAL {{ ?alloy ont:family ?family }}
+          OPTIONAL {{ ?alloy ont:density ?density }}
+          OPTIONAL {{ ?alloy ont:gammaPrimeVolPct ?gammaPrime }}
+          OPTIONAL {{ ?alloy ont:typicalHeatTreatment ?heatTreat }}
+          OPTIONAL {{ ?alloy ont:hasProcessingMethod ?pm . ?pm rdfs:label ?processing }}
           OPTIONAL {{
-            ?alloy ns:hasComposition ?comp .
-            OPTIONAL {{ ?comp ns:otherConstituents ?others }}
+            ?alloy ont:hasComposition ?comp .
+            OPTIONAL {{ ?comp ont:otherConstituents ?others }}
           }}
         }}
         ORDER BY ?label
@@ -121,23 +127,24 @@ def fetch_composition(comp_iri):
     q = f"""
     PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-    PREFIX ns: <{BASE}>
+    PREFIX ont: <{ONTOLOGY_BASE}>
+    PREFIX res: <{RESOURCE_BASE}>
     SELECT ?entry ?elem ?elemLabel ?isBal ?qty ?num ?min ?max ?nom ?unit ?approx ?qual ?raw
     WHERE {{
-      <{comp_iri}> ns:hasComponent ?entry .
-      ?entry ns:element ?elem .
+      <{comp_iri}> ont:hasComponent ?entry .
+      ?entry ont:element ?elem .
       OPTIONAL {{ ?elem rdfs:label ?elemLabel }}
-      OPTIONAL {{ ?entry ns:isBalanceRemainder ?isBal }}
+      OPTIONAL {{ ?entry ont:isBalanceRemainder ?isBal }}
       OPTIONAL {{
-        ?entry ns:hasMassFraction ?qty .
-        OPTIONAL {{ ?qty ns:numericValue ?num }}
-        OPTIONAL {{ ?qty ns:minInclusive ?min }}
-        OPTIONAL {{ ?qty ns:maxInclusive ?max }}
-        OPTIONAL {{ ?qty ns:nominal ?nom }}
-        OPTIONAL {{ ?qty ns:unitSymbol ?unit }}
-        OPTIONAL {{ ?qty ns:isApproximate ?approx }}
-        OPTIONAL {{ ?qty ns:qualifier ?qual }}
-        OPTIONAL {{ ?qty ns:rawString ?raw }}
+        ?entry ont:hasMassFraction ?qty .
+        OPTIONAL {{ ?qty ont:numericValue ?num }}
+        OPTIONAL {{ ?qty ont:minInclusive ?min }}
+        OPTIONAL {{ ?qty ont:maxInclusive ?max }}
+        OPTIONAL {{ ?qty ont:nominal ?nom }}
+        OPTIONAL {{ ?qty ont:unitSymbol ?unit }}
+        OPTIONAL {{ ?qty ont:isApproximate ?approx }}
+        OPTIONAL {{ ?qty ont:qualifier ?qual }}
+        OPTIONAL {{ ?qty ont:rawString ?raw }}
       }}
     }}
     """
@@ -182,32 +189,33 @@ def fetch_measurements(source_iri):
     # Try direct measurements first
     q = f"""
     PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-    PREFIX ns: <{BASE}>
+    PREFIX ont: <{ONTOLOGY_BASE}>
+    PREFIX res: <{RESOURCE_BASE}>
     SELECT ?meas ?prop ?qty ?num ?min ?max ?nom ?unit ?approx ?qual ?raw
            ?tempCat ?heatTreat ?testTemp ?testTempNum ?testTempUnit
            ?stress ?lifeHours
     WHERE {{
-      <{source_iri}> ns:hasMeasurement ?meas .
-      ?meas ns:measures ?prop .
+      <{source_iri}> ont:hasMeasurement ?meas .
+      ?meas ont:measures ?prop .
       OPTIONAL {{
-        ?meas ns:hasQuantity ?qty .
-        OPTIONAL {{ ?qty ns:numericValue ?num }}
-        OPTIONAL {{ ?qty ns:minInclusive ?min }}
-        OPTIONAL {{ ?qty ns:maxInclusive ?max }}
-        OPTIONAL {{ ?qty ns:nominal ?nom }}
-        OPTIONAL {{ ?qty ns:unitSymbol ?unit }}
-        OPTIONAL {{ ?qty ns:isApproximate ?approx }}
-        OPTIONAL {{ ?qty ns:qualifier ?qual }}
-        OPTIONAL {{ ?qty ns:rawString ?raw }}
+        ?meas ont:hasQuantity ?qty .
+        OPTIONAL {{ ?qty ont:numericValue ?num }}
+        OPTIONAL {{ ?qty ont:minInclusive ?min }}
+        OPTIONAL {{ ?qty ont:maxInclusive ?max }}
+        OPTIONAL {{ ?qty ont:nominal ?nom }}
+        OPTIONAL {{ ?qty ont:unitSymbol ?unit }}
+        OPTIONAL {{ ?qty ont:isApproximate ?approx }}
+        OPTIONAL {{ ?qty ont:qualifier ?qual }}
+        OPTIONAL {{ ?qty ont:rawString ?raw }}
       }}
-      OPTIONAL {{ ?meas ns:temperatureCategory ?tempCat }}
-      OPTIONAL {{ ?meas ns:heatTreatmentCondition ?heatTreat }}
-      OPTIONAL {{ ?meas ns:stress ?stress }}
-      OPTIONAL {{ ?meas ns:lifeHours ?lifeHours }}
+      OPTIONAL {{ ?meas ont:temperatureCategory ?tempCat }}
+      OPTIONAL {{ ?meas ont:heatTreatmentCondition ?heatTreat }}
+      OPTIONAL {{ ?meas ont:stress ?stress }}
+      OPTIONAL {{ ?meas ont:lifeHours ?lifeHours }}
       OPTIONAL {{
-        ?meas ns:hasTestTemperature ?testTemp .
-        OPTIONAL {{ ?testTemp ns:numericValue ?testTempNum }}
-        OPTIONAL {{ ?testTemp ns:unitSymbol ?testTempUnit }}
+        ?meas ont:hasTestTemperature ?testTemp .
+        OPTIONAL {{ ?testTemp ont:numericValue ?testTempNum }}
+        OPTIONAL {{ ?testTemp ont:unitSymbol ?testTempUnit }}
       }}
     }}
     """
@@ -255,33 +263,34 @@ def fetch_measurements(source_iri):
     # Try PropertySet structure
     q2 = f"""
     PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-    PREFIX ns: <{BASE}>
+    PREFIX ont: <{ONTOLOGY_BASE}>
+    PREFIX res: <{RESOURCE_BASE}>
     SELECT ?propSet ?prop ?meas ?qty ?num ?min ?max ?nom ?unit ?approx ?qual ?raw
            ?tempCat ?heatTreat ?testTemp ?testTempNum ?testTempUnit
            ?stress ?lifeHours
     WHERE {{
-      <{source_iri}> ns:hasPropertySet ?propSet .
-      ?propSet ns:measuresProperty ?prop .
-      ?propSet ns:hasMeasurement ?meas .
+      <{source_iri}> ont:hasPropertySet ?propSet .
+      ?propSet ont:measuresProperty ?prop .
+      ?propSet ont:hasMeasurement ?meas .
       OPTIONAL {{
-        ?meas ns:hasQuantity ?qty .
-        OPTIONAL {{ ?qty ns:numericValue ?num }}
-        OPTIONAL {{ ?qty ns:minInclusive ?min }}
-        OPTIONAL {{ ?qty ns:maxInclusive ?max }}
-        OPTIONAL {{ ?qty ns:nominal ?nom }}
-        OPTIONAL {{ ?qty ns:unitSymbol ?unit }}
-        OPTIONAL {{ ?qty ns:isApproximate ?approx }}
-        OPTIONAL {{ ?qty ns:qualifier ?qual }}
-        OPTIONAL {{ ?qty ns:rawString ?raw }}
+        ?meas ont:hasQuantity ?qty .
+        OPTIONAL {{ ?qty ont:numericValue ?num }}
+        OPTIONAL {{ ?qty ont:minInclusive ?min }}
+        OPTIONAL {{ ?qty ont:maxInclusive ?max }}
+        OPTIONAL {{ ?qty ont:nominal ?nom }}
+        OPTIONAL {{ ?qty ont:unitSymbol ?unit }}
+        OPTIONAL {{ ?qty ont:isApproximate ?approx }}
+        OPTIONAL {{ ?qty ont:qualifier ?qual }}
+        OPTIONAL {{ ?qty ont:rawString ?raw }}
       }}
-      OPTIONAL {{ ?meas ns:temperatureCategory ?tempCat }}
-      OPTIONAL {{ ?meas ns:heatTreatmentCondition ?heatTreat }}
-      OPTIONAL {{ ?meas ns:stress ?stress }}
-      OPTIONAL {{ ?meas ns:lifeHours ?lifeHours }}
+      OPTIONAL {{ ?meas ont:temperatureCategory ?tempCat }}
+      OPTIONAL {{ ?meas ont:heatTreatmentCondition ?heatTreat }}
+      OPTIONAL {{ ?meas ont:stress ?stress }}
+      OPTIONAL {{ ?meas ont:lifeHours ?lifeHours }}
       OPTIONAL {{
-        ?meas ns:hasTestTemperature ?testTemp .
-        OPTIONAL {{ ?testTemp ns:numericValue ?testTempNum }}
-        OPTIONAL {{ ?testTemp ns:unitSymbol ?testTempUnit }}
+        ?meas ont:hasTestTemperature ?testTemp .
+        OPTIONAL {{ ?testTemp ont:numericValue ?testTempNum }}
+        OPTIONAL {{ ?testTemp ont:unitSymbol ?testTempUnit }}
       }}
     }}
     """
@@ -369,38 +378,53 @@ def fetch_variants(alloy_iri):
     variants = []
     q = f"""
     PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-    PREFIX ns: <{BASE}>
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-    SELECT ?var ?label ?proc ?form ?comp ?others ?density ?gammaPrime ?heatTreat 
-           ?mdAvg ?gammaPrimeEst ?densityCalc ?tcpRisk
-           ?sss ?ref ?gpWT ?alti ?crco ?crni ?mow ?altiAt ?gpAt ?apJson
+    PREFIX ont: <{ONTOLOGY_BASE}>
+    PREFIX res: <{RESOURCE_BASE}>
+    SELECT ?var ?label ?proc ?form ?comp ?others ?density ?gammaPrime ?heatTreat
+           ?mdAvg ?mdGamma ?vecAvg ?gammaPrimeEst ?densityCalc ?tcpRisk
+           ?latticeMismatch ?sss ?sssCoeff ?precipHard ?creepRes ?ref ?gpWT ?oxRes
+           ?alti ?altiAt ?crco ?crni ?mow ?gpAt ?altiInt ?cralInt
+           ?apJson ?gammaJson ?gammaPrimeJson
     WHERE {{
-      <{alloy_iri}> ns:hasVariant ?var .
+      <{alloy_iri}> ont:hasVariant ?var .
       OPTIONAL {{ ?var rdfs:label ?label }}
-      OPTIONAL {{ ?var ns:hasProcessingMethod ?pm . ?pm rdfs:label ?proc }}
-      OPTIONAL {{ ?var ns:hasForm ?f . ?f ns:form ?form }}
-      OPTIONAL {{ ?var ns:density ?density }}
-      OPTIONAL {{ ?var ns:gammaPrimeVolPct ?gammaPrime }}
-      OPTIONAL {{ ?var ns:typicalHeatTreatment ?heatTreat }}
-      OPTIONAL {{ ?var ns:hasMdAverage ?mdAvg }}
-      OPTIONAL {{ ?var ns:hasGammaPrimeEstimate ?gammaPrimeEst }}
-      OPTIONAL {{ ?var ns:hasDensityCalculated ?densityCalc }}
-      OPTIONAL {{ ?var ns:hasTcpRisk ?tcpRisk }}
-      # Extended Features
-      OPTIONAL {{ ?var ns:hasSSSTotalWtPct ?sss }}
-      OPTIONAL {{ ?var ns:hasRefractoryTotalWtPct ?ref }}
-      OPTIONAL {{ ?var ns:hasGPFormersWtPct ?gpWT }}
-      OPTIONAL {{ ?var ns:hasAlTiRatio ?alti }}
-      OPTIONAL {{ ?var ns:hasCrCoRatio ?crco }}
-      OPTIONAL {{ ?var ns:hasCrNiRatio ?crni }}
-      OPTIONAL {{ ?var ns:hasMoWRatio ?mow }}
-      OPTIONAL {{ ?var ns:hasAlTiAtRatio ?altiAt }}
-      OPTIONAL {{ ?var ns:hasGPFormersAtPct ?gpAt }}
-      OPTIONAL {{ ?var ns:hasAtomicCompositionJson ?apJson }}
-      
+      OPTIONAL {{ ?var ont:hasProcessingMethod ?pm . ?pm rdfs:label ?proc }}
+      OPTIONAL {{ ?var ont:hasForm ?f . ?f ont:form ?form }}
+      OPTIONAL {{ ?var ont:density ?density }}
+      OPTIONAL {{ ?var ont:gammaPrimeVolPct ?gammaPrime }}
+      OPTIONAL {{ ?var ont:typicalHeatTreatment ?heatTreat }}
+      # Computed metallurgical features
+      OPTIONAL {{ ?var ont:hasMdAverage ?mdAvg }}
+      OPTIONAL {{ ?var ont:hasMdGamma ?mdGamma }}
+      OPTIONAL {{ ?var ont:hasVECAvg ?vecAvg }}
+      OPTIONAL {{ ?var ont:hasGammaPrimeEstimate ?gammaPrimeEst }}
+      OPTIONAL {{ ?var ont:hasDensityCalculated ?densityCalc }}
+      OPTIONAL {{ ?var ont:hasTcpRisk ?tcpRisk }}
+      OPTIONAL {{ ?var ont:hasLatticeMismatchPct ?latticeMismatch }}
+      OPTIONAL {{ ?var ont:hasSSSTotalWtPct ?sss }}
+      OPTIONAL {{ ?var ont:hasSSSCoefficient ?sssCoeff }}
+      OPTIONAL {{ ?var ont:hasPrecipitationHardeningCoeff ?precipHard }}
+      OPTIONAL {{ ?var ont:hasCreepResistanceParam ?creepRes }}
+      OPTIONAL {{ ?var ont:hasRefractoryTotalWtPct ?ref }}
+      OPTIONAL {{ ?var ont:hasGPFormersWtPct ?gpWT }}
+      OPTIONAL {{ ?var ont:hasOxidationResistance ?oxRes }}
+      OPTIONAL {{ ?var ont:hasAlTiRatio ?alti }}
+      OPTIONAL {{ ?var ont:hasAlTiAtRatio ?altiAt }}
+      OPTIONAL {{ ?var ont:hasCrCoRatio ?crco }}
+      OPTIONAL {{ ?var ont:hasCrNiRatio ?crni }}
+      OPTIONAL {{ ?var ont:hasMoWRatio ?mow }}
+      OPTIONAL {{ ?var ont:hasGPFormersAtPct ?gpAt }}
+      OPTIONAL {{ ?var ont:hasAlTiInteraction ?altiInt }}
+      OPTIONAL {{ ?var ont:hasCrAlInteraction ?cralInt }}
+      # JSON composition fields
+      OPTIONAL {{ ?var ont:hasAtomicCompositionJson ?apJson }}
+      OPTIONAL {{ ?var ont:hasGammaCompositionJson ?gammaJson }}
+      OPTIONAL {{ ?var ont:hasGammaPrimeCompositionJson ?gammaPrimeJson }}
+
       OPTIONAL {{
-        ?var ns:hasComposition ?comp .
-        OPTIONAL {{ ?comp ns:otherConstituents ?others }}
+        ?var ont:hasComposition ?comp .
+        OPTIONAL {{ ?comp ont:otherConstituents ?others }}
       }}
     }}
     """
@@ -416,20 +440,33 @@ def fetch_variants(alloy_iri):
             "heatTreat": b.get("heatTreat", {}).get("value"),
             "comp": b.get("comp", {}).get("value"),
             "others": b.get("others", {}).get("value"),
+            # Computed metallurgical features
             "mdAvg": to_float(b.get("mdAvg", {}).get("value")),
+            "mdGamma": to_float(b.get("mdGamma", {}).get("value")),
+            "vecAvg": to_float(b.get("vecAvg", {}).get("value")),
             "gammaPrimeEst": to_float(b.get("gammaPrimeEst", {}).get("value")),
             "densityCalc": to_float(b.get("densityCalc", {}).get("value")),
             "tcpRisk": b.get("tcpRisk", {}).get("value"),
+            "latticeMismatchPct": to_float(b.get("latticeMismatch", {}).get("value")),
             "sssTotalWtPct": to_float(b.get("sss", {}).get("value")),
+            "sssCoefficient": to_float(b.get("sssCoeff", {}).get("value")),
+            "precipitationHardeningCoeff": to_float(b.get("precipHard", {}).get("value")),
+            "creepResistanceParam": to_float(b.get("creepRes", {}).get("value")),
             "refractoryTotalWtPct": to_float(b.get("ref", {}).get("value")),
             "gpFormersWtPct": to_float(b.get("gpWT", {}).get("value")),
+            "oxidationResistance": to_float(b.get("oxRes", {}).get("value")),
             "alTiRatio": to_float(b.get("alti", {}).get("value")),
+            "alTiAtRatio": to_float(b.get("altiAt", {}).get("value")),
             "crCoRatio": to_float(b.get("crco", {}).get("value")),
             "crNiRatio": to_float(b.get("crni", {}).get("value")),
             "moWRatio": to_float(b.get("mow", {}).get("value")),
-            "alTiAtRatio": to_float(b.get("altiAt", {}).get("value")),
             "gpFormersAtPct": to_float(b.get("gpAt", {}).get("value")),
+            "alTiInteraction": to_float(b.get("altiInt", {}).get("value")),
+            "crAlInteraction": to_float(b.get("cralInt", {}).get("value")),
+            # JSON composition fields
             "atomicCompositionJson": b.get("apJson", {}).get("value"),
+            "gammaCompositionJson": b.get("gammaJson", {}).get("value"),
+            "gammaPrimeCompositionJson": b.get("gammaPrimeJson", {}).get("value"),
         })
     return variants
 
@@ -512,20 +549,33 @@ def main():
                         "gammaPrimeVolPct": v["gammaPrime"],
                         "typicalHeatTreatment": v["heatTreat"],
                         "compositionSummary": comp_summary,
+                        # Computed metallurgical features
                         "mdAverage": v["mdAvg"],
+                        "mdGamma": v["mdGamma"],
+                        "vecAvg": v["vecAvg"],
                         "gammaPrimeEstimate": v["gammaPrimeEst"],
                         "densityCalculated": v["densityCalc"],
                         "tcpRisk": v["tcpRisk"],
+                        "latticeMismatchPct": v["latticeMismatchPct"],
                         "sssTotalWtPct": v["sssTotalWtPct"],
+                        "sssCoefficient": v["sssCoefficient"],
+                        "precipitationHardeningCoeff": v["precipitationHardeningCoeff"],
+                        "creepResistanceParam": v["creepResistanceParam"],
                         "refractoryTotalWtPct": v["refractoryTotalWtPct"],
                         "gpFormersWtPct": v["gpFormersWtPct"],
+                        "oxidationResistance": v["oxidationResistance"],
                         "alTiRatio": v["alTiRatio"],
+                        "alTiAtRatio": v["alTiAtRatio"],
                         "crCoRatio": v["crCoRatio"],
                         "crNiRatio": v["crNiRatio"],
                         "moWRatio": v["moWRatio"],
-                        "alTiAtRatio": v["alTiAtRatio"],
                         "gpFormersAtPct": v["gpFormersAtPct"],
+                        "alTiInteraction": v["alTiInteraction"],
+                        "crAlInteraction": v["crAlInteraction"],
+                        # JSON composition fields
                         "atomicCompositionJson": v["atomicCompositionJson"],
+                        "gammaCompositionJson": v["gammaCompositionJson"],
+                        "gammaPrimeCompositionJson": v["gammaPrimeCompositionJson"],
                     })
                     batch_add_ref(batch, "NickelBasedSuperalloy", a_uuid, "hasVariant", v_uuid)
 
