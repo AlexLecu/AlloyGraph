@@ -6,6 +6,7 @@ services:
   # Works with any domain: localhost, alloygraph.ddnsfree.com, etc.
   frontend:
     build: ./frontend
+    image: alloygraph-frontend
     container_name: alloygraph-frontend
     ports:
       - "3000:80"  # Change to "80:80" for production
@@ -24,6 +25,7 @@ services:
   # ===========================================
   backend:
     build: ./backend
+    image: alloygraph-backend
     container_name: alloygraph-backend
     # No external port - accessed via nginx /api proxy
     env_file:
@@ -60,6 +62,7 @@ services:
   # Skips automatically if data already exists
   pipeline:
     build: ./backend
+    image: alloygraph-backend
     container_name: alloygraph-pipeline
     environment:
       # Weaviate connection
