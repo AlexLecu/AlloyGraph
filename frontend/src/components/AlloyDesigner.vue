@@ -543,11 +543,11 @@ const retryValidation = async () => {
 
 // --- AUTO MODE STATE ---
 const targets = ref({
-  yield: 1200,         // Realistic superalloy yield strength target
+  yield: 0,         // Realistic superalloy yield strength target
   tensile: 0,          // Optional - leave at 0
   elongation: 0,       // Optional - leave at 0
   elastic_modulus: 0,  // Optional - leave at 0
-  density: 8.5,        // Realistic density target for Ni-based superalloys
+  density: 0,        // Realistic density target for Ni-based superalloys
   gamma_prime: 0       // Optional - leave at 0
 })
 const autoIterations = ref(3)
