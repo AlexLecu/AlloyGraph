@@ -1,46 +1,164 @@
 services:
-  # Backend Flask API
-  alloygraph-backend:
+  # ===========================================
+  # FRONTEND - Vue.js with Nginx (reverse proxy)
+  # ===========================================
+  # Main entry point - proxies /api/* to backend
+  # Works with any domain: localhost, alloygraph.ddnsfree.com, etc.
+  frontend:
+    build: ./frontend
+    container_name: alloygraph-frontend
+    ports:
+      - "3000:80"  # Change to "80:80" for production
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===========================================
+  # BACKEND - Flask API (internal, via nginx proxy)
+  # ===========================================
+  backend:
     build: ./backend
     container_name: alloygraph-backend
-    ports:
-      - "5001:5001"
+    # No external port - accessed via nginx /api proxy
     env_file:
-      - .env # Load API keys from .env file (create from .env.example)
+      - .env
     environment:
-      # Weaviate connection (connects to existing Weaviate container)
-      - WEAVIATE_HOST=host.docker.internal
-      - WEAVIATE_PORT=8081
-      - WEAVIATE_GRPC_PORT=50052
+      # Weaviate connection (internal Docker network)
+      - WEAVIATE_HOST=weaviate
+      - WEAVIATE_PORT=8080
+      - WEAVIATE_GRPC_PORT=50051
+      # GraphDB connection
+      - GRAPHDB_URL=http://graphdb:7200
+      - GRAPHDB_REPO=AlloyGraph
       # Flask settings
       - FLASK_ENV=production
       - FLASK_DEBUG=0
       - PORT=5001
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      # Disable CrewAI tracing (causes issues in containers)
+      - CREWAI_TRACING_ENABLED=false
+    depends_on:
+      pipeline:
+        condition: service_completed_successfully
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:5001/health" ]
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
-  # Frontend Vue.js app with nginx
-  alloygraph-frontend:
-    build: ./frontend
-    container_name: alloygraph-frontend
-    ports:
-      - "3000:80" # Frontend accessible on port 3000
+  # ===========================================
+  # PIPELINE - Data Initialization (runs once)
+  # ===========================================
+  # Loads ontology and data into GraphDB and Weaviate
+  # Skips automatically if data already exists
+  pipeline:
+    build: ./backend
+    container_name: alloygraph-pipeline
+    environment:
+      # Weaviate connection
+      - WEAVIATE_HOST=weaviate
+      - WEAVIATE_PORT=8080
+      - WEAVIATE_GRPC_PORT=50051
+      # GraphDB connection
+      - GRAPHDB_URL=http://graphdb:7200
+      - GRAPHDB_REPO=AlloyGraph
     depends_on:
-      - alloygraph-backend
+      weaviate:
+        condition: service_healthy
+      graphdb:
+        condition: service_healthy
+    command: ["python", "-m", "pipeline.run_pipeline_docker"]
+    restart: "no"
+
+  # ===========================================
+  # WEAVIATE - Vector Database
+  # ===========================================
+  weaviate:
+    image: cr.weaviate.io/semitechnologies/weaviate:1.33.2
+    container_name: alloygraph-weaviate
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - '8080'
+      - --scheme
+      - http
+    ports:
+      - "8081:8080"
+      - "50052:50051"
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    environment:
+      TRANSFORMERS_INFERENCE_API: 'http://t2v-transformers:8080'
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'text2vec-transformers'
+      ENABLE_MODULES: 'text2vec-transformers'
+      CLUSTER_HOSTNAME: 'weaviate-node'
+    depends_on:
+      - t2v-transformers
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/v1/.well-known/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
+  # ===========================================
+  # TEXT2VEC TRANSFORMERS - Embedding Service
+  # ===========================================
+  t2v-transformers:
+    image: cr.weaviate.io/semitechnologies/transformers-inference:sentence-transformers-multi-qa-MiniLM-L6-cos-v1
+    container_name: alloygraph-transformers
+    environment:
+      ENABLE_CUDA: '0'
+    restart: unless-stopped
+
+  # ===========================================
+  # GRAPHDB - RDF Triplestore
+  # ===========================================
+  graphdb:
+    image: ontotext/graphdb:10.8.0
+    container_name: alloygraph-graphdb
+    ports:
+      - "7200:7200"
+    volumes:
+      - graphdb_data:/opt/graphdb/home
+      - ./docker/graphdb/init:/opt/graphdb/init:ro
+    environment:
+      GDB_HEAP_SIZE: 2g
+      GDB_JAVA_OPTS: >-
+        -Dgraphdb.home=/opt/graphdb/home
+        -Dgraphdb.workbench.importDirectory=/opt/graphdb/init
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7200/rest/repositories"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+# ===========================================
+# VOLUMES
+# ===========================================
+volumes:
+  weaviate_data:
+    name: alloygraph-weaviate-data
+  graphdb_data:
+    name: alloygraph-graphdb-data
+
+# ===========================================
+# NETWORKS
+# ===========================================
 networks:
   default:
     name: alloygraph-network
