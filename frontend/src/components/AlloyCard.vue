@@ -10,6 +10,15 @@ const props = defineProps({
 
 defineEmits(['design'])
 
+// Collapsed state - starts collapsed by default
+const isExpanded = ref(false)
+
+const toggleExpand = (event) => {
+  // Prevent if clicking on buttons inside header
+  if (event.target.closest('button')) return
+  isExpanded.value = !isExpanded.value
+}
+
 // Composition view selector (for wt% / at%)
 const compositionView = ref('wt')
 
@@ -113,6 +122,34 @@ const tcpRiskClass = computed(() => {
   return ''
 })
 
+// Quick stats for collapsed view
+const quickStats = computed(() => {
+  const stats = []
+
+  // Get yield strength at room temp
+  if (props.alloy.properties) {
+    const ys = props.alloy.properties.find(p => {
+      const type = p.property_type?.toLowerCase() || ''
+      const isYield = type.includes('yield') || type.includes('0.2%')
+      const isRoom = p.temperature_c >= 20 && p.temperature_c <= 25
+      return isYield && isRoom && p.value
+    })
+    if (ys) stats.push({ label: 'YS', value: `${ys.value.toFixed(0)} MPa` })
+  }
+
+  // Density
+  if (props.alloy.density_gcm3) {
+    stats.push({ label: 'Density', value: `${props.alloy.density_gcm3.toFixed(2)} g/cm³` })
+  }
+
+  // Gamma prime fraction
+  if (props.alloy.gamma_prime_vol_pct) {
+    stats.push({ label: "γ'", value: `${props.alloy.gamma_prime_vol_pct.toFixed(0)}%` })
+  }
+
+  return stats.slice(0, 3) // Max 3 quick stats
+})
+
 // Physical properties (temperature-independent)
 const physicalProperties = computed(() => {
   const props_list = []
@@ -163,87 +200,99 @@ const mechanicalProperties = computed(() => {
 </script>
 
 <template>
-  <div class="alloy-card">
-    <!-- Header -->
-    <div class="card-header">
-      <div class="title-row">
-        <h3>{{ alloy.name }}</h3>
-        <span class="badge">{{ alloy.processing_method }}</span>
-        <span v-if="alloy.tcp_risk" :class="['tcp-badge', tcpRiskClass]" :title="'TCP Risk: ' + alloy.tcp_risk">
-          {{ alloy.tcp_risk }}
-        </span>
+  <div :class="['alloy-card', { expanded: isExpanded }]">
+    <!-- Collapsed Header (always visible) -->
+    <div class="card-header" @click="toggleExpand">
+      <div class="header-main">
+        <div class="title-row">
+          <span class="expand-icon">{{ isExpanded ? '▼' : '▶' }}</span>
+          <h3>{{ alloy.name }}</h3>
+          <span class="badge">{{ alloy.processing_method }}</span>
+          <span v-if="alloy.tcp_risk" :class="['tcp-badge', tcpRiskClass]" :title="'TCP Risk: ' + alloy.tcp_risk">
+            {{ alloy.tcp_risk }}
+          </span>
+        </div>
+        <!-- Quick stats when collapsed -->
+        <div v-if="!isExpanded && quickStats.length" class="quick-stats">
+          <span v-for="stat in quickStats" :key="stat.label" class="quick-stat">
+            <span class="qs-label">{{ stat.label }}:</span> {{ stat.value }}
+          </span>
+        </div>
       </div>
-      <button @click="$emit('design', alloy)" class="design-btn" title="Design variant">
+      <button @click.stop="$emit('design', alloy)" class="design-btn" title="Design variant">
         🧬 Design
       </button>
     </div>
 
-    <!-- Composition -->
-    <div class="section">
-      <div class="section-header">
-        <span class="section-title">{{ compositionLabel }}</span>
-        <div v-if="availableViews.length > 1" class="view-tabs">
-          <button
-            v-for="view in availableViews"
-            :key="view.key"
-            :class="['tab', { active: compositionView === view.key }]"
-            @click="compositionView = view.key"
-          >{{ view.label }}</button>
+    <!-- Expanded Content -->
+    <div v-if="isExpanded" class="card-body">
+      <!-- Composition -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">{{ compositionLabel }}</span>
+          <div v-if="availableViews.length > 1" class="view-tabs">
+            <button
+              v-for="view in availableViews"
+              :key="view.key"
+              :class="['tab', { active: compositionView === view.key }]"
+              @click="compositionView = view.key"
+            >{{ view.label }}</button>
+          </div>
         </div>
-      </div>
-      <div class="comp-grid">
-        <span v-for="([el, val]) in currentComposition" :key="el" class="comp-tag">
-          <b>{{ el }}</b> {{ typeof val === 'number' ? val.toFixed(1) : val }}%
-        </span>
-      </div>
-    </div>
-
-    <!-- Phase Compositions (stacked vertically, full data) -->
-    <div v-if="hasPhaseData" class="section phases">
-      <div v-if="hasGammaComposition" class="phase-row">
-        <span class="phase-label">Gamma</span>
-        <div class="phase-comp">
-          <span v-for="([el, val]) in gammaComposition" :key="el" class="phase-tag">
-            <b>{{ el }}</b> {{ val.toFixed(1) }}%
+        <div class="comp-grid">
+          <span v-for="([el, val]) in currentComposition" :key="el" class="comp-tag">
+            <b>{{ el }}</b> {{ typeof val === 'number' ? val.toFixed(1) : val }}%
           </span>
         </div>
       </div>
-      <div v-if="hasGammaPrimeComposition" class="phase-row">
-        <span class="phase-label">Gamma Prime</span>
-        <div class="phase-comp">
-          <span v-for="([el, val]) in gammaPrimeComposition" :key="el" class="phase-tag">
-            <b>{{ el }}</b> {{ val.toFixed(1) }}%
-          </span>
+
+      <!-- Phase Compositions (stacked vertically, full data) -->
+      <div v-if="hasPhaseData" class="section phases">
+        <div v-if="hasGammaComposition" class="phase-row">
+          <span class="phase-label">Gamma</span>
+          <div class="phase-comp">
+            <span v-for="([el, val]) in gammaComposition" :key="el" class="phase-tag">
+              <b>{{ el }}</b> {{ val.toFixed(1) }}%
+            </span>
+          </div>
+        </div>
+        <div v-if="hasGammaPrimeComposition" class="phase-row">
+          <span class="phase-label">Gamma Prime</span>
+          <div class="phase-comp">
+            <span v-for="([el, val]) in gammaPrimeComposition" :key="el" class="phase-tag">
+              <b>{{ el }}</b> {{ val.toFixed(1) }}%
+            </span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Physical Properties (temperature-independent) -->
-    <div v-if="physicalProperties.length > 0" class="section">
-      <div class="section-header">
-        <span class="section-title">Physical Properties</span>
-      </div>
-      <div class="props-row">
-        <div v-for="prop in physicalProperties" :key="prop.label" class="prop-item">
-          <span class="prop-label">{{ prop.label }}</span>
-          <span class="prop-value">{{ prop.value }}</span>
+      <!-- Physical Properties (temperature-independent) -->
+      <div v-if="physicalProperties.length > 0" class="section">
+        <div class="section-header">
+          <span class="section-title">Physical Properties</span>
+        </div>
+        <div class="props-row">
+          <div v-for="prop in physicalProperties" :key="prop.label" class="prop-item">
+            <span class="prop-label">{{ prop.label }}</span>
+            <span class="prop-value">{{ prop.value }}</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Mechanical Properties (temperature-dependent) -->
-    <div v-if="mechanicalProperties.length > 0" class="section">
-      <div class="section-header">
-        <span class="section-title">Mechanical Properties</span>
-        <select v-if="availableTemperatures.length > 1" v-model="selectedTemp" class="temp-select">
-          <option v-for="t in availableTemperatures" :key="t" :value="t">{{ formatTemp(t) }}</option>
-        </select>
-        <span v-else-if="selectedTemp !== null" class="temp-tag">@ {{ formatTemp(selectedTemp) }}</span>
-      </div>
-      <div class="props-row">
-        <div v-for="prop in mechanicalProperties" :key="prop.label" class="prop-item">
-          <span class="prop-label">{{ prop.label }}</span>
-          <span class="prop-value">{{ prop.value }}</span>
+      <!-- Mechanical Properties (temperature-dependent) -->
+      <div v-if="mechanicalProperties.length > 0" class="section">
+        <div class="section-header">
+          <span class="section-title">Mechanical Properties</span>
+          <select v-if="availableTemperatures.length > 1" v-model="selectedTemp" class="temp-select">
+            <option v-for="t in availableTemperatures" :key="t" :value="t">{{ formatTemp(t) }}</option>
+          </select>
+          <span v-else-if="selectedTemp !== null" class="temp-tag">@ {{ formatTemp(selectedTemp) }}</span>
+        </div>
+        <div class="props-row">
+          <div v-for="prop in mechanicalProperties" :key="prop.label" class="prop-item">
+            <span class="prop-label">{{ prop.label }}</span>
+            <span class="prop-value">{{ prop.value }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -253,20 +302,37 @@ const mechanicalProperties = computed(() => {
 <style scoped>
 .alloy-card {
   margin-top: 0.5rem;
-  padding: 0.75rem;
   background: rgba(30, 41, 59, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   font-size: 0.8rem;
+  transition: all 0.2s ease;
+}
+
+.alloy-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.alloy-card.expanded {
+  border-color: rgba(99, 102, 241, 0.3);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.6rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  align-items: center;
+  padding: 0.6rem 0.75rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.card-header:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.header-main {
+  flex: 1;
+  min-width: 0;
 }
 
 .title-row {
@@ -274,6 +340,48 @@ const mechanicalProperties = computed(() => {
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.expand-icon {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  width: 0.8rem;
+  transition: transform 0.2s;
+}
+
+/* Quick stats in collapsed view */
+.quick-stats {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.3rem;
+  padding-left: 1.3rem;
+}
+
+.quick-stat {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.qs-label {
+  color: var(--text-muted);
+}
+
+/* Expanded body */
+.card-body {
+  padding: 0.5rem 0.75rem 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 h3 {

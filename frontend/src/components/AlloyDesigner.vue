@@ -226,9 +226,10 @@ watch(mode, () => {
   clearError()
 })
 
-// Load history on mount
+// Load history and custom presets on mount
 onMounted(() => {
   loadHistory()
+  loadCustomPresets()
 })
 
 // --- MANUAL MODE STATE ---
@@ -258,22 +259,106 @@ watch(() => props.initialAlloy, (newVal) => {
   initFromProp(newVal)
 })
 
-const PRESETS = {
-  "Waspaloy": { composition: {"Ni": 58.0, "Cr": 19.5, "Co": 13.5, "Mo": 4.3, "Al": 1.3, "Ti": 3.0, "C": 0.08, "B": 0.006, "Zr": 0.06}, processing: "wrought" },
-  "Inconel 718": { composition: { "Ni": 52.5, "Cr": 19.0, "Fe": 19.0, "Nb": 5.1, "Mo": 3.0, "Ti": 0.9, "Al": 0.5 }, processing: "wrought" },
-  "Udimet 720": { composition: { "Ni": 55.0, "Cr": 16.0, "Co": 14.7, "Ti": 5.0, "Al": 2.5, "Mo": 3.0, "W": 1.25 }, processing: "wrought" },
-  "IN738LC": { composition: {"Ni": 61.5, "Cr": 16.0, "Co": 8.5, "Mo": 1.75, "W": 2.6, "Al": 3.4, "Ti": 3.4, "Ta": 1.75, "Nb": 0.9, "C": 0.11, "B": 0.01, "Zr": 0.05}, processing: "cast" },
-  "Udimet 500": { composition: { "Ni": 54.0, "Cr": 18.0, "Co": 18.5, "Mo": 4.0, "Al": 2.9, "Ti": 2.9, "C": 0.08, "B": 0.006, "Zr": 0.05 }, processing: "wrought" },
-  "Haynes 282": { composition: { "Ni": 57.0, "Cr": 19.5, "Co": 10.0, "Mo": 8.5, "Ti": 2.1, "Al": 1.5, "Fe": 1.0, "Mn": 0.15, "Si": 0.1, "C": 0.06, "B": 0.005 }, processing: "wrought" },
-  "CMSX-4": { composition: {"Ni": 61.7, "Cr": 6.5, "Co": 9.0, "Mo": 0.6, "W": 6.0, "Al": 5.6, "Ti": 1.0, "Ta": 6.5, "Re": 3.0, "Hf": 0.1}, processing: "cast" },
-  "René 65": { composition: {"Ni": 51.6, "Cr": 16.0, "Co": 13.0, "Mo": 4.0, "W": 4.0, "Al": 2.1, "Ti": 3.7, "Nb": 0.7, "Fe": 1.0, "B": 0.016, "Zr": 0.05, "C": 0.01}, processing: "wrought" }
+const BUILTIN_PRESETS = {
+  "Waspaloy": { composition: {"Ni": 58.0, "Cr": 19.5, "Co": 13.5, "Mo": 4.3, "Al": 1.3, "Ti": 3.0, "C": 0.08, "B": 0.006, "Zr": 0.06}, processing: "wrought", builtin: true },
+  "Inconel 718": { composition: { "Ni": 52.5, "Cr": 19.0, "Fe": 19.0, "Nb": 5.1, "Mo": 3.0, "Ti": 0.9, "Al": 0.5 }, processing: "wrought", builtin: true },
+  "Udimet 720": { composition: { "Ni": 55.0, "Cr": 16.0, "Co": 14.7, "Ti": 5.0, "Al": 2.5, "Mo": 3.0, "W": 1.25 }, processing: "wrought", builtin: true },
+  "IN738LC": { composition: {"Ni": 61.5, "Cr": 16.0, "Co": 8.5, "Mo": 1.75, "W": 2.6, "Al": 3.4, "Ti": 3.4, "Ta": 1.75, "Nb": 0.9, "C": 0.11, "B": 0.01, "Zr": 0.05}, processing: "cast", builtin: true },
+  "Udimet 500": { composition: { "Ni": 54.0, "Cr": 18.0, "Co": 18.5, "Mo": 4.0, "Al": 2.9, "Ti": 2.9, "C": 0.08, "B": 0.006, "Zr": 0.05 }, processing: "wrought", builtin: true },
+  "Haynes 282": { composition: { "Ni": 57.0, "Cr": 19.5, "Co": 10.0, "Mo": 8.5, "Ti": 2.1, "Al": 1.5, "Fe": 1.0, "Mn": 0.15, "Si": 0.1, "C": 0.06, "B": 0.005 }, processing: "wrought", builtin: true },
+  "CMSX-4": { composition: {"Ni": 61.7, "Cr": 6.5, "Co": 9.0, "Mo": 0.6, "W": 6.0, "Al": 5.6, "Ti": 1.0, "Ta": 6.5, "Re": 3.0, "Hf": 0.1}, processing: "cast", builtin: true },
+  "René 65": { composition: {"Ni": 51.6, "Cr": 16.0, "Co": 13.0, "Mo": 4.0, "W": 4.0, "Al": 2.1, "Ti": 3.7, "Nb": 0.7, "Fe": 1.0, "B": 0.016, "Zr": 0.05, "C": 0.01}, processing: "wrought", builtin: true }
 }
+
+// Custom presets stored in localStorage
+const customPresets = ref({})
+
+// Load custom presets from localStorage
+const loadCustomPresets = () => {
+  try {
+    const stored = localStorage.getItem('alloyCustomPresets')
+    if (stored) {
+      customPresets.value = JSON.parse(stored)
+    }
+  } catch (e) {
+    console.error('Failed to load custom presets:', e)
+  }
+}
+
+// Save custom presets to localStorage
+const saveCustomPresets = () => {
+  try {
+    localStorage.setItem('alloyCustomPresets', JSON.stringify(customPresets.value))
+  } catch (e) {
+    console.error('Failed to save custom presets:', e)
+  }
+}
+
+// All presets (builtin + custom)
+const allPresets = computed(() => {
+  return { ...BUILTIN_PRESETS, ...customPresets.value }
+})
 
 // Track selected preset
 const selectedPreset = ref(null)
 
+// Save current composition as a new preset
+const showSavePreset = ref(false)
+const newPresetName = ref('')
+
+const openSavePreset = () => {
+  newPresetName.value = ''
+  showSavePreset.value = true
+}
+
+const saveAsPreset = () => {
+  const name = newPresetName.value.trim()
+  if (!name) return
+
+  if (BUILTIN_PRESETS[name]) {
+    alert('Cannot overwrite built-in presets. Choose a different name.')
+    return
+  }
+
+  customPresets.value[name] = {
+    composition: { ...manualComp.value },
+    processing: manualProcessing.value,
+    builtin: false
+  }
+  saveCustomPresets()
+  selectedPreset.value = name
+  showSavePreset.value = false
+  newPresetName.value = ''
+}
+
+const deletePreset = (name) => {
+  if (BUILTIN_PRESETS[name]) {
+    alert('Cannot delete built-in presets.')
+    return
+  }
+
+  if (confirm(`Delete preset "${name}"?`)) {
+    delete customPresets.value[name]
+    saveCustomPresets()
+    if (selectedPreset.value === name) {
+      selectedPreset.value = null
+    }
+  }
+}
+
+const editPreset = (name) => {
+  if (BUILTIN_PRESETS[name]) {
+    alert('Cannot edit built-in presets. Load it and save as a new preset instead.')
+    return
+  }
+
+  // Load the preset for editing
+  loadPreset(name)
+}
+
 const loadPreset = (name) => {
-  const preset = PRESETS[name]
+  const preset = allPresets.value[name]
+  if (!preset) return
   manualComp.value = { ...preset.composition }
   manualProcessing.value = preset.processing
   selectedPreset.value = name
@@ -1072,12 +1157,22 @@ const parsedResults = computed(() => {
       <div class="presets-section">
         <label class="section-label">Quick Start:</label>
         <div class="preset-buttons">
-          <button v-for="(comp, name) in PRESETS" :key="name"
-                  @click="loadPreset(name)"
-                  :class="['preset-btn', { 'preset-selected': selectedPreset === name }]">
-            {{ name }}
-          </button>
+          <template v-for="(preset, name) in allPresets" :key="name">
+            <div class="preset-item">
+              <button @click="loadPreset(name)"
+                      :class="['preset-btn', { 'preset-selected': selectedPreset === name, 'custom-preset': !preset.builtin }]">
+                {{ name }}
+              </button>
+              <button v-if="!preset.builtin"
+                      @click.stop="deletePreset(name)"
+                      class="preset-delete-btn"
+                      title="Delete preset">×</button>
+            </div>
+          </template>
           <span class="preset-divider">|</span>
+          <button @click="openSavePreset" class="preset-btn action-btn" title="Save current composition as preset">
+            💾 Save Preset
+          </button>
           <button @click="openJsonImport" class="preset-btn action-btn" title="Import composition from JSON">
             📋 Import JSON
           </button>
@@ -1447,6 +1542,47 @@ const parsedResults = computed(() => {
       </div>
     </div>
   </transition>
+
+  <!-- Save Preset Modal -->
+  <transition name="modal-fade">
+    <div v-if="showSavePreset" class="modal-overlay" @click.self="showSavePreset = false">
+      <div class="modal-content save-preset-modal">
+        <div class="modal-header">
+          <h3>💾 Save as Preset</h3>
+          <button class="modal-close" @click="showSavePreset = false">×</button>
+        </div>
+
+        <div class="modal-body">
+          <p class="modal-help">
+            Save the current composition as a custom preset for quick access later.
+          </p>
+
+          <div class="preset-name-input">
+            <label>Preset Name:</label>
+            <input
+              type="text"
+              v-model="newPresetName"
+              placeholder="My Custom Alloy"
+              @keydown.enter="saveAsPreset"
+              autofocus
+            />
+          </div>
+
+          <div class="preset-preview">
+            <span class="preview-label">Composition:</span>
+            <span class="preview-elements">
+              {{ Object.entries(manualComp).map(([el, val]) => `${el}: ${val}%`).join(', ') }}
+            </span>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="cancel-btn" @click="showSavePreset = false">Cancel</button>
+          <button class="import-btn" @click="saveAsPreset" :disabled="!newPresetName.trim()">Save Preset</button>
+        </div>
+      </div>
+    </div>
+  </transition>
 </template>
 
 <style scoped>
@@ -1520,6 +1656,106 @@ const parsedResults = computed(() => {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.2);
   box-shadow: none;
+}
+
+/* Preset item with delete button */
+.preset-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.preset-delete-btn {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: #ff4757;
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preset-item:hover .preset-delete-btn {
+  opacity: 1;
+}
+
+.preset-delete-btn:hover {
+  background: #ff2f4a;
+  transform: scale(1.1);
+}
+
+.preset-btn.custom-preset {
+  background: rgba(255, 215, 0, 0.1);
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+.preset-btn.custom-preset:hover {
+  background: rgba(255, 215, 0, 0.2);
+  border-color: rgba(255, 215, 0, 0.5);
+}
+
+.preset-btn.custom-preset.preset-selected {
+  background: rgba(255, 215, 0, 0.3);
+  border-color: #ffd700;
+  color: #ffd700;
+}
+
+/* Save Preset Modal */
+.save-preset-modal {
+  max-width: 400px;
+}
+
+.preset-name-input {
+  margin-bottom: var(--space-md);
+}
+
+.preset-name-input label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.preset-name-input input {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-glass);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+}
+
+.preset-name-input input:focus {
+  outline: none;
+  border-color: #00d4ff;
+}
+
+.preset-preview {
+  padding: var(--space-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+}
+
+.preset-preview .preview-label {
+  color: var(--text-muted);
+  margin-right: var(--space-xs);
+}
+
+.preset-preview .preview-elements {
+  color: var(--text-secondary);
 }
 
 /* === EVAL CONTROLS === */

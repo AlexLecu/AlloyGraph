@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick, computed } from 'vue'
+import { ref, nextTick } from 'vue'
 
 import { API_BASE_URL } from '../config'
 import AlloyCard from './AlloyCard.vue'
@@ -29,10 +29,19 @@ const toggleExpand = () => {
   scrollToBottom()
 }
 
-const scrollToBottom = async () => {
+// Throttled scroll - only scrolls every 100ms max during streaming
+let lastScrollTime = 0
+const scrollToBottom = async (force = false) => {
+  const now = Date.now()
+  if (!force && now - lastScrollTime < 100) return
+  lastScrollTime = now
+
   await nextTick()
   if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+    messagesContainer.value.scrollTo({
+      top: messagesContainer.value.scrollHeight,
+      behavior: 'smooth'
+    })
   }
 }
 
@@ -73,7 +82,8 @@ const sendMessage = async () => {
   loading.value = true
 
   let assistantMsg = null
-  scrollToBottom()
+  let pendingAlloys = []  // Store alloys until streaming completes
+  scrollToBottom(true)  // Force scroll after user message
 
   try {
     const history = messages.value
@@ -120,7 +130,8 @@ const sendMessage = async () => {
           }
 
           if (chunk.type === 'data') {
-            assistantMsg.alloys = getNewAlloys(chunk.alloys)
+            // Store alloys for later - don't render during streaming
+            pendingAlloys = getNewAlloys(chunk.alloys)
           } else if (chunk.type === 'chunk' || chunk.type === 'text_chunk' || chunk.type === 'string_chunk') {
             assistantMsg.display += chunk.content
             assistantMsg.text += chunk.content
@@ -136,10 +147,15 @@ const sendMessage = async () => {
       }
     }
 
-    scrollToBottom()
+    // Show alloy cards after streaming completes
+    if (assistantMsg && pendingAlloys.length > 0) {
+      assistantMsg.alloys = pendingAlloys
+    }
+
+    scrollToBottom(true)  // Force scroll at end
   } catch (error) {
     if (assistantMsg) assistantMsg.display += `\n[Error: ${error.message}]`
-    scrollToBottom()
+    scrollToBottom(true)
   } finally {
     loading.value = false
     focusInput()
