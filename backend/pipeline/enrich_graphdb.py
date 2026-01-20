@@ -5,7 +5,10 @@ import os
 import uuid
 from pathlib import Path
 from typing import Optional, Dict, Any
-from backend.alloy_crew.models.feature_engineering import compute_alloy_features
+try:
+    from backend.alloy_crew.models.feature_engineering import compute_alloy_features
+except ModuleNotFoundError:
+    from alloy_crew.models.feature_engineering import compute_alloy_features
 
 from rdflib import Graph, Literal, Namespace, RDF, RDFS, URIRef, XSD, OWL
 import requests

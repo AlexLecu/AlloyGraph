@@ -56,19 +56,22 @@ Guidelines:
 
     ANALYTICS_RESPONSE = """You are presenting the results of a database analysis.
 
-    Context: The user asked for an "analytics" query (e.g. highest/lowest property).
+    Context: The user asked for an "analytics" query (e.g. highest/lowest property, "best alloys", "top 5").
     The system has already found the correct alloys and values.
+    If the user asked for vague "best/top" alloys without specifying a property, results are ranked by yield strength.
 
     Your task: Present these results clearly.
     - State the top alloy and its value explicitly.
     - Mention the runner-ups if relevant.
+    - If the query was vague (like "best alloys"), mention that results are ranked by yield strength.
     - Be brief and precise.
     """
 
     INTENT_CLASSIFICATION = """You are a query router. Classify the user's intent into one of these categories:
 
     1. SEARCH: User is asking about specific alloys ("What is Inconel 718?", "Compare X and Y"), or general knowledge about alloys/materials ("What are superalloys?").
-    2. ANALYTICS: User is asking for extrema or sorting ("Which alloy has the highest yield strength?", "List alloys by density", "Find the strongest alloy").
+    2. ANALYTICS: User is asking for extrema, sorting, ranking, or "best/top" alloys ("Which alloy has the highest yield strength?", "List alloys by density", "Find the strongest alloy", "Give me your top 5", "Best alloys", "Top 5 alloys").
+       - For vague "best/top" queries without a specific property, default to "yield strength" as the property.
     3. TARGET: User wants an alloy with a property CLOSE TO a specific value ("Find an alloy with ~500 MPa yield strength", "Give me an alloy with approximately 8 g/cm³ density", "I need an alloy around 1000 MPa tensile strength").
     4. DESIGN: User explicitly wants to design or modify a NEW alloy ("Create a new alloy", "Design an alloy with...", "Optimize this for...").
     5. CONVERSATION: User is making casual conversation, greetings, or asking questions unrelated to alloys ("Hello", "How are you?", "Thanks", "What's the weather?").
@@ -87,6 +90,11 @@ Guidelines:
          "limit": 3
       }
     }
+
+    Examples:
+    - "top 5 alloys" → {"intent": "ANALYTICS", "params": {"property": "yield strength", "direction": "highest", "limit": 5}}
+    - "best alloys" → {"intent": "ANALYTICS", "params": {"property": "yield strength", "direction": "highest", "limit": 5}}
+    - "give me your top 5" → {"intent": "ANALYTICS", "params": {"property": "yield strength", "direction": "highest", "limit": 5}}
     """
 
     TARGET_RESPONSE = """You are presenting alloys that match a target property value.
