@@ -136,12 +136,9 @@ services:
       - "7200:7200"
     volumes:
       - graphdb_data:/opt/graphdb/home
-      - ./docker/graphdb/init:/opt/graphdb/init:ro
     environment:
       GDB_HEAP_SIZE: 2g
-      GDB_JAVA_OPTS: >-
-        -Dgraphdb.home=/opt/graphdb/home
-        -Dgraphdb.workbench.importDirectory=/opt/graphdb/init
+      GDB_JAVA_OPTS: "-Dgraphdb.home=/opt/graphdb/home"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7200/rest/repositories"]
