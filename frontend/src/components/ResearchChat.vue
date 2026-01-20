@@ -208,7 +208,12 @@ const useSuggestion = (text) => {
 
     <!-- Messages Area -->
     <div class="messages-area" ref="messagesContainer">
-      <div v-for="(msg, i) in messages" :key="i" :class="['msg', msg.role]">
+      <div
+        v-for="(msg, i) in messages"
+        :key="i"
+        :class="['msg', msg.role]"
+        v-show="msg.display || msg.text || (msg.alloys && msg.alloys.length)"
+      >
         <!-- Avatar -->
         <div class="avatar">
           <span v-if="msg.role === 'user'">👤</span>
@@ -217,7 +222,7 @@ const useSuggestion = (text) => {
 
         <!-- Content -->
         <div class="content">
-          <div class="text" v-html="formatText(msg.display || msg.text)"></div>
+          <div class="text" v-if="msg.display || msg.text" v-html="formatText(msg.display || msg.text)"></div>
 
           <!-- Alloy Cards -->
           <div v-if="msg.alloys && msg.alloys.length" class="cards">
