@@ -154,12 +154,7 @@ TARGETS = {
 
 if __name__ == "__main__":
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    DATA_FILE = os.path.join(current_dir, "training_data", "final_alloy_data_enriched.jsonl")
-
-    # Check for v2 data file
-    v2_file = os.path.join(current_dir, "training_data", "final_alloy_data_enriched_v2.jsonl")
-    if os.path.exists(v2_file):
-        DATA_FILE = v2_file
+    DATA_FILE = os.path.join(current_dir, "training_data", "train_79alloys.jsonl")
 
     N_TRIALS = 30  # Increase for better results (50-100 recommended)
 
