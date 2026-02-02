@@ -482,34 +482,19 @@ const runValidation = async (isRetry = false) => {
       processing: manualProcessing.value
     })
 
-    // Safely extract result with error handling
-    if (!res.data) {
-      throw new Error('No data received from server')
-    }
-
-    const validationResult = res.data.result
-
-    if (!validationResult) {
-      console.error('Response data:', res.data)
-      throw new Error('Invalid response structure: missing result field')
-    }
-
-    // Check if the result contains an error from backend
-    if (validationResult.error) {
-      // Backend returned an error - don't throw, just display it
+    if (res.data?.result?.error) {
       stopLoading()
-      errorType.value = 'validation'  // Backend validation error
-      error.value = validationResult.error
-      logs.value.push("❌ Error: " + validationResult.error)
-      return  // Exit early without throwing
+      errorType.value = 'validation'
+      error.value = res.data.result.error
+      logs.value.push("❌ Error: " + res.data.result.error)
+      return
     }
 
-    result.value = validationResult
+    result.value = res.data.result
     logs.value.push("✅ Prediction Complete.")
 
-    // Save to history only if successful
-    if (validationResult.properties) {
-      saveToHistory(validationResult)
+    if (res.data.result?.properties) {
+      saveToHistory(res.data.result)
     }
 
     stopLoading()
@@ -605,30 +590,15 @@ const runDesign = async (isRetry = false) => {
       max_iter: autoIterations.value
     })
 
-    // Safely extract result with error handling
-    if (!response.data) {
-      throw new Error('No data received from server')
-    }
-
     const designResult = response.data.result
-
-    if (!designResult) {
-      console.error('Response data:', response.data)
-      throw new Error('Invalid response structure: missing result field')
-    }
-
-    // Always display results - show composition with warnings if issues exist
     result.value = designResult
 
     if (designResult.design_status === "incomplete" && designResult.issues && designResult.issues.length > 0) {
-      // Design completed but has issues - show composition with warnings
       logs.value.push("⚠️ Design completed with issues:")
-
       designResult.issues.forEach(issue => {
         const icon = issue.severity === "High" ? "🔴" : issue.severity === "Medium" ? "🟡" : "🔵"
         logs.value.push(`${icon} ${issue.type}: ${issue.description}`)
       })
-
       if (designResult.recommendations && designResult.recommendations.length > 0) {
         logs.value.push("\n💡 Recommendations:")
         designResult.recommendations.forEach(rec => {
@@ -636,14 +606,11 @@ const runDesign = async (isRetry = false) => {
         })
       }
     } else if (designResult.error) {
-      // Backwards compatibility - old error format
       logs.value.push("❌ Error: " + designResult.error)
     } else {
-      // Success!
       logs.value.push("✅ Design Complete!")
     }
 
-    // Always save to history if we have composition
     if (designResult.composition) {
       saveToHistory(designResult)
     }
@@ -2659,7 +2626,7 @@ const parsedResults = computed(() => {
 .elapsed-time {
   font-size: var(--font-size-sm);
   color: var(--text-muted);
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-md);
 }
 
 /* === DESIGN HISTORY STYLES === */
