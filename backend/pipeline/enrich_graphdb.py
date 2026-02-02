@@ -16,7 +16,7 @@ import requests
 
 GRAPHDB_URL = os.getenv("GRAPHDB_URL", "http://localhost:7200")
 REPO_ID = os.getenv("GRAPHDB_REPO", "AlloyGraph")
-JSON_FILE = os.getenv("ALLOY_JSON", "../superalloy_preprocess/output_data/all_alloys.jsonl")
+JSON_FILE = os.getenv("ALLOY_JSON", "../alloy_crew/models/training_data/train_79alloys.jsonl")
 ONTOLOGY_FILE = os.getenv("ONTOLOGY_FILE", "../Data/Ontology/alloygraph.owl")
 
 BASE = "https://w3id.org/alloygraph/"
