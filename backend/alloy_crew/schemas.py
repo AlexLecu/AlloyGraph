@@ -159,7 +159,6 @@ class PhysicsAuditOutput(BaseModel):
     property_intervals: Dict[str, Any] = Field(default_factory=dict, description="Uncertainty intervals for properties")
     metallurgy_metrics: Dict[str, Any]
     audit_penalties: List[AuditPenalty] = []
-    recommended_repairs: List[str] = []
     errors: List[str] = []
     confidence: Dict[str, Any] = Field(default_factory=dict)
     explanation: str = ""
@@ -184,7 +183,6 @@ class CorrectedPropertiesOutput(BaseModel):
     property_intervals: Dict[str, Any] = Field(default_factory=dict)
     metallurgy_metrics: Dict[str, Any]
     audit_penalties: List[AuditPenalty] = []
-    recommended_repairs: List[str] = []
     errors: List[str] = []
     confidence: Dict[str, Any] = Field(default_factory=dict)
     explanation: str = Field("", description="Metallurgical analysis from Physicist")
