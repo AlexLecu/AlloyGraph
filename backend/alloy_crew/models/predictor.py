@@ -87,16 +87,10 @@ class AlloyPredictor:
             req_cols = self.required_features[name]
             df_aligned = df_raw.reindex(columns=req_cols)
             
-            # B. Smart Fill
-            cat_defaults = {
-                'processing': 'cast',
-                'TCP_risk': 'Moderate',
-                'alloy_name': 'unknown'
-            }
-
+            # B. Smart Fill - use 'cast' for processing (in-distribution default)
             for col in df_aligned.columns:
-                if col in cat_defaults:
-                    df_aligned[col] = df_aligned[col].fillna(cat_defaults[col])
+                if col == 'processing':
+                    df_aligned[col] = df_aligned[col].fillna('cast')
                 else:
                     df_aligned[col] = df_aligned[col].fillna(0.0)
 
