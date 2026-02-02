@@ -19,7 +19,7 @@ WEAVIATE_GRPC_PORT = os.getenv("WEAVIATE_GRPC_PORT", "50051")
 
 # Data paths
 DATA_DIR = "/app/alloy_crew/models/training_data"
-DEFAULT_DATA_FILE = os.path.join(DATA_DIR, "final_alloy_data_enriched.jsonl")
+DEFAULT_DATA_FILE = os.path.join(DATA_DIR, "train_79alloys.jsonl")
 ONTOLOGY_OUTPUT = "/app/Data/Ontology/alloygraph.owl"
 
 
@@ -156,8 +156,7 @@ def find_data_file() -> str:
     candidates = [
         os.getenv("ALLOY_JSON"),
         DEFAULT_DATA_FILE,
-        "/app/alloy_crew/models/training_data/final_enriched.jsonl",
-        "/app/alloy_crew/models/training_data/all_alloys.jsonl",
+        "/app/alloy_crew/models/training_data/final_alloy_data_enriched.jsonl",
     ]
 
     for path in candidates:

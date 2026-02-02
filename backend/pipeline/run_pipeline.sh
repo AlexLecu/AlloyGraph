@@ -9,7 +9,7 @@ export PYTHONPATH=$PYTHONPATH:$(pwd)/../..
 
 # Configuration
 SOURCE_FILE="../superalloy_preprocess/output_data/all_alloys.jsonl"
-DATA_FILE="../alloy_crew/models/training_data/final_alloy_data_enriched.jsonl"
+DATA_FILE="../alloy_crew/models/training_data/train_79alloys.jsonl"
 WEAVIATE_COMPOSE="../docker/docker-compose-weaviate.yml"
 WEAVIATE_DATA_DIR="../docker/weaviate_data"
 
