@@ -88,11 +88,15 @@ class AlloyPredictor:
             df_aligned = df_raw.reindex(columns=req_cols)
             
             # B. Smart Fill
-            cat_cols = ['processing', 'TCP_risk', 'alloy_name']
-            
+            cat_defaults = {
+                'processing': 'cast',
+                'TCP_risk': 'Moderate',
+                'alloy_name': 'unknown'
+            }
+
             for col in df_aligned.columns:
-                if col in cat_cols:
-                    df_aligned[col] = df_aligned[col].fillna('unknown')
+                if col in cat_defaults:
+                    df_aligned[col] = df_aligned[col].fillna(cat_defaults[col])
                 else:
                     df_aligned[col] = df_aligned[col].fillna(0.0)
 
