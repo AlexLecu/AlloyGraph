@@ -17,8 +17,8 @@ class AlloyPredictionInput(BaseModel):
         description="Target temperature in Celsius for property prediction."
     )
     processing: str = Field(
-        "unknown",
-        description="Processing type: 'cast', 'wrought', or 'unknown'."
+        "cast",
+        description="Processing type: 'cast' or 'wrought'. Defaults to 'cast' (more conservative predictions)."
     )
 
 class AlloyPredictorTool(BaseTool):
@@ -29,7 +29,7 @@ class AlloyPredictorTool(BaseTool):
     )
     args_schema: Type[BaseModel] = AlloyPredictionInput
 
-    def _run(self, composition: Dict[str, float], temperature_c: int = 20, processing: str = "unknown", **kwargs: Any) -> str:
+    def _run(self, composition: Dict[str, float], temperature_c: int = 20, processing: str = "cast", **kwargs: Any) -> str:
         try:
             # 1. Initialize Predictor (Cached via Factory)
             predictor = AlloyPredictor.get_shared_predictor(model_dir=None)

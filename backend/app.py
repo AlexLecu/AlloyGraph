@@ -31,7 +31,7 @@ def validate_alloy():
     composition = data.get('composition')
     temp = data.get('temp', 20)
     processing = data.get('processing', 'cast')
-    llm = data.get('llm', f"groq/{LLMConfig.MODEL}")
+    llm = data.get('llm')
 
     if not composition:
         return jsonify({"error": "No composition provided"}), 400
@@ -122,7 +122,7 @@ def design():
             "confidence": result.get("confidence", {}),
             "design_status": result.get("design_status", "success"),
             "composition_status": composition_status,
-            "status": result.get("status", "UNKNOWN"),  # ✅ Add PASS/REJECT/FAIL status
+            "status": result.get("status", "UNKNOWN"),
             "issues": result.get("issues", []),
             "recommendations": result.get("recommendations", []),
             "explanation": result.get("explanation", ""),
