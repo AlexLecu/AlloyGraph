@@ -1,48 +1,45 @@
 import logging
 
+from ..config.alloy_parameters import get_params
+
 logger = logging.getLogger(__name__)
 
 def get_calibration_factor(composition, kg_distance, processing="cast"):
     """
-    Apply composition and processing-dependent calibration to physics predictions.
-
-    - Cast alloys: formulas overpredict, need reduction
-    - Wrought alloys: formulas are closer to reality
-    - Strong KG match (distance < 1.5): skip calibration, trust experimental data
-    """
+    Apply processing-dependent calibration to physics predictions."""
     if kg_distance < 1.5:
         logger.info(f"Strong KG match (distance={kg_distance:.2f}) - skipping calibration")
         return {"Yield Strength": 1.0, "Tensile Strength": 1.0, "Elastic Modulus": 1.0, "Elongation": 1.0}
 
-    cr = composition.get("Cr", 0)
-    co = composition.get("Co", 0)
-    re = composition.get("Re", 0)
+    params = get_params(processing)
 
-    is_wrought = processing in ["wrought", "forged"]
+    ys_factor = params["CAL_YS_FACTOR"]
+    uts_factor = params["CAL_UTS_FACTOR"]
+    el_factor = params["CAL_EL_FACTOR"]
 
-    if is_wrought:
-        ys_factor = 1.0
-        if cr > 18:
-            ys_factor *= (1.0 - 0.005 * (cr - 18))
-        uts_factor = 1.15
-        el_factor = 1.3
-        logger.info(f"Wrought calibration: YS×{ys_factor:.2f}, UTS×{uts_factor:.2f}, El×{el_factor:.2f}")
-    else:
-        ys_factor = 0.85
-        if cr > 12:
-            ys_factor *= (1.0 - 0.01 * (cr - 12))
-        if co > 15:
-            ys_factor *= (1.0 - 0.005 * (co - 15))
-        if re > 3:
-            ys_factor *= (1.0 + 0.03 * re)
+    # Composition-dependent calibration for SSS alloys
+    # SSS alloys (Al+Ti+Ta < 2%) tend to be over-predicted due to:
+    al = composition.get("Al", composition.get("al", 0)) or 0
+    ti = composition.get("Ti", composition.get("ti", 0)) or 0
+    ta = composition.get("Ta", composition.get("ta", 0)) or 0
+    cr = composition.get("Cr", composition.get("cr", 0)) or 0
+    al_ti_ta = al + ti + ta
 
-        uts_factor = 0.88
-        if cr > 12:
-            uts_factor *= (1.0 - 0.008 * (cr - 12))
-        if co > 15:
-            uts_factor *= (1.0 - 0.004 * (co - 15))
+    if al_ti_ta < 2.0:
+        # SSS alloy detected - apply processing-specific calibration
+        if processing == "cast":
+            # Cast SSS alloys
+            ys_factor = ys_factor * 0.85
+            uts_factor = uts_factor * 0.85
+        elif processing in ["wrought", "forged"]:
+            # Wrought SSS alloys
+            if cr < 18.0:
+                ys_factor = ys_factor * 0.93
+                uts_factor = uts_factor * 0.93
+                logger.info(f"Low-Cr wrought SSS alloy (Cr={cr:.1f}%) - applying 0.93× reduction to YS/UTS")
+            else:
+                logger.info(f"High-Cr wrought SSS alloy (Cr={cr:.1f}%) - using standard calibration")
 
-        el_factor = 1.0
 
     # Blend calibration based on KG match quality
     if kg_distance > 10:
