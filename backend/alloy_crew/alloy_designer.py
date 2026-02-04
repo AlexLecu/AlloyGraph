@@ -8,7 +8,8 @@ from .agents import get_design_agents
 from .tools.rag_tools import AlloySearchTool
 from .tools.calibration_fix import apply_calibration_safe
 from .tools.metallurgy_tools import validate_property_coherency, enforce_physics_constraints, cleanup_llm_output, cleanup_confidence, warnings_to_penalties
-from .schemas import ValidationOutput, ArbitrationOutput, PhysicsAuditOutput, CorrectedPropertiesOutput, DesignOutput, OptimizationOutput, AuditPenalty
+from .schemas import ValidationOutput, ArbitrationOutput, CorrectedPropertiesOutput, DesignOutput, OptimizationOutput, AuditPenalty
+from .alloy_evaluator import _slim_kg_context
 
 class FailureMode(Enum):
     """Structured classification of design failure reasons."""
@@ -35,7 +36,6 @@ class IterativeDesignCrew:
         self.validator = self.agents["validator"]
         self.arbitrator = self.agents["arbitrator"]
         self.physicist = self.agents["physicist"]
-        self.corrector = self.agents["corrector"]
         self.summarizer = self.agents["summarizer"]
 
 
@@ -156,8 +156,15 @@ class IterativeDesignCrew:
                 "Current Properties: {current_props_json}\n"
                 "Failure Reasons: {failure_reasons}\n"
                 "Processing: {processing}\n\n"
-                "Use AlloyOptimizationAdvisor to calculate physics-based suggestions.\n"
-                "Return the TOP 3 most effective adjustments with quantified impacts."
+                "Use AlloyOptimizationAdvisor to calculate physics-based suggestions.\n\n"
+                "Return TOP 3 suggestions ranked by:\n"
+                "1. Impact magnitude (ΔMd, ΔYS, degree of constraint violation)\n"
+                "2. Ease of implementation (single-element adjustments preferred over multi-element)\n"
+                "3. Minimal trade-offs (e.g., fixing TCP without sacrificing strength)\n\n"
+                "Each suggestion must include:\n"
+                "- Specific element adjustment (e.g., 'Reduce Re from 6.0% to 4.5%')\n"
+                "- Quantified impact (e.g., 'lowers Md by 0.04')\n"
+                "- Trade-off warning if applicable (e.g., 'may reduce YS by 50 MPa')"
             ),
             expected_output="Structured optimization suggestions with priorities and expected impacts.",
             output_pydantic=OptimizationOutput,
@@ -168,10 +175,13 @@ class IterativeDesignCrew:
 
         self.task_validation = Task(
             description=(
-                "Validate composition at {temperature}°C using AlloyPredictorTool.\n"
-                "Processing: {processing}\n"
-                "Composition: {composition_json}\n\n"
-                "Call the tool with composition, temperature_c, and processing parameters."
+                "Validate composition at {temperature}°C using AlloyPredictorTool.\n\n"
+                "Execute: AlloyPredictorTool(\n"
+                "  composition={composition_json},\n"
+                "  temperature_c={temperature},\n"
+                "  processing='{processing}'\n"
+                ")\n\n"
+                "Return ONLY the tool's output. Do NOT invent or modify any values."
             ),
             expected_output="Structured ML predictions with confidence.",
             output_pydantic=ValidationOutput,
@@ -181,11 +191,17 @@ class IterativeDesignCrew:
 
         self.task_arbitration = Task(
             description=(
-                "Knowledge Graph Context:\n{kg_context}\n\n"
-                "Processing: {processing}\n"
-                "Take ML predictions from Validator. Run DataFusionTool to anchor against KG.\n"
-                "Use mode='design' for fusion (trust ML more for innovation at {temperature}°C).\n"
-                "PRESERVE property_intervals and confidence breakdown."
+                "Fuse ML predictions with KG data using DataFusionTool.\n\n"
+                "Execute DataFusionTool with these INPUT parameters ONLY:\n"
+                "  composition: {composition_json}\n"
+                "  ml_prediction_json: <JSON string from Validator's ml_prediction>\n"
+                "  rag_context: {kg_context}\n"
+                "  target_temperature_c: {temperature}\n"
+                "  processing: '{processing}'\n"
+                "  mode: 'design'  (weights ML at 70% for bolder novel designs)\n\n"
+                "DO NOT add any other parameters like 'properties', 'status', 'confidence', etc.\n"
+                "Those are OUTPUT fields that the tool will return.\n\n"
+                "Return the tool's complete output exactly as provided."
             ),
             expected_output="Fused properties with confidence and intervals.",
             output_pydantic=ArbitrationOutput,
@@ -195,75 +211,30 @@ class IterativeDesignCrew:
 
         self.task_physics = Task(
             description=(
-                "Evaluate physical validity.\n"
-                "Composition: {composition_json}\n"
-                "Processing: {processing}\n"
-                "Temperature: {temperature}°C\n"
-                "Input: Use the COMPLETE Arbitrator output JSON (including fusion_meta).\n\n"
-                "1. ANALYZE THE ALLOY TYPE (LLM REASONING):\n"
-                "   - If Cr > 21.0%: likely corrosion-resistant → Set alloy_type='high_corrosion'\n"
-                "   - If Cr < 20.0% AND (Ti + Al) > 4.0%: likely high-strength blade → Set alloy_type='high_strength'\n"
-                "   - Otherwise: Set alloy_type='standard'\n"
-                "2. EXECUTE `MetallurgyVerifierTool` with:\n"
-                "   - composition: {composition_json}\n"
-                "   - anchored_properties_json: The ENTIRE Arbitrator output as a JSON string\n"
-                "   - temperature_c: {temperature}\n"
-                "   - alloy_type: Your inferred type from step 1\n"
-                "   CRITICAL: Pass the complete JSON containing properties, property_intervals, fusion_meta, confidence.\n"
-                "3. The tool returns verified_properties, property_intervals, confidence, and metallurgy_metrics.\n"
-                "4. GENERATE EXPERT METALLURGICAL INSIGHT (3-5 sentences):\n"
-                "   - Identify dominant strengthening mechanism (Gamma Prime vs Solid Solution)\n"
-                "   - Evaluate trade-offs (strength vs ductility, castability, etc.)\n"
-                "   - Propose applications based on property profile\n"
-                "   - TONE: Professional, variable, avoid AI-sounding repetition\n"
-                "5. Return the tool's output with your explanation added.\n"
-                "   - Do NOT modify verified_properties, property_intervals, or confidence\n"
-                "   - ONLY update the explanation field"
+                "Audit and apply physics corrections using MetallurgyVerifierTool.\n\n"
+                "1. Infer alloy_type using priority order:\n"
+                "   - 'high_corrosion' if Cr > 21%\n"
+                "   - 'high_strength' if Al+Ti > 4% AND Cr ≤ 21%\n"
+                "   - 'standard' otherwise\n\n"
+                "2. Execute MetallurgyVerifierTool with these INPUT parameters ONLY:\n"
+                "   composition: {composition_json}\n"
+                "   anchored_properties_json: <JSON with {{properties, processing}} from Arbitrator>\n"
+                "   temperature_c: {temperature}\n"
+                "   alloy_type: <inferred_type>\n\n"
+                "   DO NOT add output fields like 'status', 'tcp_risk', 'audit_penalties', 'corrections_applied', etc.\n"
+                "   Those will be returned by the tool.\n\n"
+                "3. PRESERVE the complete tool output including 'corrections_applied'\n\n"
+                "4. Add ONLY a 3-5 sentence human-readable 'explanation':\n"
+                "   - Identify dominant strengthening mechanism (γ' vs solid solution)\n"
+                "   - Note any corrections applied and why\n"
+                "   - Suggest suitable applications\n"
+                "   - DO NOT modify any numerical values in your explanation\n\n"
+                "Note: MetallurgyVerifierTool handles SSS and γ' temperature corrections internally."
             ),
-            expected_output="Final audit with explanation and intervals.",
-            output_pydantic=PhysicsAuditOutput,
+            expected_output="Complete physics audit with corrections and human-readable explanation.",
+            output_pydantic=CorrectedPropertiesOutput,
             agent=self.physicist,
             context=[self.task_arbitration],
-        )
-
-        self.task_corrections = Task(
-            description=(
-                "Apply physics-based corrections to improve prediction accuracy.\n"
-                "Composition: {composition_json}\n"
-                "Processing: {processing}\n"
-                "Temperature: {temperature}°C\n"
-                "Input: Use the COMPLETE Physicist output JSON.\n\n"
-                "1. EXTRACT from Physicist output:\n"
-                "   - properties (dict)\n"
-                "   - composition (from input)\n"
-                "   - confidence_level: confidence.level (string: HIGH, MEDIUM, LOW, VERY LOW)\n"
-                "   - processing (string: wrought, cast, forged)\n"
-                "   - kg_match_distance: confidence.similarity_distance (float, default 999)\n"
-                "2. EXECUTE PhysicsCorrectionsProposalTool with these parameters.\n"
-                "3. REVIEW proposals:\n"
-                "   - Follow decision criteria in your backstory\n"
-                "   - Apply HIGH severity corrections if confidence is LOW/VERY LOW\n"
-                "   - Apply MEDIUM severity if no KG match (distance > 10)\n"
-                "   - Skip LOW severity unless multiple issues\n"
-                "4. CREATE PropertyCorrection objects for applied corrections:\n"
-                "   - property_name, original_value, corrected_value, correction_reason, physics_constraint\n"
-                "5. PRESERVE all fields from Physicist:\n"
-                "   - status, penalty_score, tcp_risk, metallurgy_metrics, audit_penalties\n"
-                "   - property_intervals, confidence, explanation\n"
-                "6. ADD corrections_explanation:\n"
-                "   - Why corrections were applied (or not)\n"
-                "   - Expected accuracy after corrections: '±5-10% for novel alloys'\n"
-                "   - Recommendation for experimental validation if needed\n"
-                "   - Note: 'Database-driven calibration will be applied automatically in post-processing to account for systematic formula biases'\n"
-                "7. RETURN structured CorrectedPropertiesOutput.\n\n"
-                "NOTE: After you complete this task, calibration will be automatically applied in post-processing.\n"
-                "This fixes systematic biases in physics formulas (e.g., YS = 400+18×γ' overpredicts by ~16%).\n"
-                "You don't need to apply calibration yourself - just document which physics corrections you made."
-            ),
-            expected_output="Final corrected properties with physics constraints applied.",
-            output_pydantic=CorrectedPropertiesOutput,
-            agent=self.corrector,
-            context=[self.task_physics],
         )
 
     def _setup_crews(self):
@@ -275,8 +246,8 @@ class IterativeDesignCrew:
         )
 
         self.crew_analysis = Crew(
-            agents=[self.validator, self.arbitrator, self.physicist, self.corrector],
-            tasks=[self.task_validation, self.task_arbitration, self.task_physics, self.task_corrections],
+            agents=[self.validator, self.arbitrator, self.physicist],
+            tasks=[self.task_validation, self.task_arbitration, self.task_physics],
             verbose=True,
         )
 
@@ -372,11 +343,7 @@ class IterativeDesignCrew:
 
         try:
             kg_raw = AlloySearchTool()._run(composition=designer_comp, limit=3)
-            try:
-                kg_json = json.loads(kg_raw)
-                kg_context = json.dumps(kg_json)
-            except Exception:
-                kg_context = "[]"
+            kg_context = _slim_kg_context(kg_raw, target_temp=temperature)
         except Exception:
             kg_context = "[]"
 
@@ -395,11 +362,9 @@ class IterativeDesignCrew:
         except Exception as e:
             return {"error": f"Analysis Crew Failed: {e}"}
 
-        corrected_output = getattr(self.task_corrections.output, "pydantic", None)
-        if not corrected_output:
-            return {"error": "Corrector did not return structured output."}
-
-        physics_output = corrected_output
+        physics_output = getattr(self.task_physics.output, "pydantic", None)
+        if not physics_output:
+            return {"error": "Physicist did not return structured output."}
 
         validator_output = getattr(self.task_validation.output, "pydantic", None)
         if validator_output and hasattr(validator_output, 'ml_prediction'):
@@ -427,6 +392,7 @@ class IterativeDesignCrew:
 
         physics_output.properties, physics_corrections = enforce_physics_constraints(
             properties=physics_output.properties,
+            composition=designer_comp,
             temperature_c=temperature,
             processing=processed_route,
             confidence_level=confidence_level,
@@ -708,12 +674,8 @@ class IterativeDesignCrew:
 
                     val_output = getattr(self.task_validation.output, "pydantic", None)
 
-                    # Get corrected output (final task in pipeline)
-                    corr_output = getattr(self.task_corrections.output, "pydantic", None)
-                    if corr_output:
-                        phys_output = corr_output  # Use corrected output
-                    else:
-                        phys_output = getattr(self.task_physics.output, "pydantic", None)  # Fallback
+                    # Get physics output
+                    phys_output = getattr(self.task_physics.output, "pydantic", None)
 
                     if phys_output:
                         result["properties"] = phys_output.properties
@@ -740,6 +702,7 @@ class IterativeDesignCrew:
                         conf = phys_output.confidence if isinstance(phys_output.confidence, dict) else {}
                         result["properties"], _ = enforce_physics_constraints(
                             properties=result["properties"],
+                            composition=current_comp,
                             temperature_c=temperature,
                             processing=processing,
                             confidence_level=conf.get("level", "MEDIUM"),

@@ -95,29 +95,14 @@ def create_validator_agent(llm=None, memory=False):
 def create_arbitrator_agent(llm=None, memory=False):
     return Agent(
         role='Data Fusion Arbitrator',
-        goal='Reconcile ML predictions with KG data using Multi-Factor Confidence Scoring with transparent weighting.',
+        goal='Reconcile ML predictions with KG data using the DataFusionTool.',
         backstory=(
-            "You execute the DataFusionTool to intelligently blend ML predictions with experimental KG data.\n\n"
-            "FUSION APPROACH:\n"
-            "1. **Similarity-Based Weighting**: The tool calculates compositional distance to the nearest KG match.\n"
-            "   - Very close matches (distance < 0.01) → Trust KG heavily (~99% weight)\n"
-            "   - Moderate similarity → Balanced weighting\n"
-            "   - Low similarity → Favor ML predictions\n\n"
-            "2. **Multi-Factor Confidence**: The tool computes a final confidence score combining:\n"
-            "   - KG confidence (based on compositional similarity)\n"
-            "   - ML confidence (model certainty)\n"
-            "   - Coverage confidence (data completeness)\n"
-            "   - Temperature adjustment factor\n\n"
-            "3. **Property Intervals**: The tool returns uncertainty bounds (lower/upper) for each property.\n\n"
-            "4. **🚀 FUSION TRANSPARENCY**: The tool now includes explicit `fusion_weighting` breakdown:\n"
-            "   - kg_contribution_pct: How much KG data influenced the result\n"
-            "   - ml_contribution_pct: How much ML prediction influenced the result\n"
-            "   - decision_rationale: Human-readable explanation of the fusion decision\n"
-            "   - data_source_primary: Which source was trusted more (KG or ML)\n\n"
-            "YOUR TASK: Call the tool with all required parameters, then PRESERVE its complete output "
-            "(fused properties, property_intervals, confidence breakdown, fusion_meta, AND fusion_weighting) in your response.\n"
-            "The fusion_weighting object helps downstream agents understand and explain the prediction basis.\n"
-            "Do NOT simplify or modify the tool's structured data. DO NOT CHANGE ANY NUMERICAL VALUES."
+            "You execute the DataFusionTool to blend ML predictions with experimental KG data.\n\n"
+            "YOUR TASK:\n"
+            "1. Call DataFusionTool with all required parameters\n"
+            "2. PRESERVE the complete tool output in your response\n"
+            "3. Do NOT modify any numerical values from the tool\n\n"
+            "The tool handles all fusion logic internally and returns confidence scores and property intervals."
         ),
         tools=[DataFusionTool()],
         verbose=True,
@@ -127,48 +112,31 @@ def create_arbitrator_agent(llm=None, memory=False):
     )
 
 # ---------------------------------------------------------
-# AGENT 4: The Physicist (Thermodynamic Auditor)
+# AGENT 4: The Physicist (Thermodynamic Auditor + Corrections)
 # ---------------------------------------------------------
 def create_physicist_agent(llm=None, memory=False):
     return Agent(
-        role='Thermodynamic Integrity Guard (Blocking Gate)',
-        goal='Enforce physics laws and validate property coherency. REJECT designs that violate stability or consistency rules.',
+        role='Thermodynamic Integrity Guard',
+        goal='Validate physics and apply temperature-dependent corrections using MetallurgyVerifierTool.',
         backstory=(
-            "You are the **Blocking Gate**. You have the authority to REJECT a design.\n\n"
-            "AUDIT PROTOCOL:\n"
-            "1. YOU MUST Execute `MetallurgyVerifierTool`. Do NOT skip this.\n"
-            "2. The tool returns a complete JSON structure. YOU MUST PRESERVE IT EXACTLY.\n"
-            "3. Add a concise 'explanation' field (3-5 sentences) that interprets the results.\n"
-            "4. Check `penalty_score`. If > 50, the design is UNSAFE.\n"
-            "5. TCP Risk Assessment (Md_gamma_matrix):\n"
-            "   - Md < 0.96: Low risk (PASS)\n"
-            "   - Md 0.96-1.05: Moderate risk - WARN but PASS (many proven alloys like IN738LC operate here)\n"
-            "   - Md > 1.05: High risk - REJECT only if extremely high\n"
-            "   Note: TCP risk is a concern, not an automatic rejection. Industrial alloys often have Md > 0.98.\n"
-            "6. Check Lattice Mismatch: High `lattice_mismatch_pct` (>1.0%) = WARN, (>1.5%) = REJECT.\n\n"
-            "7. **🚀 PROPERTY COHERENCY VALIDATION**: The tool now performs cross-property consistency checks:\n"
-            "   - Rule 1: High strength requires adequate γ' fraction\n"
-            "   - Rule 2: Density should correlate with refractory content\n"
-            "   - Rule 3: High ductility + heavy refractories is rare\n"
-            "   - Rule 4: Elastic modulus should match composition\n"
-            "   - Rule 5: UTS/YS ratio must be reasonable (1.1-1.4)\n"
-            "   - Rule 6: γ' fraction should align with formers (Al+Ti+Ta)\n"
-            "   If coherency warnings appear, explain them in your summary.\n\n"
-            "CRITICAL JSON RULES:\n"
-            "- Explanation should interpret warnings, confidence, and physics checks naturally.\n"
-            "- Use ONLY the tool's output structure - do not invent fields.\n"
-            "- DO NOT ALTER ANY NUMERICAL PROPERTY VALUES returned by the tool.\n"
-            "- If you cannot generate valid JSON, return only the tool output.\n\n"
+            "You execute MetallurgyVerifierTool to audit AND correct alloy designs.\n\n"
+            "The tool now handles ALL physics validation and corrections:\n"
+            "1. TCP risk assessment (Md threshold checks)\n"
+            "2. Lattice mismatch and coherency validation\n"
+            "3. SSS alloy corrections (Al+Ti+Ta < 2% → physics-based YS model)\n"
+            "4. γ' temperature degradation (high-temp strength collapse)\n"
+            "5. SC/DS alloy detection (better high-temp retention)\n\n"
+            "WORKFLOW:\n"
+            "1. Execute MetallurgyVerifierTool with composition, properties JSON, temperature, alloy_type\n"
+            "2. PRESERVE the tool's complete JSON output including 'corrections_applied'\n"
+            "3. Add ONLY a 3-5 sentence human-readable 'explanation' for end users\n\n"
             "EXPLANATION GUIDELINES:\n"
             "- Identify dominant strengthening mechanism (γ' vs solid solution)\n"
-            "- Evaluate trade-offs (e.g., 'High strength but lower ductility due to Re')\n"
-            "- Propose specific applications (e.g., 'Ideal for turbine discs')\n"
-            "- Contextualize confidence naturally (e.g., 'supported by close experimental matches' or 'exploratory composition')\n"
-            "- If coherency warnings exist, explain what they mean for the design\n"
-            "- NO IT JARGON (avoid mentioning 'KG', 'ML', 'Tool Output')\n\n"
-            "OUTPUT:\n"
-            "If PASS: Return the tool output with added explanation.\n"
-            "If REJECT: Return structured REJECTION JSON with audit_penalties and clear reasoning."
+            "- Note any corrections applied and why (e.g., 'temperature degradation at 900°C')\n"
+            "- Suggest suitable applications based on the properties\n"
+            "- Avoid technical jargon (no 'KG', 'ML', 'tool output')\n\n"
+            "CRITICAL: Your explanation is COMMENTARY ONLY. Do NOT modify any numerical property values "
+            "in the tool output. The tool's corrections are final."
         ),
         tools=[MetallurgyVerifierTool()],
         verbose=True,
@@ -243,72 +211,6 @@ def create_summarizer_agent(llm=None):
         llm=llm
     )
 
-# ---------------------------------------------------------
-# AGENT 7: The Physics Corrector
-# ---------------------------------------------------------
-def create_corrector_agent(llm=None, memory=False):
-    """Create Physics Corrections agent for applying physics constraints to predictions."""
-    from .tools.physics_tools import PhysicsCorrectionsProposalTool
-
-    return Agent(
-        role='Physics Corrections Specialist',
-        goal='Apply physics-based constraints to improve prediction accuracy for compositions outside training data.',
-        backstory=(
-            "You are an expert metallurgist specializing in empirical property relationships for Ni-based superalloys. "
-            "Your role is to review ML/KG fusion predictions and apply physics guardrails when they violate known relationships.\n\n"
-            "KNOWLEDGE BASE:\n"
-            "- Yield Strength vs Gamma Prime: YS ≈ 400 + 18×γ' (wrought), YS ≈ 450 + 20×γ' (cast) [Pollock & Tin 2006]\n"
-            "- UTS/YS Ratio: Typically 1.1-1.5 for superalloys, higher for high γ' alloys [ASM Handbook]\n"
-            "- Elastic Modulus: 180-230 GPa for Ni-alloys (170+ if high Co/Fe) [Pollock & Tin 2006]\n"
-            "- Strength-Ductility Tradeoff: High strength (>1300 MPa) → Low ductility (<10%)\n\n"
-            "YOUR WORKFLOW:\n"
-            "1. Run PhysicsCorrectionsProposalTool with properties, composition, confidence_level, processing, and kg_match_distance\n"
-            "2. Review proposals returned by the tool:\n"
-            "   - Each proposal has: property, current_value, suggested_value, severity, reasoning, literature\n"
-            "   - Tool provides context: confidence_level, kg_match_distance, recommendation\n"
-            "3. DECISION CRITERIA:\n"
-            "   a) For HIGH SEVERITY violations:\n"
-            "      - ALWAYS apply correction if confidence is LOW, VERY LOW, or MEDIUM with no KG match\n"
-            "      - APPLY if deviation > 20% from physics constraint\n"
-            "      - SKIP only if composition has special elements (Re>3%, unusual chemistry) that justify outlier\n"
-            "   b) For MEDIUM SEVERITY violations:\n"
-            "      - ALWAYS APPLY if confidence is LOW/VERY LOW\n"
-            "      - ALWAYS APPLY if confidence is MEDIUM with no KG match (distance > 10)\n"
-            "      - APPLY if confidence is MEDIUM with weak match (distance 5-10)\n"
-            "      - SKIP only if strong KG match (distance < 3) AND confidence is HIGH\n"
-            "   c) For LOW SEVERITY violations:\n"
-            "      - Usually SKIP (acceptable scatter)\n"
-            "      - Only apply if multiple low-severity issues compound\n"
-            "4. For each APPLIED correction:\n"
-            "   - Use the suggested_value from proposal\n"
-            "   - Create a PropertyCorrection object with: property_name, original_value, corrected_value, correction_reason, physics_constraint\n"
-            "   - Write clear explanation: why correction was needed, what physics rule was applied, implications for accuracy\n"
-            "5. CRITICAL: RECALCULATE UTS IF YS WAS CORRECTED:\n"
-            "   - If you corrected Yield Strength, check if UTS/YS ratio is still valid\n"
-            "   - Expected ratio for γ': ~1.2 + (γ'/100)×0.5 (typically 1.3-1.5)\n"
-            "   - If new ratio > 1.5 or < 1.15, correct UTS to match the ratio (use corrected_YS × 1.43)\n"
-            "   - Add this as an additional PropertyCorrection: 'UTS adjusted to maintain physical UTS/YS ratio after YS correction'\n"
-            "6. PRESERVE all other fields from Physicist output:\n"
-            "   - status, penalty_score, tcp_risk, metallurgy_metrics, audit_penalties, property_intervals, confidence, explanation\n"
-            "7. Add corrections_explanation:\n"
-            "   - If corrections applied: Explain why (e.g., 'No database match, ML extrapolating → physics constraints applied')\n"
-            "   - List each correction with reasoning\n"
-            "   - State accuracy: 'Corrected predictions expected within ±5-10% for novel alloys. Experimental validation recommended.'\n"
-            "   - If no corrections: 'Predictions within physics constraints. Confidence level reflects reliability.'\n\n"
-            "IMPORTANT:\n"
-            "- You are NOT rejecting predictions - you're improving them using domain knowledge\n"
-            "- Be conservative: only correct clear violations, not borderline cases\n"
-            "- Explain your reasoning: users need to understand why values changed\n"
-            "- For high confidence + strong KG match: minimal corrections (trust the data!)\n"
-            "- For low confidence + no KG match: aggressive corrections (ML is guessing!)"
-        ),
-        tools=[PhysicsCorrectionsProposalTool()],
-        verbose=True,
-        allow_delegation=False,
-        memory=memory,
-        llm=llm
-    )
-
 
 # ---------------------------------------------------------
 # Agent Factories
@@ -318,8 +220,11 @@ def get_evaluation_agents(llm=None):
     """
     Get agents for EVALUATION mode.
     No memory - ensures deterministic, reproducible results.
+
+    Priority: Groq (llama-3.3-70b) > OpenAI (gpt-4o-mini) > Local
     """
     if llm is None:
+        openai_key = os.getenv("OPENAI_API_KEY")
         groq_key = os.getenv("GROQ_API_KEY")
         if groq_key:
             llm = LLM(
@@ -328,6 +233,13 @@ def get_evaluation_agents(llm=None):
                 temperature=0.1
             )
             print(f"🚀 Using Groq Cloud Inference: llama-3.3-70b-versatile")
+        elif openai_key:
+            llm = LLM(
+                model="gpt-4o-mini",
+                api_key=openai_key,
+                temperature=0.1
+            )
+            print(f"🤖 Using OpenAI: gpt-4o-mini")
         else:
             llm = "ollama/llama3.1:8b"
             print(f"💻 Using Local Inference: {llm}")
@@ -336,7 +248,6 @@ def get_evaluation_agents(llm=None):
         "validator": create_validator_agent(llm, memory=False),
         "arbitrator": create_arbitrator_agent(llm, memory=False),
         "physicist": create_physicist_agent(llm, memory=False),
-        "corrector": create_corrector_agent(llm, memory=False),
         "summarizer": create_summarizer_agent(llm),
     }
 
@@ -347,13 +258,21 @@ def get_design_agents(llm=None):
     """
     if llm is None:
         groq_key = os.getenv("GROQ_API_KEY")
+        openai_key = os.getenv("OPENAI_API_KEY")
         if groq_key:
             llm = LLM(
                 model="groq/llama-3.3-70b-versatile",
                 api_key=groq_key,
                 temperature=0.1
             )
-            print(f"🚀 Using Groq Cloud Inference: llama-3.3-70b-versatile")
+            print(f"🚀 Using Groq: llama-3.3-70b-versatile")
+        elif openai_key:
+            llm = LLM(
+                model="gpt-4o-mini",
+                api_key=openai_key,
+                temperature=0.1
+            )
+            print(f"🤖 Using OpenAI: gpt-4o-mini")
         else:
             llm = "ollama/llama3.1:8b"
             print(f"💻 Using Local Inference: {llm}")
@@ -363,7 +282,6 @@ def get_design_agents(llm=None):
         "validator": create_validator_agent(llm, memory=False),
         "arbitrator": create_arbitrator_agent(llm, memory=True),
         "physicist": create_physicist_agent(llm, memory=True),
-        "corrector": create_corrector_agent(llm, memory=True),
         "optimization_advisor": create_optimization_advisor_agent(llm),
         "summarizer": create_summarizer_agent(llm)
     }

@@ -173,6 +173,30 @@ class PropertyCorrection(BaseModel):
     physics_constraint: str = Field("", description="The physics rule or constraint applied")
 
 
+class PhysicsAuditWithCorrectionsOutput(BaseModel):
+    """Combined physics audit + corrections output."""
+    status: Literal["PASS", "REJECT", "FAIL"]
+    processing: str = Field(..., description="Alloy processing type (cast/wrought/unknown)")
+    penalty_score: float = 0.0
+    tcp_risk: str = "LOW"
+    properties: Dict[str, Any] = Field(..., description="FINAL corrected properties after physics adjustments")
+    property_intervals: Dict[str, Any] = Field(default_factory=dict, description="Uncertainty intervals for properties")
+    metallurgy_metrics: Dict[str, Any] = Field(..., description="Computed metrics (Md, mismatch, γ', etc.)")
+    audit_penalties: List[AuditPenalty] = Field(default_factory=list, description="Physics violations found")
+    errors: List[str] = Field(default_factory=list, description="Critical errors encountered")
+    confidence: Dict[str, Any] = Field(default_factory=dict, description="Confidence scores (similarity, level)")
+    explanation: str = Field("", description="3-5 sentence metallurgical analysis")
+    # Corrections fields
+    corrections_applied: List[PropertyCorrection] = Field(
+        default_factory=list,
+        description="List of physics-based corrections applied (SSS, γ' temp degradation, etc.)"
+    )
+    corrections_explanation: str = Field(
+        "",
+        description="Summary of corrections: why needed, implications, and final property validity"
+    )
+
+
 class CorrectedPropertiesOutput(BaseModel):
     """Output from physics corrections agent."""
     status: Literal["PASS", "REJECT", "FAIL"]

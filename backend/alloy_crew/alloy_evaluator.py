@@ -1,15 +1,55 @@
-from typing import Dict, Any, List, Optional, Union, Literal
+from typing import Dict, Any
 import json
 from crewai import Task, Crew, Process
 from .agents import get_evaluation_agents
 from .tools.rag_tools import AlloySearchTool
-from .schemas import ValidationOutput, ArbitrationOutput, PhysicsAuditOutput, CorrectedPropertiesOutput, AuditPenalty
+from .schemas import (
+    ValidationOutput, ArbitrationOutput,
+    PhysicsAuditWithCorrectionsOutput, CorrectedPropertiesOutput,
+    AuditPenalty
+)
 from .tools.calibration_fix import apply_calibration_safe
 from .tools.metallurgy_tools import (
     validate_property_coherency, enforce_physics_constraints,
     cleanup_llm_output, cleanup_confidence, warnings_to_penalties,
-    compute_fallback_metrics, PROPERTY_KEY_MAP, VALID_PROPERTIES, REQUIRED_METRIC_KEYS
+    compute_fallback_metrics, PROPERTY_KEY_MAP, VALID_PROPERTIES, REQUIRED_METRIC_KEYS,
 )
+
+
+def _slim_kg_context(kg_json_str: str, target_temp: int = 20) -> str:
+    """
+    Compress KG context to only essential fields for fusion.
+    """
+    try:
+        alloys = json.loads(kg_json_str)
+        slim_alloys = []
+
+        for alloy in alloys[:3]:  # Only top 3 matches
+            slim = {
+                "name": alloy.get("name", "Unknown"),
+                "distance": round(alloy.get("_distance", 999), 2),
+                "processing": alloy.get("processing", "unknown"),
+            }
+
+            props = alloy.get("properties", {})
+            slim_props = {}
+            for prop_name, prop_values in props.items():
+                if isinstance(prop_values, str):
+                    parts = prop_values.split(", ")
+                    relevant = []
+                    for p in parts[:2]:
+                        if f"@ {target_temp}" in p or "@ 20" in p or "@ 25" in p:
+                            relevant.append(p.split(" @ ")[0])
+                    if relevant:
+                        slim_props[prop_name] = ", ".join(relevant)
+
+            if slim_props:
+                slim["props"] = slim_props
+
+            slim_alloys.append(slim)
+        return json.dumps(slim_alloys, separators=(',', ':'))
+    except Exception:
+        return kg_json_str[:1500] if len(kg_json_str) > 1500 else kg_json_str
 
 class AlloyEvaluationCrew:
     def __init__(self, llm_config=None):
@@ -18,7 +58,6 @@ class AlloyEvaluationCrew:
         self.validator = self.agents_map['validator']
         self.arbitrator = self.agents_map['arbitrator']
         self.physicist = self.agents_map['physicist']
-        self.corrector = self.agents_map['corrector']
         self.summarizer = self.agents_map['summarizer']
 
     @staticmethod
@@ -78,8 +117,9 @@ class AlloyEvaluationCrew:
         
         # 0. KG Context (Pre-Agent Lookup for robustness)
         try:
-            search_tool = AlloySearchTool() 
-            kg_context_str = search_tool._run(composition=current_comp, limit=10)
+            search_tool = AlloySearchTool()
+            kg_raw = search_tool._run(composition=current_comp, limit=3)
+            kg_context_str = _slim_kg_context(kg_raw, target_temp=temperature)
         except Exception as e:
             return {"status": "FAIL", "stage": "kg_lookup", "error": str(e)}
 
@@ -88,10 +128,13 @@ class AlloyEvaluationCrew:
         # --- TASK 1: VALIDATION ---
         task_validation = Task(
             description=(
-                f"Validate composition at {temperature}°C using AlloyPredictorTool.\n"
-                f"Composition: {comp_json}\n"
-                f"Processing: {processing}\n\n"
-                "Call the tool with composition, temperature_c, and processing parameters."
+                f"Validate composition at {temperature}°C using AlloyPredictorTool.\n\n"
+                f"Execute: AlloyPredictorTool(\n"
+                f"  composition={comp_json},\n"
+                f"  temperature_c={temperature},\n"
+                f"  processing='{processing}'\n"
+                f")\n\n"
+                "Return ONLY the tool's output. Do NOT invent or modify any values."
             ),
             expected_output="Valid structured output validating the alloy composition.",
             output_pydantic=ValidationOutput,
@@ -101,104 +144,55 @@ class AlloyEvaluationCrew:
         # --- TASK 2: ARBITRATION ---
         task_arbitration = Task(
             description=(
-                f"Arbitrate ML vs KG.\n"
-                f"KG Context: {kg_context_str}\n"
-                f"Target Temp: {temperature}°C\n"
-                f"Processing: {processing}\n"
-                f"Composition: {comp_json}\n"
-                "Input: Use the 'ml_prediction' from the Validator's output.\n\n"
-                "REQUIREMENTS:\n"
-                "1. Call `DataFusionTool` with `composition` (as JSON object), `ml_prediction_json`, `rag_context` (from KG Context above), `target_temperature_c`, and `processing`.\n"
-                "2. The Tool Output contains fused properties AND property_intervals.\n"
-                "3. CRITICAL: You MUST use the values from the Tool Output. Do not use the ML Input values if they differ.\n"
-                "4. PRESERVE the `property_intervals` object EXACTLY as returned by the tool (as a dictionary of lower/upper/uncertainty blocks, NOT lists).\n"
-                "5. PRESERVE the `confidence` object EXACTLY as returned (including breakdown, kg_weight, etc).\n"
-                "6. Return the structured output as defined."
+                f"Fuse ML predictions with KG data using DataFusionTool.\n\n"
+                f"Execute DataFusionTool with these INPUT parameters ONLY:\n"
+                f"  composition: {comp_json}\n"
+                f"  ml_prediction_json: <JSON string from Validator's ml_prediction>\n"
+                f"  rag_context: {kg_context_str}\n"
+                f"  target_temperature_c: {temperature}\n"
+                f"  processing: '{processing}'\n"
+                f"  mode: 'evaluate'  (standard 50/50 ML/KG weighting for evaluation)\n\n"
+                "DO NOT add any other parameters. The tool will return properties, property_intervals, and confidence.\n"
+                "Return the tool's complete output exactly as provided."
             ),
-            expected_output="Valid structured output with fused properties.",
+            expected_output="Fused properties with confidence scores.",
             output_pydantic=ArbitrationOutput,
             agent=self.arbitrator,
             context=[task_validation]
         )
 
-        # --- TASK 3: PHYSICS AUDIT ---
+        # --- TASK 3: PHYSICS AUDIT + CORRECTIONS (merged) ---
         task_physics = Task(
             description=(
-                "Evaluate physical validity.\n"
-                f"Composition: {comp_json}\n"
-                "Input: Use the COMPLETE Arbitrator output JSON (including fusion_meta).\n\n"
-                "1. ANALYZE THE ALLOY TYPE (LLM REASONING):\n"
-                "   - If Cr > 21.0%: likely corrosion-resistant → Set alloy_type='high_corrosion'\n"
-                "   - If Cr < 20.0% AND (Ti + Al) > 4.0%: likely high-strength blade → Set alloy_type='high_strength'\n"
-                "   - Otherwise: Set alloy_type='standard'\n"
-                "2. EXECUTE `MetallurgyVerifierTool` with `composition` AND `anchored_properties_json`.\n"
-                "   - IMPORTANT: `anchored_properties_json` MUST be the ENTIRE JSON object you received as input (containing `properties`, `property_intervals`, `fusion_meta`, `confidence` etc.) serialized as a string.\n"
-                "   - Do NOT just pass the properties dictionary. Pass the keys 'property_intervals' and 'confidence' unmodified.\n"
-                    "   - Pass your inferred `alloy_type`.\n"
-                    "3. The tool returns verified_properties, property_intervals, confidence, and metallurgy metrics.\n"
-                    "4. GENERATE EXPERT METALLURGICAL INSIGHT (3-5 sentences):\n"
-                    "   - ACT AS A SENIOR PHYSICIST: Use your deep domain knowledge to interpret the results uniquely for THIS specific alloy.\n"
-                    "   - NO TEMPLATES: Do not use rigid sentence structures. Explain what matters most for this composition.\n"
-                "   - KEY GUIDELINES:\n"
-                    "     • Identify the dominant strengthening mechanism (Gamma Prime vs Solid Solution) and explain its implication.\n"
-                    "     • Evaluate the trade-offs (e.g., 'High strength but likely lower ductility...').\n"
-                    "     • Propose specific real-world applications based on the property profile (e.g., 'Ideal for turbine discs', 'Suitable for combustor liners').\n"
-                    "     • Contextualize the confidence naturally (e.g., '...supported by close matches in our experimental dataset' or '...an exploratory composition requiring validation').\n"
-                    "   - TONE: Professional, insightful, and variable. Avoid 'AI-sounding' repetition. NO IT JARGON (KG, ML, Data Source).\n"
-                    "5. UPDATE THE TOOL OUTPUT: Replace the empty 'explanation' field with your generated explanation.\n"
-                    "6. CRITICAL: Output the tool's JSON with your explanation added.\n"
-                    "   - Do NOT modify verified_properties, property_intervals, or confidence\n"
-                    "   - Ensure 'property_intervals' matches the tool output EXACTLY (do not simplify to lists)\n"
-                    "   - ONLY update explanation field"
+                f"Audit and correct physical validity of composition using MetallurgyVerifierTool.\n\n"
+                "1. Infer alloy_type using priority order:\n"
+                "   - 'high_corrosion' if Cr > 21%\n"
+                "   - 'high_strength' if Al+Ti > 4% AND Cr ≤ 21%\n"
+                "   - 'standard' otherwise\n\n"
+                f"2. Execute MetallurgyVerifierTool with these INPUT parameters ONLY:\n"
+                f"   composition: {comp_json}\n"
+                f"   anchored_properties_json: <JSON with {{properties, processing}} from Arbitrator>\n"
+                f"   temperature_c: {temperature}\n"
+                "   alloy_type: <inferred_type>\n\n"
+                "   DO NOT add output fields like 'status', 'tcp_risk', 'audit_penalties', etc.\n"
+                "   Those will be returned by the tool.\n\n"
+                "3. PRESERVE the complete tool output including 'corrections_applied'\n\n"
+                "4. Add ONLY a 3-5 sentence human-readable 'explanation':\n"
+                "   - Identify dominant strengthening mechanism (γ' vs solid solution)\n"
+                "   - Note any corrections applied and why\n"
+                "   - Suggest suitable applications\n"
+                "   - DO NOT modify any numerical values in your explanation"
             ),
-            expected_output="Valid structured output with physics audit results.",
-            output_pydantic=PhysicsAuditOutput,
+            expected_output="Complete physics audit with corrections applied.",
+            output_pydantic=PhysicsAuditWithCorrectionsOutput,
             agent=self.physicist,
             context=[task_arbitration]
         )
 
-        task_corrections = Task(
-            description=(
-                "Apply physics-based corrections to improve prediction accuracy.\n"
-                f"Composition: {comp_json}\n"
-                "Input: Use the COMPLETE Physicist output JSON.\n\n"
-                "1. EXTRACT from Physicist output:\n"
-                "   - properties (dict)\n"
-                "   - composition (from input)\n"
-                "   - confidence_level: confidence.level (string: HIGH, MEDIUM, LOW, VERY LOW)\n"
-                "   - processing (string: wrought, cast, forged)\n"
-                "   - kg_match_distance: confidence.similarity_distance (float, default 999)\n"
-                "2. EXECUTE PhysicsCorrectionsProposalTool with these parameters.\n"
-                "3. REVIEW proposals:\n"
-                "   - Follow decision criteria in your backstory\n"
-                "   - Apply HIGH severity corrections if confidence is LOW/VERY LOW\n"
-                "   - Apply MEDIUM severity if no KG match (distance > 10)\n"
-                "   - Skip LOW severity unless multiple issues\n"
-                "4. CREATE PropertyCorrection objects for applied corrections:\n"
-                "   - property_name, original_value, corrected_value, correction_reason, physics_constraint\n"
-                "5. PRESERVE all fields from Physicist:\n"
-                "   - status, penalty_score, tcp_risk, metallurgy_metrics, audit_penalties\n"
-                "   - property_intervals, confidence, explanation\n"
-                "6. ADD corrections_explanation:\n"
-                "   - Why corrections were applied (or not)\n"
-                "   - Expected accuracy after corrections: '±5-10% for novel alloys'\n"
-                "   - Recommendation for experimental validation if needed\n"
-                "   - Note: 'Database-driven calibration will be applied automatically in post-processing to account for systematic formula biases'\n"
-                "7. RETURN structured CorrectedPropertiesOutput.\n\n"
-                "NOTE: After you complete this task, calibration will be automatically applied in post-processing.\n"
-                "This fixes systematic biases in physics formulas (e.g., YS = 400+18×γ' overpredicts by ~16%).\n"
-                "You don't need to apply calibration yourself - just document which physics corrections you made."
-            ),
-            expected_output="Final corrected properties with physics constraints applied.",
-            output_pydantic=CorrectedPropertiesOutput,
-            agent=self.corrector,
-            context=[task_physics]
-        )
-
         # Create and run crew
         evaluation_crew = Crew(
-            agents=[self.validator, self.arbitrator, self.physicist, self.corrector],
-            tasks=[task_validation, task_arbitration, task_physics, task_corrections],
+            agents=[self.validator, self.arbitrator, self.physicist],
+            tasks=[task_validation, task_arbitration, task_physics],
             process=Process.sequential,
             verbose=True
         )
@@ -207,52 +201,62 @@ class AlloyEvaluationCrew:
             crew_output = evaluation_crew.kickoff()
 
             # Extract structured output
-            corrected_output = None
+            physics_output = None
             if hasattr(crew_output, "pydantic") and crew_output.pydantic:
-                corrected_output = crew_output.pydantic
+                physics_output = crew_output.pydantic
             elif hasattr(crew_output, "raw"):
                 # Fallback: attempt manual parse
                 try:
                     data = json.loads(crew_output.raw)
-                    corrected_output = CorrectedPropertiesOutput(**data)
+                    physics_output = PhysicsAuditWithCorrectionsOutput(**data)
                 except:
                     print(f"⚠️  Failed to parse LLM output as JSON, attempting recovery...")
-                    corrected_output = None
+                    physics_output = None
 
-            if corrected_output is None:
+            if physics_output is None:
                 # Try to get from task output
-                last_task_output = task_corrections.output
+                last_task_output = task_physics.output
                 if last_task_output and last_task_output.pydantic:
-                    corrected_output = last_task_output.pydantic
+                    physics_output = last_task_output.pydantic
                 else:
-                    # Final fallback: construct from physics task
-                    print("⚠️  Corrections task failed, falling back to physics output...")
-                    physics_output = getattr(task_physics.output, "pydantic", None)
+                    # Final fallback: construct from validator
+                    print("⚠️  Physics task failed, falling back to validator output...")
                     validator_output = getattr(task_validation.output, "pydantic", None)
 
-                    if physics_output:
-                        # Build a minimal CorrectedPropertiesOutput from physics
-                        props = getattr(physics_output, 'properties', {})
-                        if not props and validator_output:
-                            props = validator_output.ml_prediction
-
-                        corrected_output = CorrectedPropertiesOutput(
-                            status=getattr(physics_output, 'status', 'PASS'),
+                    if validator_output:
+                        props = validator_output.ml_prediction
+                        physics_output = PhysicsAuditWithCorrectionsOutput(
+                            status='PASS',
                             processing=processing,
-                            penalty_score=getattr(physics_output, 'penalty_score', 0),
-                            tcp_risk=getattr(physics_output, 'tcp_risk', 'LOW'),
+                            penalty_score=0,
+                            tcp_risk='LOW',
                             properties=props,
-                            property_intervals=getattr(physics_output, 'property_intervals', {}),
-                            metallurgy_metrics=getattr(physics_output, 'metallurgy_metrics', {}),
-                            audit_penalties=getattr(physics_output, 'audit_penalties', []),
-                            confidence=getattr(physics_output, 'confidence', {}),
-                            explanation="Analysis completed with fallback processing due to LLM parsing issues."
+                            property_intervals={},
+                            metallurgy_metrics={},
+                            audit_penalties=[],
+                            confidence={},
+                            explanation="Analysis completed with fallback processing due to LLM parsing issues.",
+                            corrections_applied=[],
+                            corrections_explanation=""
                         )
                     else:
                         raise ValueError("Could not recover output from any pipeline stage.")
 
-            if not isinstance(corrected_output, CorrectedPropertiesOutput):
-                raise ValueError("Output is not a valid CorrectedPropertiesOutput.")
+            # Convert PhysicsAuditWithCorrectionsOutput to CorrectedPropertiesOutput for compatibility
+            corrected_output = CorrectedPropertiesOutput(
+                status=getattr(physics_output, 'status', 'PASS'),
+                processing=getattr(physics_output, 'processing', processing),
+                penalty_score=getattr(physics_output, 'penalty_score', 0),
+                tcp_risk=getattr(physics_output, 'tcp_risk', 'LOW'),
+                properties=getattr(physics_output, 'properties', {}),
+                property_intervals=getattr(physics_output, 'property_intervals', {}),
+                metallurgy_metrics=getattr(physics_output, 'metallurgy_metrics', {}),
+                audit_penalties=getattr(physics_output, 'audit_penalties', []),
+                confidence=getattr(physics_output, 'confidence', {}),
+                explanation=getattr(physics_output, 'explanation', ''),
+                corrections_applied=getattr(physics_output, 'corrections_applied', []),
+                corrections_explanation=getattr(physics_output, 'corrections_explanation', '')
+            )
 
         except Exception as e:
             return {"status": "FAIL", "stage": "crew_execution", "error": str(e)}
@@ -315,9 +319,19 @@ class AlloyEvaluationCrew:
                     missing_props.remove("Density")
                     print(f"  ✓ Computed Density from features: {corrected_output.properties['Density']}")
                 if "Gamma Prime" in missing_props and "gamma_prime_estimated_vol_pct" in features:
-                    corrected_output.properties["Gamma Prime"] = round(features["gamma_prime_estimated_vol_pct"], 1)
+                    # SSS alloy check: Al+Ti+Ta < 2% means γ' should be 0%
+                    al = composition.get("Al", composition.get("al", 0)) or 0
+                    ti = composition.get("Ti", composition.get("ti", 0)) or 0
+                    ta = composition.get("Ta", composition.get("ta", 0)) or 0
+                    al_ti_ta = al + ti + ta
+
+                    if al_ti_ta < 2.0:
+                        corrected_output.properties["Gamma Prime"] = 0.0
+                        print(f"  ✓ SSS alloy (Al+Ti+Ta={al_ti_ta:.1f}% < 2%) - Gamma Prime set to 0%")
+                    else:
+                        corrected_output.properties["Gamma Prime"] = round(features["gamma_prime_estimated_vol_pct"], 1)
+                        print(f"  ✓ Computed Gamma Prime from features: {corrected_output.properties['Gamma Prime']}")
                     missing_props.remove("Gamma Prime")
-                    print(f"  ✓ Computed Gamma Prime from features: {corrected_output.properties['Gamma Prime']}")
 
             if missing_props:
                 print(f"  ⚠️  Could not recover: {missing_props}")
@@ -341,6 +355,7 @@ class AlloyEvaluationCrew:
 
         corrected_output.properties, physics_corrections = enforce_physics_constraints(
             properties=corrected_output.properties,
+            composition=composition,
             temperature_c=temperature,
             processing=processing,
             confidence_level=confidence_level,
@@ -426,10 +441,12 @@ class AlloyEvaluationCrew:
         # Normalize corrections_applied
         normalized_corrections = []
         for c in corrected_output.corrections_applied:
+            if "Correction reason" in c.correction_reason:
+                continue
             norm_name = PROPERTY_KEY_MAP.get(c.property_name, c.property_name)
-            if norm_name in VALID_PROPERTIES and "Correction reason" not in c.correction_reason:
+            if norm_name in VALID_PROPERTIES:
                 c.property_name = norm_name
-                normalized_corrections.append(c)
+            normalized_corrections.append(c)
         corrected_output.corrections_applied = normalized_corrections
 
         return corrected_output.model_dump()
