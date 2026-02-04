@@ -2,9 +2,14 @@ from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 from typing import Type, Dict, Any, Literal, List
 import json
+import math
 
 from ..models.feature_engineering import compute_alloy_features
-from ..config.alloy_parameters import get_params, get_coeff_gp, get_ml_weight, COMMON
+from ..config.alloy_parameters import (
+    get_params, get_coeff_gp, get_ml_weight, COMMON,
+    SSS, GP_TEMP, SC_DS, BOUNDS, UTS_YS_RATIO, ELONGATION,
+    get_temperature_factor, is_sss_alloy, is_sc_ds_alloy, get_alloy_class, get_sss_physics_ys
+)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -384,175 +389,46 @@ def enforce_physics_constraints(
     return props, corrections
 
 # =============================================================================
-# SSS (Solid Solution Strengthening) Alloy Constants
+# Constants now centralized in config/alloy_parameters.py
+# Imported: SSS, GP_TEMP, SC_DS, BOUNDS, UTS_YS_RATIO, ELONGATION
 # =============================================================================
-SSS_ALLOY_AL_TI_TA_MAX = 2.0
-SSS_YS_MIN_RT = 240
-SSS_YS_MAX_RT = 500
-SSS_YS_TYPICAL = 375
-SSS_GP_MAX = 5.0
-SSS_EM_MIN = 200.0
-SSS_EM_MAX = 220.0
-SSS_EM_TYPICAL = 212.0
-SSS_EL_MIN_WROUGHT = 35.0
-SSS_EL_MAX_WROUGHT = 65.0
-SSS_EL_TYPICAL_WROUGHT = 52.0
-SSS_EL_MIN_CAST = 5.0
-SSS_EL_MAX_CAST = 20.0
-SSS_EL_TYPICAL_CAST = 10.0
-
-# SSS potency factors (MPa per wt%)
-SSS_POTENCY = {
-    "Re": 18.0, "W": 12.0, "Mo": 10.0, "Nb": 8.0, "Ta": 7.0,
-    "Ti": 6.0, "Cr": 6.5, "Fe": 6.0, "Co": 2.0, "Al": 1.0,
-    "Mn": 0.5, "Si": 0.3,
-}
-
-# SSS strength model parameters
-SSS_SIGMA_BASE = 120
-SSS_SIGMA_HP_WROUGHT = 40
-SSS_SIGMA_HP_CAST = 20
-SSS_BLEND_FACTOR = 0.7
-SSS_CAST_REDUCTION = 0.80
-
-# SSS temperature degradation parameters
-SSS_TEMP_TRANSITION = 600.0
-SSS_TEMP_DECAY_SLOW = 0.00030
-SSS_TEMP_DECAY_FAST = 280.0
-SSS_TEMP_MIN_FACTOR = 0.12
-SSS_EL_TEMP_TRANSITION = 500.0
-SSS_EL_TEMP_FACTOR = 0.0019
 
 # =============================================================================
-# γ' (Gamma Prime) Alloy Temperature Degradation Constants
+# Temperature degradation and alloy classification functions
+# Now use centralized config from alloy_parameters.py
 # =============================================================================
-GP_ALLOY_AL_TI_TA_MIN = 2.0
-GP_TEMP_STAGE1_END = 750.0
-GP_TEMP_STAGE2_END = 900.0
-GP_TEMP_DECAY_LINEAR = 0.00020
-GP_TEMP_DECAY_TAU1 = 400.0
-GP_TEMP_DECAY_TAU2 = 80.0
-GP_TEMP_MIN_FACTOR = 0.10
-
-# =============================================================================
-# SC/DS (Single Crystal / Directionally Solidified) Alloy Constants
-# =============================================================================
-SC_DS_TEMP_TRANSITION = 850.0
-SC_DS_TEMP_DECAY_TAU = 250.0
-SC_DS_TEMP_MIN_FACTOR = 0.35
-SC_DS_RE_MIN = 2.0
-SC_DS_TA_W_MIN = 10.0
-SC_DS_TA_ALONE_MIN = 10.0
-SC_DS_TA_W_HIGH = 11.0
 
 def _calculate_sss_physics_ys(composition: dict, processing: str = "wrought") -> tuple:
-    """Calculate physics-based YS for SSS alloys using Labusch-Nabarro model."""
-    sigma_base = SSS_SIGMA_BASE
-    sigma_sss = 0.0
-    sss_contributions = []
+    """Calculate physics-based YS for SSS alloys using Labusch-Nabarro model.
+    Delegates to centralized function in alloy_parameters.py"""
+    return get_sss_physics_ys(composition, processing)
 
-    for element, potency in SSS_POTENCY.items():
-        content = composition.get(element, composition.get(element.lower(), 0)) or 0
-        if content > 0:
-            contribution = potency * content
-            sigma_sss += contribution
-            if contribution > 5:
-                sss_contributions.append(f"{element}:{contribution:.0f}")
-
-    sigma_hp = SSS_SIGMA_HP_WROUGHT if processing == "wrought" else SSS_SIGMA_HP_CAST
-    physics_ys = sigma_base + sigma_sss + sigma_hp
-
-    if processing == "cast":
-        physics_ys = physics_ys * SSS_CAST_REDUCTION
-        cast_note = f" × {SSS_CAST_REDUCTION} (cast)"
-    else:
-        cast_note = ""
-
-    physics_ys = max(SSS_YS_MIN_RT, min(SSS_YS_MAX_RT, physics_ys))
-    breakdown = f"σ_base={sigma_base} + σ_SSS={sigma_sss:.0f} [{'+'.join(sss_contributions[:4])}] + σ_HP={sigma_hp}{cast_note}"
-
-    return physics_ys, breakdown
 
 def _sss_temperature_degradation(temp_c: float) -> float:
     """Calculate temperature degradation factor for SSS alloys."""
-    import math
+    return get_temperature_factor(temp_c, "sss")
 
-    if temp_c <= 25:
-        return 1.0
-
-    if temp_c <= SSS_TEMP_TRANSITION:
-        factor = 1.0 - SSS_TEMP_DECAY_SLOW * (temp_c - 25)
-    else:
-        factor_at_transition = 1.0 - SSS_TEMP_DECAY_SLOW * (SSS_TEMP_TRANSITION - 25)
-        delta_t = temp_c - SSS_TEMP_TRANSITION
-        factor = factor_at_transition * math.exp(-delta_t / SSS_TEMP_DECAY_FAST)
-
-    return max(factor, SSS_TEMP_MIN_FACTOR)
 
 def _is_sc_ds_alloy(composition: dict) -> tuple:
     """Detect if alloy is Single Crystal (SC) or Directionally Solidified (DS)."""
-    re = composition.get("Re", composition.get("re", 0)) or 0
-    ru = composition.get("Ru", composition.get("ru", 0)) or 0
-    ta = composition.get("Ta", composition.get("ta", 0)) or 0
-    w = composition.get("W", composition.get("w", 0)) or 0
+    return is_sc_ds_alloy(composition)
 
-    if re >= SC_DS_RE_MIN:
-        return True, f"Re={re:.1f}% (2nd+ gen SC indicator)"
-    if ru >= 1.0 and re >= 1.0:
-        return True, f"Ru={ru:.1f}%, Re={re:.1f}% (4th gen SC indicator)"
-    if (ta + w) >= SC_DS_TA_W_MIN and re >= 1.0:
-        return True, f"Ta+W={ta+w:.1f}%, Re={re:.1f}% (SC/DS composition)"
-    if (ta + w) >= SC_DS_TA_W_HIGH and ta >= 5.0:
-        return True, f"Ta+W={ta+w:.1f}%, Ta={ta:.1f}% (1st gen SC composition)"
-    if ta >= SC_DS_TA_ALONE_MIN:
-        return True, f"Ta={ta:.1f}% (1st gen SC indicator)"
-
-    return False, ""
 
 def _sc_ds_temperature_degradation(temp_c: float) -> float:
     """Calculate temperature degradation factor for SC/DS alloys."""
-    import math
+    return get_temperature_factor(temp_c, "sc_ds")
 
-    if temp_c <= 25:
-        return 1.0
-
-    if temp_c <= SC_DS_TEMP_TRANSITION:
-        factor = 1.0 - 0.00006 * (temp_c - 25)
-    else:
-        factor_at_transition = 1.0 - 0.00006 * (SC_DS_TEMP_TRANSITION - 25)
-        delta_t = temp_c - SC_DS_TEMP_TRANSITION
-        factor = factor_at_transition * math.exp(-delta_t / SC_DS_TEMP_DECAY_TAU)
-
-    return max(factor, SC_DS_TEMP_MIN_FACTOR)
 
 def _gp_temperature_degradation(temp_c: float) -> float:
     """Calculate temperature degradation factor for polycrystalline γ' alloys."""
-    import math
-
-    if temp_c <= 25:
-        return 1.0
-
-    if temp_c <= GP_TEMP_STAGE1_END:
-        factor = 1.0 - GP_TEMP_DECAY_LINEAR * (temp_c - 25)
-    elif temp_c <= GP_TEMP_STAGE2_END:
-        factor_at_stage1 = 1.0 - GP_TEMP_DECAY_LINEAR * (GP_TEMP_STAGE1_END - 25)
-        delta_t = temp_c - GP_TEMP_STAGE1_END
-        factor = factor_at_stage1 * math.exp(-delta_t / GP_TEMP_DECAY_TAU1)
-    else:
-        factor_at_stage1 = 1.0 - GP_TEMP_DECAY_LINEAR * (GP_TEMP_STAGE1_END - 25)
-        factor_at_stage2 = factor_at_stage1 * math.exp(-(GP_TEMP_STAGE2_END - GP_TEMP_STAGE1_END) / GP_TEMP_DECAY_TAU1)
-        delta_t = temp_c - GP_TEMP_STAGE2_END
-        factor = factor_at_stage2 * math.exp(-delta_t / GP_TEMP_DECAY_TAU2)
-
-    return max(factor, GP_TEMP_MIN_FACTOR)
+    return get_temperature_factor(temp_c, "gp")
 
 def apply_gp_temperature_corrections(properties: dict, composition: dict, temperature_c: int = 20, processing: str = "wrought") -> tuple:
     """Apply temperature-dependent corrections for γ' precipitation-strengthened alloys."""
-    import math
     corrections = []
     corrected = properties.copy()
 
-    # Check if γ' alloy (Al+Ti+Ta >= 2%)
+    # Check if γ' alloy (Al+Ti+Ta >= 2%) - uses centralized threshold
     al = composition.get("Al", composition.get("al", 0)) or 0
     ti = composition.get("Ti", composition.get("ti", 0)) or 0
     ta = composition.get("Ta", composition.get("ta", 0)) or 0
@@ -560,7 +436,7 @@ def apply_gp_temperature_corrections(properties: dict, composition: dict, temper
 
     logger.debug(f"γ' Check: Al={al}, Ti={ti}, Ta={ta}, Sum={al_ti_ta:.2f}%")
 
-    if al_ti_ta < GP_ALLOY_AL_TI_TA_MIN:
+    if al_ti_ta < GP_TEMP["AL_TI_TA_MIN"]:
         return corrected, corrections
 
     # Check if SC/DS alloy
@@ -637,31 +513,29 @@ def apply_gp_temperature_corrections(properties: dict, composition: dict, temper
     return corrected, corrections
 
 def apply_sss_corrections(properties: dict, composition: dict, temperature_c: int = 20, processing: str = "wrought") -> tuple:
-    """Apply physics-based SSS (Solid Solution Strengthening) corrections."""
-    import math
+    """Apply physics-based SSS (Solid Solution Strengthening) corrections.
+    Uses centralized config from alloy_parameters.py"""
     corrections = []
     corrected = properties.copy()
 
-    # Check if SSS alloy
+    # Check if SSS alloy using centralized threshold
+    if not is_sss_alloy(composition):
+        return corrected, corrections
+
     al = composition.get("Al", composition.get("al", 0)) or 0
     ti = composition.get("Ti", composition.get("ti", 0)) or 0
     ta = composition.get("Ta", composition.get("ta", 0)) or 0
     al_ti_ta = al + ti + ta
-
-    logger.debug(f"SSS Check: Al={al}, Ti={ti}, Ta={ta}, Sum={al_ti_ta:.2f}%")
-
-    if al_ti_ta >= SSS_ALLOY_AL_TI_TA_MAX:
-        return corrected, corrections
 
     logger.info(f"SSS ALLOY DETECTED (Al+Ti+Ta={al_ti_ta:.1f}%) - applying corrections")
 
     # 1. Correct γ' if wrongly predicted
     gp = corrected.get("Gamma Prime", 0) or 0
     gp_as_pct = gp * 100 if gp < 1.0 else gp
-    if gp_as_pct > SSS_GP_MAX:
+    if gp_as_pct > SSS["GP_MAX"]:
         corrected["Gamma Prime"] = 0.0
         corrections.append(
-            f"SSS alloy γ' override: {gp_as_pct:.1f}% → 0% (Al+Ti+Ta={al_ti_ta:.1f}% < {SSS_ALLOY_AL_TI_TA_MAX}%)"
+            f"SSS alloy γ' override: {gp_as_pct:.1f}% → 0% (Al+Ti+Ta={al_ti_ta:.1f}% < {SSS['AL_TI_TA_MAX']}%)"
         )
 
     # 2. Apply physics-based YS correction with temperature degradation
@@ -671,8 +545,8 @@ def apply_sss_corrections(properties: dict, composition: dict, temperature_c: in
     temp_factor = _sss_temperature_degradation(temperature_c)
     physics_ys = physics_ys_rt * temp_factor
 
-    ys_max_at_temp = SSS_YS_MAX_RT * temp_factor
-    ys_min_at_temp = max(20, SSS_YS_MIN_RT * temp_factor)
+    ys_max_at_temp = SSS["YS_MAX_RT"] * temp_factor
+    ys_min_at_temp = max(20, SSS["YS_MIN_RT"] * temp_factor)
 
     logger.debug(f"SSS Physics: {breakdown} = {physics_ys_rt:.0f} MPa (RT), {physics_ys:.0f} MPa @ {temperature_c}°C")
 
@@ -690,7 +564,7 @@ def apply_sss_corrections(properties: dict, composition: dict, temperature_c: in
             f"SSS YS under-prediction: {ys_ml:.0f} → {corrected_ys:.0f} MPa (below min {ys_min_at_temp:.0f} MPa)"
         )
     elif temperature_c > 100:
-        blend_phys, blend_ml = 0.7, 0.3
+        blend_phys, blend_ml = SSS["BLEND_FACTOR"], 1 - SSS["BLEND_FACTOR"]
         blended_ys = round(blend_phys * physics_ys + blend_ml * ys_ml)
         blended_ys = max(ys_min_at_temp, min(ys_max_at_temp, blended_ys))
 
@@ -708,16 +582,14 @@ def apply_sss_corrections(properties: dict, composition: dict, temperature_c: in
                 blend_ml, blend_phys = 0.10, 0.90
                 blend_note = "high-Cr SSS"
             else:
-                # Standard SSS - moderate blend
                 blend_ml, blend_phys = 0.5, 0.5
                 blend_note = "physics-higher"
         else:
-            # Physics predicts lower - trust ML more (physics may overpredict)
             blend_ml, blend_phys = 0.8, 0.2
             blend_note = "ML-higher"
 
         blended_ys = round(blend_ml * ys_ml + blend_phys * physics_ys)
-        blended_ys = max(SSS_YS_MIN_RT, min(SSS_YS_MAX_RT, blended_ys))
+        blended_ys = max(SSS["YS_MIN_RT"], min(SSS["YS_MAX_RT"], blended_ys))
 
         if abs(blended_ys - ys_ml) > 15:
             corrected["Yield Strength"] = blended_ys
@@ -731,30 +603,29 @@ def apply_sss_corrections(properties: dict, composition: dict, temperature_c: in
         ys_new = corrected["Yield Strength"]
         uts = corrected.get("Tensile Strength", 0)
 
-        print(f"   🔍 SSS UTS ratio check: YS={ys_new:.0f}, UTS={uts:.0f}, ratio={uts/ys_new if uts > 0 else 0:.2f}")
+        logger.debug(f"SSS UTS ratio check: YS={ys_new:.0f}, UTS={uts:.0f}, ratio={uts/ys_new if uts > 0 else 0:.2f}")
 
         if uts > 0:
             ratio = uts / ys_new
-            SSS_RATIO_MIN, SSS_RATIO_MAX, SSS_RATIO_TYPICAL = 1.6, 2.4, 2.0
 
-            if ratio < SSS_RATIO_MIN:
+            if ratio < SSS["UTS_YS_RATIO_MIN"]:
                 old_uts = uts
-                corrected["Tensile Strength"] = round(ys_new * SSS_RATIO_TYPICAL)
+                corrected["Tensile Strength"] = round(ys_new * SSS["UTS_YS_RATIO_TYPICAL"])
                 corrections.append(
-                    f"SSS UTS/YS ratio fix: {old_uts:.0f} → {corrected['Tensile Strength']:.0f} MPa (ratio {ratio:.2f} → {SSS_RATIO_TYPICAL})"
+                    f"SSS UTS/YS ratio fix: {old_uts:.0f} → {corrected['Tensile Strength']:.0f} MPa (ratio {ratio:.2f} → {SSS['UTS_YS_RATIO_TYPICAL']})"
                 )
-            elif ratio > SSS_RATIO_MAX:
+            elif ratio > SSS["UTS_YS_RATIO_MAX"]:
                 old_uts = uts
-                corrected["Tensile Strength"] = round(ys_new * SSS_RATIO_MAX)
+                corrected["Tensile Strength"] = round(ys_new * SSS["UTS_YS_RATIO_MAX"])
                 corrections.append(
-                    f"SSS UTS/YS ratio cap: {old_uts:.0f} → {corrected['Tensile Strength']:.0f} MPa (ratio {ratio:.2f} → {SSS_RATIO_MAX})"
+                    f"SSS UTS/YS ratio cap: {old_uts:.0f} → {corrected['Tensile Strength']:.0f} MPa (ratio {ratio:.2f} → {SSS['UTS_YS_RATIO_MAX']})"
                 )
 
     # 4. Correct Elastic Modulus for SSS alloys
     em = corrected.get("Elastic Modulus", 0) or 0
     if em > 0:
         em_temp_factor = max(0.65, 1.0 - 0.00032 * max(0, temperature_c - 25))
-        em_typical_at_temp = round(SSS_EM_TYPICAL * em_temp_factor, 1)
+        em_typical_at_temp = round(SSS["EM_TYPICAL"] * em_temp_factor, 1)
 
         if temperature_c > 200:
             old_em = em
@@ -763,24 +634,24 @@ def apply_sss_corrections(properties: dict, composition: dict, temperature_c: in
                 corrections.append(
                     f"SSS EM temperature correction: {old_em:.1f} → {em_typical_at_temp:.1f} GPa (T={temperature_c}°C)"
                 )
-        elif em > SSS_EM_MAX or em < SSS_EM_MIN * 0.8:
+        elif em > SSS["EM_MAX"] or em < SSS["EM_MIN"] * 0.8:
             old_em = em
-            corrected["Elastic Modulus"] = SSS_EM_TYPICAL
+            corrected["Elastic Modulus"] = SSS["EM_TYPICAL"]
             corrections.append(
-                f"SSS EM correction: {old_em:.1f} → {SSS_EM_TYPICAL:.1f} GPa (typical SSS range)"
+                f"SSS EM correction: {old_em:.1f} → {SSS['EM_TYPICAL']:.1f} GPa (typical SSS range)"
             )
 
     # 5. Correct Elongation for SSS alloys
     el = corrected.get("Elongation", 0) or 0
     if el > 0:
         if processing == "cast":
-            el_min, el_max, el_typical = SSS_EL_MIN_CAST, SSS_EL_MAX_CAST, SSS_EL_TYPICAL_CAST
+            el_min, el_max, el_typical = SSS["EL_MIN_CAST"], SSS["EL_MAX_CAST"], SSS["EL_TYPICAL_CAST"]
         else:
-            el_min, el_max, el_typical = SSS_EL_MIN_WROUGHT, SSS_EL_MAX_WROUGHT, SSS_EL_TYPICAL_WROUGHT
+            el_min, el_max, el_typical = SSS["EL_MIN_WROUGHT"], SSS["EL_MAX_WROUGHT"], SSS["EL_TYPICAL_WROUGHT"]
 
-        if temperature_c > SSS_EL_TEMP_TRANSITION:
-            delta_t = temperature_c - SSS_EL_TEMP_TRANSITION
-            el_at_temp = el_typical * math.exp(SSS_EL_TEMP_FACTOR * delta_t)
+        if temperature_c > SSS["EL_TEMP_TRANSITION"]:
+            delta_t = temperature_c - SSS["EL_TEMP_TRANSITION"]
+            el_at_temp = el_typical * math.exp(SSS["EL_TEMP_FACTOR"] * delta_t)
             el_at_temp = min(150.0, el_at_temp)
 
             old_el = el
@@ -790,7 +661,6 @@ def apply_sss_corrections(properties: dict, composition: dict, temperature_c: in
                     f"SSS Elongation high-temp: {old_el:.1f} → {el_at_temp:.1f}% (T={temperature_c}°C)"
                 )
         elif el < el_min or el > el_max:
-            # Out of bounds - correct to typical
             old_el = el
             corrected["Elongation"] = el_typical
             corrections.append(
@@ -821,21 +691,159 @@ class MetallurgyVerifierTool(BaseTool):
     )
     args_schema: Type[BaseModel] = MetallurgyVerifierInput
 
-    def _run(self, composition: Dict[str, float], anchored_properties_json: str, temperature_c: float, alloy_type: str = 'standard', **kwargs: Any) -> str:
+    # =========================================================================
+    # Helper Methods (extracted from _run for clarity)
+    # =========================================================================
+
+    def _parse_input_json(self, anchored_properties_json: str) -> tuple:
+        """Parse and clean the input JSON from upstream tools."""
         try:
             clean_json = anchored_properties_json.replace("```json", "").replace("```", "").strip()
             if "{" in clean_json:
-                 start = clean_json.find("{")
-                 end = clean_json.rfind("}") + 1
-                 clean_json = clean_json[start:end]
+                start = clean_json.find("{")
+                end = clean_json.rfind("}") + 1
+                clean_json = clean_json[start:end]
             input_data = json.loads(clean_json)
             props = input_data.get('anchored_properties') or input_data.get('properties') or input_data
-
+            return input_data, props
         except Exception as e:
             logger.warning(f"Failed to parse anchored properties JSON: {e}")
-            input_data = {}
-            props = {}
+            return {}, {}
 
+    def _detect_processing(self, input_data: dict, composition: dict, gp: float) -> tuple:
+        """Detect processing type and validate compatibility with composition."""
+        processing = (input_data.get("processing") or input_data.get("family") or "unknown").lower()
+
+        # Infer processing if unknown
+        if processing == "unknown":
+            if composition.get("B", 0) > 0.005 and composition.get("Zr", 0) > 0.03:
+                processing = "cast"
+            else:
+                processing = "wrought"
+
+        # Normalize processing type
+        if "cast" in processing or "nimocast" in str(input_data).lower():
+            processing = "cast"
+        elif "wrought" in processing or "forged" in processing:
+            processing = "wrought"
+
+        # Check processing-composition compatibility
+        warnings = []
+        if processing == "wrought" and gp > 40:
+            warnings.append(
+                f"ℹ️ Composition has {gp:.1f}% γ' - high for conventional wrought processing, "
+                f"but valid for P/M (powder metallurgy) alloys."
+            )
+        elif processing == "cast" and gp < 15 and composition.get("Fe", 0) > 10:
+            warnings.append(
+                f"⚠️ Composition has only {gp:.1f}% γ' with high Fe ({composition.get('Fe', 0):.1f}%) - "
+                f"this looks like a wrought alloy. Keeping as specified but results may be inaccurate."
+            )
+
+        return processing, warnings
+
+    def _calculate_penalties(self, gp: float, sss_wt: float, delta: float, md_gamma: float, md_avg: float, processing: str) -> tuple:
+        """Calculate audit penalties and warnings based on metallurgical metrics."""
+        penalties_list = []
+        warnings = []
+
+        # 1. Gamma Prime / SSS Balance
+        if gp < 5.0 and "solid_solution" not in processing:
+            if sss_wt < 10.0:
+                reason = f"Gamma Prime ({gp:.1f}%) and Solid Solution Strengthening ({sss_wt:.1f}%) are both too low for effective creep resistance."
+                penalties_list.append({"name": "Strengthening Balance", "value": f"GP={gp:.1f}%, SSS={sss_wt:.1f}%", "reason": reason})
+                warnings.append(reason)
+
+        # 2. Lattice Mismatch (Coherency)
+        if abs(delta) > 0.8:
+            reason = f"High Lattice Mismatch ({delta:.2f}%) exceeds the 0.5% threshold for stable coherency. Risk of interfacial dislocation formation."
+            penalties_list.append({"name": "Coherency Warning", "value": f"{delta:.2f}%", "reason": reason})
+            warnings.append(reason)
+
+        # 3. TCP Risk (Using Matrix Md) - Tiered approach
+        if md_gamma > 1.05:
+            reason = f"Matrix Md ({md_gamma:.3f}) exceeds 1.05 - CRITICAL TCP phase risk. Sigma/Mu phases highly likely without careful heat treatment."
+            penalties_list.append({"name": "TCP Risk - Critical", "value": f"Md_gamma={md_gamma:.3f}", "reason": reason})
+            warnings.append(reason)
+        elif md_gamma > 0.98:
+            reason = f"Matrix Md ({md_gamma:.3f}) is elevated (0.98-1.05 range). TCP phase formation possible but manageable."
+            penalties_list.append({"name": "TCP Risk - Elevated", "value": f"Md_gamma={md_gamma:.3f}", "reason": reason})
+            warnings.append(reason)
+        elif md_gamma > 0.96 and md_avg > 0.985:
+            reason = f"Moderate Stability Concern: Matrix Md ({md_gamma:.3f}) with Global Md ({md_avg:.3f}) approaching stability limits."
+            penalties_list.append({"name": "Phase Stability", "value": f"Md={md_gamma:.3f}", "reason": reason})
+            warnings.append(reason)
+
+        # Calculate penalty score
+        penalty_score = len(penalties_list) * 5
+        if md_gamma > 1.05:
+            penalty_score += 30
+        elif md_gamma > 0.98:
+            penalty_score += 5
+        if abs(delta) > 1.5:
+            penalty_score += 20
+
+        return penalties_list, warnings, penalty_score
+
+    def _generate_intervals(self, verified_props: dict, input_data: dict) -> dict:
+        """Generate property uncertainty intervals if not provided by fusion tool."""
+        intervals = input_data.get("property_intervals", {})
+
+        uncertainty_pcts = {
+            "Yield Strength": 0.10,
+            "Tensile Strength": 0.10,
+            "Elongation": 0.15,
+            "Elastic Modulus": 0.05
+        }
+
+        for prop, unc_pct in uncertainty_pcts.items():
+            if prop in verified_props and prop not in intervals:
+                val = verified_props[prop]
+                unc = val * unc_pct
+                intervals[prop] = {
+                    "lower": round(val - unc, 1),
+                    "upper": round(val + unc, 1),
+                    "uncertainty": round(unc, 1)
+                }
+
+        return intervals
+
+    def _build_summary(self, confidence: dict, md_gamma: float) -> tuple:
+        """Build user-friendly summary text and TCP risk level."""
+        confidence_level = confidence.get("level", "MEDIUM") if isinstance(confidence, dict) else "MEDIUM"
+        kg_match = confidence.get("matched_alloy", "None") if isinstance(confidence, dict) else "None"
+        kg_distance = confidence.get("similarity_distance", 999) if isinstance(confidence, dict) else 999
+
+        if kg_distance < 2.0 and kg_match != "None":
+            summary_text = f"Strong match to {kg_match} - high confidence predictions based on experimental data."
+        elif kg_distance < 5.0 and kg_match != "None":
+            summary_text = f"Similar to {kg_match} - predictions calibrated with experimental reference."
+        elif confidence_level == "HIGH":
+            summary_text = "High confidence ML predictions within model's training domain."
+        elif confidence_level == "MEDIUM":
+            summary_text = "Moderate confidence predictions. Review flagged items below."
+        else:
+            summary_text = "Exploratory composition - predictions have higher uncertainty."
+
+        # TCP risk level
+        tcp_risk = "Critical" if md_gamma > 1.05 else ("Elevated" if md_gamma > 0.98 else ("Moderate" if md_gamma > 0.96 else "Low"))
+
+        if tcp_risk == "Critical":
+            summary_text += " TCP phase risk is critical."
+        elif tcp_risk == "Elevated":
+            summary_text += " TCP phase risk is elevated (common in industrial alloys)."
+
+        return summary_text, tcp_risk
+
+    # =========================================================================
+    # Main Entry Point
+    # =========================================================================
+
+    def _run(self, composition: Dict[str, float], anchored_properties_json: str, temperature_c: float, alloy_type: str = 'standard', **kwargs: Any) -> str:
+        # === STEP 1: Parse input JSON ===
+        input_data, props = self._parse_input_json(anchored_properties_json)
+
+        # === STEP 2: Compute alloy features ===
         composition = {k: float(v) for k, v in composition.items()}
         features = compute_alloy_features(composition)
 
@@ -848,57 +856,28 @@ class MetallurgyVerifierTool(BaseTool):
         vec = features.get("VEC_avg", 8.0)
 
         try:
+            # === STEP 3: Extract raw properties from input ===
             raw_ys = float(props.get('Yield Strength', 0))
             raw_ts = float(props.get('Tensile Strength', 0))
             raw_el = float(props.get('Elongation', 0))
             raw_em = float(props.get('Elastic Modulus', 0))
-            
+
+            # === STEP 4: Normalize alloy_type ===
             alloy_type = str(alloy_type).lower().strip().replace(" ", "_")
-            if "corrosion" in alloy_type: 
+            if "corrosion" in alloy_type:
                 alloy_type = "high_corrosion"
-            elif "strength" in alloy_type: 
+            elif "strength" in alloy_type:
                 alloy_type = "high_strength"
-            else: 
+            else:
                 alloy_type = "standard"
 
-            processing = (input_data.get("processing") or input_data.get("family") or "unknown").lower()
-            
-            if processing == "unknown":
-                if composition.get("B", 0) > 0.005 and composition.get("Zr", 0) > 0.03:
-                    processing = "cast"
-                else:
-                    processing = "wrought"
-            
-            if "cast" in processing or "nimocast" in str(input_data).lower():
-                processing = "cast"
-            elif "wrought" in processing or "forged" in processing:
-                processing = "wrought"
+            # === STEP 5: Detect and validate processing type ===
+            processing, processing_warnings = self._detect_processing(input_data, composition, gp)
+            warnings = processing_warnings.copy()
+            for pw in processing_warnings:
+                logger.info(pw)
 
-            # Initialize warnings list early (used throughout the function)
-            warnings = []
-
-            # === PROCESSING-COMPOSITION COMPATIBILITY CHECK ===
-            # High γ' alloys (>40%) are almost always cast - warn if specified as wrought
-            # Low γ' alloys (<20%) are typically wrought - warn if specified as cast
-            original_processing = processing
-            processing_warning = None
-
-            if processing == "wrought" and gp > 40:
-                processing_warning = (
-                    f"ℹ️ Composition has {gp:.1f}% γ' - high for conventional wrought processing, "
-                    f"but valid for P/M (powder metallurgy) alloys."
-                )
-                warnings.append(processing_warning)
-                logger.info(processing_warning)
-            elif processing == "cast" and gp < 15 and composition.get("Fe", 0) > 10:
-                processing_warning = (
-                    f"⚠️ Composition has only {gp:.1f}% γ' with high Fe ({composition.get('Fe', 0):.1f}%) - "
-                    f"this looks like a wrought alloy. Keeping as specified but results may be inaccurate."
-                )
-                warnings.append(processing_warning)
-                logger.warning(processing_warning)
-
-            # Get parameters from centralized config
+            # === STEP 6: Get physics parameters from config ===
             params = get_params(processing)
 
             base_ductility = params["BASE_DUCTILITY"]
@@ -948,59 +927,13 @@ class MetallurgyVerifierTool(BaseTool):
                 final_el = (raw_el * ml_weight) + (el_physics * (1 - ml_weight))
                 final_em = (raw_em * ml_weight) + (em_physics * (1 - ml_weight))
             
-            penalties_list = []
+            # === STEP 8: Calculate penalties and warnings ===
+            penalties_list, penalty_warnings, penalty_score = self._calculate_penalties(
+                gp, sss_wt, delta, md_gamma, md_avg, processing
+            )
+            warnings.extend(penalty_warnings)
 
-            # 1. Gamma Prime / SSS Balance
-            if gp < 5.0 and "solid_solution" not in processing:
-                 if sss_wt < 10.0:
-                     reason = f"Gamma Prime ({gp:.1f}%) and Solid Solution Strengthening ({sss_wt:.1f}%) are both too low for effective creep resistance."
-                     penalties_list.append({
-                         "name": "Strengthening Balance",
-                         "value": f"GP={gp:.1f}%, SSS={sss_wt:.1f}%",
-                         "reason": reason
-                     })
-                     warnings.append(reason)
-            
-            # 2. Lattice Mismatch (Coherency)
-            if abs(delta) > 0.8:
-                reason = f"High Lattice Mismatch ({delta:.2f}%) exceeds the 0.5% threshold for stable coherency. Risk of interfacial dislocation formation."
-                penalties_list.append({
-                    "name": "Coherency Warning",
-                    "value": f"{delta:.2f}%",
-                    "reason": reason
-                })
-                warnings.append(reason)
-            
-            # 3. TCP Risk (Using Matrix Md) - Tiered approach
-            if md_gamma > 1.05:
-                 # Critical risk - strongly discouraged
-                 reason = f"Matrix Md ({md_gamma:.3f}) exceeds 1.05 - CRITICAL TCP phase risk. Sigma/Mu phases highly likely without careful heat treatment."
-                 penalties_list.append({
-                     "name": "TCP Risk - Critical",
-                     "value": f"Md_gamma={md_gamma:.3f}",
-                     "reason": reason
-                 })
-                 warnings.append(reason)
-            elif md_gamma > 0.98:
-                 reason = f"Matrix Md ({md_gamma:.3f}) is elevated (0.98-1.05 range). TCP phase formation possible but manageable."
-                 penalties_list.append({
-                     "name": "TCP Risk - Elevated",
-                     "value": f"Md_gamma={md_gamma:.3f}",
-                     "reason": reason
-                 })
-                 warnings.append(reason)
-            elif md_gamma > 0.96:
-                 # Moderate risk - only warn if combined with other factors
-                 if md_avg > 0.985:
-                     reason = f"Moderate Stability Concern: Matrix Md ({md_gamma:.3f}) with Global Md ({md_avg:.3f}) approaching stability limits."
-                     penalties_list.append({
-                         "name": "Phase Stability",
-                         "value": f"Md={md_gamma:.3f}",
-                         "reason": reason
-                     })
-                     warnings.append(reason)
-                 
-            # 4. Strength Scaling for TS if not KG anchored
+            # === STEP 9: Strength Scaling for TS if not KG anchored ===
             if not is_kg_anchored:
                  strength_scale = final_ys / (raw_ys + 0.1)
                  final_ts = raw_ts * strength_scale
@@ -1017,7 +950,7 @@ class MetallurgyVerifierTool(BaseTool):
                 "Gamma Prime": round(gp, 1)
             }
 
-            # Property Coherency Cross-Check
+            # === STEP 11: Property Coherency Cross-Check ===
             coherency_warnings = validate_property_coherency(verified_props, composition)
             for cw in coherency_warnings:
                 warnings.append(cw)
@@ -1026,102 +959,24 @@ class MetallurgyVerifierTool(BaseTool):
                 elif "Elastic" in cw: name = "Elastic Modulus Coherency"
                 elif "Yield" in cw: name = "Strength/Gamma Prime Coherency"
                 elif "Ductility" in cw: name = "Ductility Coherency"
-                
-                penalties_list.append({
-                    "name": name,
-                    "value": "Mismatch",
-                    "reason": cw.replace("⚠️ Coherency Warning: ", "")
-                })
+                penalties_list.append({"name": name, "value": "Mismatch", "reason": cw.replace("⚠️ Coherency Warning: ", "")})
 
-            # Physical Bounds Check
+            # === STEP 12: Physical Bounds Check ===
             bounds_errors = validate_property_bounds(verified_props)
             for be in bounds_errors:
                 warnings.append(be)
-                penalties_list.append({
-                    "name": "Physical Limit Violation",
-                    "value": "Out of Bounds",
-                    "reason": be
-                })
+                penalties_list.append({"name": "Physical Limit Violation", "value": "Out of Bounds", "reason": be})
 
-            # Calculate Penalty Score for Agents
-            penalty_score = 0
-            if penalties_list:
-                penalty_score += len(penalties_list) * 5  # Reduced from 10 - penalties are now more informational
+            # Update penalty score with additional penalties from coherency/bounds checks
+            penalty_score += len(coherency_warnings) * 5 + len(bounds_errors) * 5
 
-            # Tiered penalty for TCP risk (Md)
-            if md_gamma > 1.05:
-                penalty_score += 30
-            elif md_gamma > 0.98:
-                penalty_score += 5
-            # No penalty for Md < 0.98
+            # === STEP 13: Generate property intervals ===
+            intervals = self._generate_intervals(verified_props, input_data)
 
-            if abs(delta) > 1.5:
-                penalty_score += 20  # Severe mismatch penalty
+            # === STEP 14: Generate summary and TCP risk level ===
+            summary_text, tcp_risk = self._build_summary(confidence, md_gamma)
 
-            # Ensure property intervals exist (generate if not provided by fusion tool)
-            intervals = input_data.get("property_intervals", {})
-            
-            # Generate intervals for ML-predicted properties if missing
-            if "Yield Strength" in verified_props and "Yield Strength" not in intervals:
-                ys_val = verified_props["Yield Strength"]
-                ys_unc = ys_val * 0.10
-                intervals["Yield Strength"] = {
-                    "lower": round(ys_val - ys_unc, 1),
-                    "upper": round(ys_val + ys_unc, 1),
-                    "uncertainty": round(ys_unc, 1)
-                }
-            
-            if "Tensile Strength" in verified_props and "Tensile Strength" not in intervals:
-                ts_val = verified_props["Tensile Strength"]
-                ts_unc = ts_val * 0.10
-                intervals["Tensile Strength"] = {
-                    "lower": round(ts_val - ts_unc, 1),
-                    "upper": round(ts_val + ts_unc, 1),
-                    "uncertainty": round(ts_unc, 1)
-                }
-            
-            if "Elongation" in verified_props and "Elongation" not in intervals:
-                el_val = verified_props["Elongation"]
-                el_unc = el_val * 0.15
-                intervals["Elongation"] = {
-                    "lower": round(el_val - el_unc, 1),
-                    "upper": round(el_val + el_unc, 1),
-                    "uncertainty": round(el_unc, 1)
-                }
-            
-            if "Elastic Modulus" in verified_props and "Elastic Modulus" not in intervals:
-                em_val = verified_props["Elastic Modulus"]
-                em_unc = em_val * 0.05
-                intervals["Elastic Modulus"] = {
-                    "lower": round(em_val - em_unc, 1),
-                    "upper": round(em_val + em_unc, 1),
-                    "uncertainty": round(em_unc, 1)
-                }
-
-            # Generate user-friendly summary
-            confidence_level = confidence.get("level", "MEDIUM")
-            kg_match = confidence.get("matched_alloy", "None")
-            kg_distance = confidence.get("similarity_distance", 999)
-
-            if kg_distance < 2.0 and kg_match != "None":
-                summary_text = f"Strong match to {kg_match} - high confidence predictions based on experimental data."
-            elif kg_distance < 5.0 and kg_match != "None":
-                summary_text = f"Similar to {kg_match} - predictions calibrated with experimental reference."
-            elif confidence_level == "HIGH":
-                summary_text = "High confidence ML predictions within model's training domain."
-            elif confidence_level == "MEDIUM":
-                summary_text = "Moderate confidence predictions. Review flagged items below."
-            else:
-                summary_text = "Exploratory composition - predictions have higher uncertainty."
-
-            # Add TCP risk warning if elevated
-            tcp_risk = "Critical" if md_gamma > 1.05 else ("Elevated" if md_gamma > 0.98 else ("Moderate" if md_gamma > 0.96 else "Low"))
-            if tcp_risk == "Critical":
-                summary_text += " TCP phase risk is critical."
-            elif tcp_risk == "Elevated":
-                summary_text += " TCP phase risk is elevated (common in industrial alloys)."
-
-            # APPLY SSS AND γ' TEMPERATURE CORRECTIONS
+            # === STEP 15: Apply SSS and γ' temperature corrections ===
             all_corrections = []
             corrections_explanation_parts = []
 
