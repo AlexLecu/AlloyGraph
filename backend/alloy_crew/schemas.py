@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, model_validator, field_validator
-from typing import Dict, Optional, Literal, List, Any, Union
+from pydantic import BaseModel, Field
+from typing import Dict, Literal, List, Any, Union
 
 
 # =============================================================================
@@ -40,68 +40,6 @@ class CompositionSensitivityInput(BaseModel):
 # =============================================================================
 
 
-class AlloyCompositionSchema(BaseModel):
-    """
-    Scientific Data Contract for an Alloy Composition.
-    Enforces mass balance (Sum = 100%) and valid inputs.
-    """
-    elements: Dict[str, float] = Field(
-        ...,
-        description="Dictionary of elements and their weight percentages (e.g., {'Ni': 60.5, 'Al': 5.0})."
-    )
-    process_route: Literal["cast", "wrought"] = Field(
-        ...,
-        description="The processing method used to manufacture this alloy (strictly 'cast' or 'wrought')."
-    )
-    
-    @model_validator(mode='after')
-    def check_sum(self):
-        elements = self.elements
-        if elements:
-            total = sum(elements.values())
-            # Tolerance of 0.1% for floating point/rounding flexibility
-            if not (99.9 <= total <= 100.1):
-                raise ValueError(f"Composition must sum to 100% (+/- 0.1%). Current sum: {total:.2f}%")
-        return self
-
-    @field_validator('elements')
-    def check_positive(cls, v):
-        for el, wt in v.items():
-            if wt < 0:
-                raise ValueError(f"Element {el} cannot have negative weight percent.")
-            if wt > 100:
-                raise ValueError(f"Element {el} cannot exceed 100%.")
-        return v
-
-class AlloyPropertySchema(BaseModel):
-    """
-    Scientific Data Contract for a Mechanical Property.
-    Captures uncertainty and domain validity.
-    """
-    value: float = Field(..., description="The predicted or measured value.")
-    unit: str = Field(..., description="Unit of measurement (e.g., 'MPa', '%').")
-    uncertainty_interval: Optional[float] = Field(None, description="Confidence interval (+/- step).")
-    in_domain_score: float = Field(
-        ..., 
-        ge=0.0, 
-        le=1.0, 
-        description="Confidence score (0-1) indicating if this alloy is within the ML model's training domain."
-    )
-    notes: Optional[str] = Field(None, description="Any warnings or context (e.g., 'Extrapolated').")
-
-class FullAlloyReportSchema(BaseModel):
-    """
-    The final output object passed between agents.
-    """
-    alloy_name: str = Field(..., description="Name or ID of the alloy.")
-    composition: AlloyCompositionSchema
-    properties: Dict[str, AlloyPropertySchema] = Field(
-        ..., 
-        description="Keyed by property name (e.g., 'Yield Strength')."
-    )
-    physics_audit_passed: bool = Field(False, description="True only if the Physicist approves.")
-    audit_penalties: list[str] = Field(default_factory=list, description="List of penalty reasons if any.")
-
 class DesignOutput(BaseModel):
     """
     Output structure for the Alloy Designer agent.
@@ -110,33 +48,6 @@ class DesignOutput(BaseModel):
     composition: Dict[str, float] = Field(..., description="The proposed alloy composition (elements summing to 100%).")
     processing: Literal["cast", "wrought"] = Field("cast", description="The processing route (cast or wrought).")
 
-
-class ValidationOutput(BaseModel):
-    status: Literal["OK", "FAIL"]
-    temperature_c: int
-    composition_wt_percent: Dict[str, float]
-    ml_prediction: Dict[str, Any]
-    errors: List[str] = []
-
-class FusionMeta(BaseModel):
-    kg_similarity_max: float = 0.0
-    ml_weight: float = 0.0
-    kg_weight: float = 0.0
-    data_conflict: bool = False
-    is_kg_anchored: bool = False
-
-class ArbitrationOutput(BaseModel):
-    status: str
-    summary: str = Field("", description="Summary of Data Fusion (e.g. contains 'Anchoring')")
-    processing: Literal["cast", "wrought", "unknown"] = Field(..., description="Alloy processing type (cast/wrought)")
-    penalty_score: float
-    tcp_risk: str
-    properties: Dict[str, Any]
-    property_intervals: Dict[str, Any] = Field(default_factory=dict, description="Uncertainty intervals for properties")
-    metallurgy_metrics: Dict[str, Any] = {}
-    fusion_meta: FusionMeta
-    confidence: Dict[str, Any] = Field(default_factory=dict)
-    errors: List[str] = []
 
 class AuditPenalty(BaseModel):
     name: str
@@ -174,14 +85,14 @@ class PropertyCorrection(BaseModel):
 
 
 class PhysicsAuditWithCorrectionsOutput(BaseModel):
-    """Combined physics audit + corrections output."""
+    """Combined physics audit + corrections output with investigation support."""
     status: Literal["PASS", "REJECT", "FAIL"]
     processing: str = Field(..., description="Alloy processing type (cast/wrought/unknown)")
     penalty_score: float = 0.0
     tcp_risk: str = "LOW"
     properties: Dict[str, Any] = Field(..., description="FINAL corrected properties after physics adjustments")
     property_intervals: Dict[str, Any] = Field(default_factory=dict, description="Uncertainty intervals for properties")
-    metallurgy_metrics: Dict[str, Any] = Field(..., description="Computed metrics (Md, mismatch, γ', etc.)")
+    metallurgy_metrics: Dict[str, Any] = Field(default_factory=dict, description="Computed metrics (Md, mismatch, γ', etc.)")
     audit_penalties: List[AuditPenalty] = Field(default_factory=list, description="Physics violations found")
     errors: List[str] = Field(default_factory=list, description="Critical errors encountered")
     confidence: Dict[str, Any] = Field(default_factory=dict, description="Confidence scores (similarity, level)")
@@ -195,26 +106,21 @@ class PhysicsAuditWithCorrectionsOutput(BaseModel):
         "",
         description="Summary of corrections: why needed, implications, and final property validity"
     )
-
-
-class CorrectedPropertiesOutput(BaseModel):
-    """Output from physics corrections agent."""
-    status: Literal["PASS", "REJECT", "FAIL"]
-    processing: str = Field(..., description="Alloy processing type")
-    penalty_score: float = 0.0
-    tcp_risk: str = "LOW"
-    properties: Dict[str, Any] = Field(..., description="FINAL corrected properties")
-    property_intervals: Dict[str, Any] = Field(default_factory=dict)
-    metallurgy_metrics: Dict[str, Any]
-    audit_penalties: List[AuditPenalty] = []
-    errors: List[str] = []
-    confidence: Dict[str, Any] = Field(default_factory=dict)
-    explanation: str = Field("", description="Metallurgical analysis from Physicist")
-    corrections_applied: List[PropertyCorrection] = Field(
-        default_factory=list,
-        description="List of corrections applied with reasoning"
-    )
-    corrections_explanation: str = Field(
+    # Investigation fields (for agent-driven corrections)
+    investigation_findings: str = Field(
         "",
-        description="Overall explanation of why corrections were needed and their implications"
+        description="What the agent learned from KG search when investigating discrepancies"
+    )
+    source_reliability: str = Field(
+        "",
+        description="Which source (ML/Physics/KG) the agent determined to be most reliable and why"
+    )
+    # Multi-agent reasoning fields (Analyst + Reviewer architecture)
+    analyst_reasoning: str = Field(
+        "",
+        description="Analyst's reasoning chain: how sources were compared, what evidence supports the final values"
+    )
+    reviewer_assessment: str = Field(
+        "",
+        description="Reviewer's critical assessment: what's sound, what's weak, what was overlooked"
     )

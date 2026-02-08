@@ -142,7 +142,7 @@ def load_data(filepath: str, target_key: str, bounds: tuple = None,
                     row['target'] = val
                     row['alloy_name'] = alloy_name
                     rows.append(row)
-            except (json.JSONDecodeError, Exception):
+            except Exception:
                 continue
 
     df = pd.DataFrame(rows)

@@ -23,11 +23,32 @@ const errorType = ref(null) // 'network', 'timeout', 'validation', 'server', 'un
 const retryCount = ref(0)
 const maxRetries = 3
 
-// --- SIMPLE LOADING STATE ---
+// --- LOADING STATE WITH PROGRESS STEPS ---
 const loadingMessage = ref('')
 const startTime = ref(null)
 const elapsedSeconds = ref(0)
 let elapsedTimer = null
+const loadingStep = ref(0)
+let stepTimer = null
+
+const evaluationSteps = [
+  { icon: '🔬', label: 'Running ML predictions & physics models' },
+  { icon: '📊', label: 'Analyst investigating alloy sources' },
+  { icon: '🔗', label: 'Querying Knowledge Graph' },
+  { icon: '⚖️', label: 'Triangulating ML, Physics, and KG data' },
+  { icon: '🔎', label: 'Reviewer verifying metallurgical consistency' },
+  { icon: '✍️', label: 'Generating metallurgical analysis' },
+]
+
+const designSteps = [
+  { icon: '🎨', label: 'Designing alloy composition' },
+  { icon: '🔬', label: 'Pre-computing ML & physics predictions' },
+  { icon: '⚖️', label: 'Analyst investigating alloy sources' },
+  { icon: '🔎', label: 'Reviewer verifying predictions' },
+  { icon: '✍️', label: 'Generating analysis report' },
+]
+
+const currentSteps = computed(() => mode.value === 'manual' ? evaluationSteps : designSteps)
 
 // --- DESIGN HISTORY STATE ---
 const designHistory = ref([])
@@ -99,9 +120,10 @@ const getTcpEmoji = (risk) => {
 
 const hasUsefulPredictionInfo = (results) => {
   if (!results) return false
-  // Show panel if there's a similar alloy match OR if TCP risk is elevated+
   const hasMatch = results.confidence?.matched_alloy && results.confidence.matched_alloy !== 'None'
-  const hasTcpWarning = results.metallurgyMetrics?.tcp_risk && results.metallurgyMetrics.tcp_risk !== 'Low'
+  // Check TCP from metrics (key may be "TCP Risk" or "tcp_risk") or top-level tcpRisk
+  const tcp = results.metallurgyMetrics?.['TCP Risk'] || results.metallurgyMetrics?.tcp_risk || results.tcpRisk
+  const hasTcpWarning = tcp && tcp !== 'Low' && tcp !== 'UNKNOWN'
   return hasMatch || hasTcpWarning
 }
 
@@ -200,19 +222,34 @@ const startLoading = (message) => {
   loadingMessage.value = message
   startTime.value = Date.now()
   elapsedSeconds.value = 0
+  loadingStep.value = 0
   error.value = null
   errorType.value = null
-  
-  // Update elapsed time every second
+
+  // Update elapsed time every second + advance through steps with natural pacing
   if (elapsedTimer) clearInterval(elapsedTimer)
   elapsedTimer = setInterval(() => {
     elapsedSeconds.value = Math.floor((Date.now() - startTime.value) / 1000)
+    // Accelerating thresholds: early deterministic steps are fast,
+    // later agent steps take longer (matches actual pipeline rhythm)
+    // Steps advance once and stay on the last step until response arrives
+    const steps = currentSteps.value
+    const thresholds = steps.map((_, i) => Math.round(2 + i * 1.5 + i * i * 0.8))
+    let step = 0
+    for (let i = thresholds.length - 1; i >= 0; i--) {
+      if (elapsedSeconds.value >= thresholds[i]) {
+        step = Math.min(i + 1, steps.length - 1)
+        break
+      }
+    }
+    loadingStep.value = step
   }, 1000)
 }
 
 const stopLoading = () => {
   loading.value = false
   loadingMessage.value = ''
+  loadingStep.value = 0
   if (elapsedTimer) {
     clearInterval(elapsedTimer)
     elapsedTimer = null
@@ -872,6 +909,12 @@ const parsedResults = computed(() => {
   let recommendations = []
   let designStatus = ""
   let reasoning = ""
+  let analystReasoning = ""
+  let reviewerAssessment = ""
+  let investigationFindings = ""
+  let sourceReliability = ""
+  let correctionsApplied = []
+  let correctionsExplanation = ""
 
   // CASE 1: Design Output - has composition at top level
   if (data.composition) {
@@ -883,13 +926,17 @@ const parsedResults = computed(() => {
     auditPenalties = data.audit_penalties || []
     metallurgyMetrics = data.metallurgy_metrics || {}
     status = data.status || "UNKNOWN"
-    tcpRisk = data.tcp_risk || "UNKNOWN"
+    tcpRisk = data.tcp_risk || metallurgyMetrics['TCP Risk'] || "UNKNOWN"
     similar = data.similar_alloys || []
     summary = data.summary || ""
     issues = data.issues || []
     recommendations = data.recommendations || []
     designStatus = data.design_status || ""
     reasoning = data.reasoning || ""
+    correctionsApplied = Array.isArray(data.corrections_applied)
+      ? data.corrections_applied.filter(c => c && typeof c === 'object' && c.property_name)
+      : []
+    correctionsExplanation = data.corrections_explanation || ""
   } else {
     // CASE 2: Evaluate/Validation Output - we submitted the composition
     comp = manualComp.value
@@ -900,14 +947,24 @@ const parsedResults = computed(() => {
     auditPenalties = data.audit_penalties || []
     metallurgyMetrics = data.metallurgy_metrics || {}
     status = data.status || "UNKNOWN"
-    tcpRisk = data.tcp_risk || "UNKNOWN"
+    tcpRisk = data.tcp_risk || metallurgyMetrics['TCP Risk'] || "UNKNOWN"
     similar = data.similar_alloys || []
     summary = data.summary || ""
     issues = data.issues || []
     recommendations = data.recommendations || []
     designStatus = data.design_status || ""
     reasoning = data.reasoning || ""
+    correctionsApplied = Array.isArray(data.corrections_applied)
+      ? data.corrections_applied.filter(c => c && typeof c === 'object' && c.property_name)
+      : []
+    correctionsExplanation = data.corrections_explanation || ""
   }
+
+  // Extract agent reasoning fields (available in both modes)
+  analystReasoning = data.analyst_reasoning || ""
+  reviewerAssessment = data.reviewer_assessment || ""
+  investigationFindings = data.investigation_findings || ""
+  sourceReliability = data.source_reliability || ""
 
   // Filter out useless audit violations (no description or generic messages)
   issues = issues.filter(issue => {
@@ -1033,7 +1090,13 @@ const parsedResults = computed(() => {
     issues,
     recommendations,
     designStatus,
-    reasoning
+    reasoning,
+    analystReasoning,
+    reviewerAssessment,
+    investigationFindings,
+    sourceReliability,
+    correctionsApplied,
+    correctionsExplanation
   }
 })
 
@@ -1291,12 +1354,26 @@ const parsedResults = computed(() => {
         </div>
       </div>
 
-      <!-- SIMPLE LOADING STATE -->
+      <!-- LOADING STATE WITH PIPELINE INDICATOR -->
       <div v-if="loading" class="loading-state glass-card">
-        <div class="spinner"></div>
-        <div class="loading-message">{{ loadingMessage }}</div>
-        <div v-if="startTime" class="elapsed-time">
-          Elapsed: {{ elapsedSeconds }}s
+        <div class="pipeline-header">
+          <div class="pipeline-spinner"></div>
+          <span class="pipeline-title">{{ mode === 'manual' ? 'Evaluating Alloy' : 'Designing Alloy' }}</span>
+        </div>
+        <div class="pipeline-active-step">
+          <span class="active-step-icon">{{ currentSteps[loadingStep]?.icon }}</span>
+          <span class="active-step-label">{{ currentSteps[loadingStep]?.label }}</span>
+          <span class="active-step-dots"><span class="dot-anim">...</span></span>
+        </div>
+        <div class="pipeline-track">
+          <div
+            v-for="(step, i) in currentSteps"
+            :key="i"
+            :class="['pipeline-dot', { active: i === loadingStep }]"
+          ></div>
+        </div>
+        <div class="pipeline-footer">
+          <span class="elapsed-time">{{ elapsedSeconds }}s elapsed</span>
         </div>
         <div v-if="logs.length > 0" class="logs-scroll">
           <div v-for="(log, i) in logs" :key="i" class="log-line">{{ log }}</div>
@@ -1321,9 +1398,9 @@ const parsedResults = computed(() => {
             🔗 Similar to <strong>{{ parsedResults.confidence.matched_alloy }}</strong>
           </span>
           <!-- TCP Risk - only when elevated or higher -->
-          <span v-if="parsedResults.metallurgyMetrics?.tcp_risk && parsedResults.metallurgyMetrics.tcp_risk !== 'Low'"
-                :class="['info-tag', 'tcp-' + parsedResults.metallurgyMetrics.tcp_risk.toLowerCase()]">
-            {{ getTcpEmoji(parsedResults.metallurgyMetrics.tcp_risk) }} TCP: {{ parsedResults.metallurgyMetrics.tcp_risk }}
+          <span v-if="parsedResults.tcpRisk && parsedResults.tcpRisk !== 'Low' && parsedResults.tcpRisk !== 'UNKNOWN'"
+                :class="['info-tag', 'tcp-' + parsedResults.tcpRisk.toLowerCase()]">
+            {{ getTcpEmoji(parsedResults.tcpRisk) }} TCP: {{ parsedResults.tcpRisk }}
           </span>
         </div>
 
@@ -1440,19 +1517,66 @@ const parsedResults = computed(() => {
           </div>
         </div>
 
-        <!-- 1.7 AI REASONING (if available) -->
+        <!-- CORRECTIONS APPLIED (when agents made physics-based corrections) -->
+        <div v-if="parsedResults.correctionsApplied && parsedResults.correctionsApplied.length > 0" class="corrections-panel">
+          <div class="panel-header">🔧 Physics Corrections Applied</div>
+          <div class="corrections-list">
+            <div v-for="(corr, i) in parsedResults.correctionsApplied" :key="'corr-'+i" class="correction-item">
+              <div class="correction-header">
+                <span class="correction-prop">{{ corr.property_name }}</span>
+                <span class="correction-arrow">
+                  {{ Number(corr.original_value).toFixed(1) }} → {{ Number(corr.corrected_value).toFixed(1) }}
+                </span>
+              </div>
+              <div class="correction-reason">{{ corr.correction_reason }}</div>
+              <div v-if="corr.physics_constraint" class="correction-constraint">{{ corr.physics_constraint }}</div>
+            </div>
+          </div>
+          <div v-if="parsedResults.correctionsExplanation" class="corrections-summary">
+            {{ parsedResults.correctionsExplanation }}
+          </div>
+        </div>
+
+        <!-- AGENT INVESTIGATION (Analyst + Reviewer reasoning) -->
+        <div v-if="parsedResults.analystReasoning || parsedResults.reviewerAssessment || parsedResults.investigationFindings || parsedResults.sourceReliability" class="agent-reasoning-section">
+          <div class="panel-header">🧠 Agent Investigation</div>
+
+          <!-- Source Reliability Badge -->
+          <div v-if="parsedResults.sourceReliability" class="source-reliability-badge">
+            <span class="reliability-label">Source Reliability:</span>
+            <span class="reliability-value">{{ parsedResults.sourceReliability }}</span>
+          </div>
+
+          <!-- Investigation Findings -->
+          <div v-if="parsedResults.investigationFindings" class="investigation-findings">
+            <div class="sub-header">🔍 Investigation Findings</div>
+            <div class="findings-text">{{ parsedResults.investigationFindings }}</div>
+          </div>
+
+          <!-- Analyst Reasoning -->
+          <div v-if="parsedResults.analystReasoning" class="analyst-section">
+            <div class="sub-header">📊 Analyst Reasoning</div>
+            <div class="reasoning-text">{{ parsedResults.analystReasoning }}</div>
+          </div>
+
+          <!-- Reviewer Assessment -->
+          <div v-if="parsedResults.reviewerAssessment" class="reviewer-section">
+            <div class="sub-header">🔎 Reviewer Assessment</div>
+            <div class="assessment-text">{{ parsedResults.reviewerAssessment }}</div>
+          </div>
+        </div>
+
+        <!-- AI DESIGN REASONING (design mode only) -->
         <div v-if="parsedResults.reasoning" class="reasoning-panel">
           <div class="panel-header">🤖 AI Design Reasoning</div>
           <div class="reasoning-text">{{ parsedResults.reasoning }}</div>
         </div>
 
-        <!-- 3. METALLURGICAL ANALYSIS -->
+        <!-- METALLURGICAL ANALYSIS -->
         <div v-if="parsedResults.explanation" class="explanation-panel">
           <div class="panel-header">💬 Metallurgical Analysis</div>
           <div class="explanation-text">{{ parsedResults.explanation }}</div>
         </div>
-
-
 
         <!-- SIMILAR ALLOYS -->
         <div v-if="parsedResults.similar.length" class="similar-section">
@@ -3102,6 +3226,19 @@ const parsedResults = computed(() => {
   color: var(--primary);
 }
 
+/* Confidence indicators for property cards */
+.prop-card.confidence-high {
+  border-left: 3px solid rgba(76, 175, 80, 0.6);
+}
+
+.prop-card.confidence-medium {
+  border-left: 3px solid rgba(255, 193, 7, 0.5);
+}
+
+.prop-card.confidence-low {
+  border-left: 3px solid rgba(244, 67, 54, 0.5);
+}
+
 /* Reasoning Panel */
 .reasoning-panel {
   background: rgba(17, 153, 250, 0.05);
@@ -3115,6 +3252,246 @@ const parsedResults = computed(() => {
   color: var(--text-secondary);
   line-height: 1.8;
   white-space: pre-wrap;
+}
+
+/* === AGENT INVESTIGATION PANEL === */
+.agent-reasoning-section {
+  background: rgba(0, 212, 255, 0.04);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+.agent-reasoning-section .sub-header {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #00d4ff;
+  margin-bottom: 0.5rem;
+  margin-top: 1rem;
+}
+
+.agent-reasoning-section .sub-header:first-of-type {
+  margin-top: 0.5rem;
+}
+
+.source-reliability-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(0, 212, 255, 0.1);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.reliability-label {
+  color: #aaa;
+}
+
+.reliability-value {
+  color: #00d4ff;
+  font-weight: 600;
+}
+
+.findings-text,
+.assessment-text {
+  color: var(--text-secondary);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  font-size: 0.92rem;
+}
+
+.analyst-section,
+.reviewer-section,
+.investigation-findings {
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-md);
+  margin-top: 0.5rem;
+}
+
+.reviewer-section {
+  border-left: 3px solid rgba(123, 44, 191, 0.5);
+}
+
+.analyst-section {
+  border-left: 3px solid rgba(0, 212, 255, 0.4);
+}
+
+.investigation-findings {
+  border-left: 3px solid rgba(255, 193, 7, 0.4);
+}
+
+/* === CORRECTIONS PANEL === */
+.corrections-panel {
+  background: rgba(255, 193, 7, 0.05);
+  border: 1px solid rgba(255, 193, 7, 0.2);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+.corrections-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.correction-item {
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-md);
+  border-left: 3px solid rgba(255, 193, 7, 0.4);
+}
+
+.correction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.correction-prop {
+  font-weight: 600;
+  color: #ffc107;
+  font-size: 0.9rem;
+}
+
+.correction-arrow {
+  font-family: monospace;
+  color: #00d4ff;
+  font-size: 0.85rem;
+}
+
+.correction-reason {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.correction-constraint {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-style: italic;
+  margin-top: 0.25rem;
+}
+
+.corrections-summary {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+/* === PIPELINE LOADING INDICATOR === */
+.pipeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.pipeline-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--primary, #00d4ff);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.pipeline-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.pipeline-active-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1.25rem;
+  background: rgba(0, 212, 255, 0.06);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  border-radius: 12px;
+  margin: 0 auto 1.25rem;
+  max-width: 420px;
+  animation: stepFadeIn 0.4s ease;
+}
+
+@keyframes stepFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.active-step-icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.active-step-label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #00d4ff;
+}
+
+.active-step-dots {
+  color: rgba(0, 212, 255, 0.5);
+}
+
+.dot-anim {
+  display: inline-block;
+  animation: dotPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+
+.pipeline-track {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.pipeline-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  transition: all 0.3s ease;
+}
+
+.pipeline-dot.active {
+  width: 10px;
+  height: 10px;
+  background: var(--primary, #00d4ff);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
+}
+
+.pipeline-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pipeline-footer .elapsed-time {
+  font-size: 0.8rem;
+  color: #666;
+  font-family: monospace;
 }
 
 /* Minimal interval display */

@@ -56,6 +56,10 @@ def validate_alloy():
             "penalty_score": result.get("penalty_score", 0.0),
             "corrections_applied": result.get("corrections_applied", []),
             "corrections_explanation": result.get("corrections_explanation", ""),
+            "analyst_reasoning": result.get("analyst_reasoning", ""),
+            "reviewer_assessment": result.get("reviewer_assessment", ""),
+            "investigation_findings": result.get("investigation_findings", ""),
+            "source_reliability": result.get("source_reliability", ""),
         }
 
         # Include error field if present
@@ -79,16 +83,16 @@ def design():
     # Fallback to individual params for backward compatibility
     if not target_props:
         target_props = {'Yield Strength': data.get('yield_strength', 1000)}
-        if data.get('tensile_strength', 0) > 0:
-            target_props['Tensile Strength'] = data.get('tensile_strength')
-        if data.get('elongation', 0) > 0:
-            target_props['Elongation'] = data.get('elongation')
-        if data.get('elastic_modulus', 0) > 0:
-            target_props['Elastic Modulus'] = data.get('elastic_modulus')
-        if data.get('density', 99) < 99:
-            target_props['Density'] = data.get('density')
-        if data.get('gamma_prime', 0) > 0:
-            target_props['Gamma Prime'] = data.get('gamma_prime')
+        if data.get('tensile_strength') is not None:
+            target_props['Tensile Strength'] = data['tensile_strength']
+        if data.get('elongation') is not None:
+            target_props['Elongation'] = data['elongation']
+        if data.get('elastic_modulus') is not None:
+            target_props['Elastic Modulus'] = data['elastic_modulus']
+        if data.get('density') is not None:
+            target_props['Density'] = data['density']
+        if data.get('gamma_prime') is not None:
+            target_props['Gamma Prime'] = data['gamma_prime']
     
     processing = data.get('processing', 'cast')
     temperature = data.get('temp', 900)
@@ -131,6 +135,10 @@ def design():
             "penalty_score": result.get("penalty_score", 0.0),
             "corrections_applied": result.get("corrections_applied", []),
             "corrections_explanation": result.get("corrections_explanation", ""),
+            "analyst_reasoning": result.get("analyst_reasoning", ""),
+            "reviewer_assessment": result.get("reviewer_assessment", ""),
+            "investigation_findings": result.get("investigation_findings", ""),
+            "source_reliability": result.get("source_reliability", ""),
         }
 
         # Include error field if present (for backwards compatibility)

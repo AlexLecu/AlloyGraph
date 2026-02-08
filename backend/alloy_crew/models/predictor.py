@@ -1,7 +1,10 @@
 import pandas as pd
 import joblib
 import os
+import logging
 from .feature_engineering import compute_alloy_features
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -31,6 +34,9 @@ class AlloyPredictor:
         global _SHARED_PREDICTOR
         if _SHARED_PREDICTOR is None:
             _SHARED_PREDICTOR = AlloyPredictor(model_dir)
+            _SHARED_PREDICTOR._model_dir = model_dir
+        elif model_dir is not None and hasattr(_SHARED_PREDICTOR, '_model_dir') and _SHARED_PREDICTOR._model_dir != model_dir:
+            logger.warning("AlloyPredictor singleton already initialized with different model_dir")
         return _SHARED_PREDICTOR
 
     def __init__(self, model_dir="."):
@@ -41,12 +47,12 @@ class AlloyPredictor:
         for name in ['ys', 'uts', 'el', 'em']:
             filename = os.path.join(model_dir, f"model_{name}.pkg")
             if os.path.exists(filename):
-                print(f"Loading {name.upper()} model...")
+                logger.info(f"Loading {name.upper()} model")
                 pkg = joblib.load(filename)
                 self.models[name] = pkg['model']
                 self.required_features[name] = pkg['features']
             else:
-                print(f"Warning: {filename} not found.")
+                logger.warning(f"Model file not found: {filename}")
 
     def predict(self, composition_wt, extra_params=None, temperatures=None):
         """
@@ -61,7 +67,6 @@ class AlloyPredictor:
         if temperatures is None: temperatures = [20, 600, 800, 900, 1000, 1100]
 
         # 1. COMPUTE PHYSICAL FEATURES (The "Bridge")
-        # print("-> Computing metallurgical features...")
         computed_feats = compute_alloy_features(composition_wt)
         
         # 2. FLATTEN

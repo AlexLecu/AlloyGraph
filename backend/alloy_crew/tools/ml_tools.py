@@ -71,12 +71,19 @@ class AlloyPredictorTool(BaseTool):
             el_uncertainty = el_variance * 2.0
             em_uncertainty = em_variance * 2.0
             
-            # Calculate ML confidence from variance (lower variance = higher confidence)
-            # Normalize variance to confidence score 0-1
-            ys_confidence = max(0.4, 1.0 - (ys_variance / 100.0))
-            uts_confidence = max(0.4, 1.0 - (uts_variance / 100.0))
-            el_confidence = max(0.4, 1.0 - (el_variance / 15.0))
-            em_confidence = max(0.4, 1.0 - (em_variance / 20.0))
+            # Calculate ML confidence from relative variance (variance/prediction)
+            # Consistent scaling: all properties use the same formula
+            # Higher relative variance → lower confidence
+            def _relative_confidence(variance, prediction):
+                if prediction <= 0:
+                    return 0.4
+                relative_var = variance / prediction
+                return max(0.4, min(1.0, 1.0 - relative_var * 5.0))
+
+            ys_confidence = _relative_confidence(ys_variance, ys_pred)
+            uts_confidence = _relative_confidence(uts_variance, uts_pred)
+            el_confidence = _relative_confidence(el_variance, el_pred)
+            em_confidence = _relative_confidence(em_variance, em_pred)
 
             result_dict = {
                 "Yield Strength": round(ys_pred, 1),
@@ -113,11 +120,12 @@ class AlloyPredictorTool(BaseTool):
                     "Yield Strength": round(ys_confidence, 3),
                     "Tensile Strength": round(uts_confidence, 3),
                     "Elongation": round(el_confidence, 3),
-                    "Elastic Modulus": round(em_confidence, 3)
+                    "Elastic Modulus": round(em_confidence, 3),
+                    "note": "Estimated from prediction variance (5% heuristic)"
                 }
             }
             
             return json.dumps(result_dict)
 
         except Exception as e:
-            return f"Prediction Failed: {str(e)}"
+            return json.dumps({"error": f"Prediction Failed: {str(e)}"})

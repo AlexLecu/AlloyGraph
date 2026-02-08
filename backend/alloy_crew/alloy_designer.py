@@ -1,15 +1,17 @@
 import json
+import logging
 from typing import Optional, Dict
 from enum import Enum
+
+logger = logging.getLogger(__name__)
 
 from crewai import Crew, Task
 
 from .agents import get_design_agents
 from .tools.rag_tools import AlloySearchTool
-from .tools.calibration_fix import apply_calibration_safe
-from .tools.metallurgy_tools import validate_property_coherency, enforce_physics_constraints, cleanup_llm_output, cleanup_confidence, warnings_to_penalties
-from .schemas import ValidationOutput, ArbitrationOutput, CorrectedPropertiesOutput, DesignOutput, OptimizationOutput, AuditPenalty
-from .alloy_evaluator import _slim_kg_context
+from .schemas import DesignOutput, OptimizationOutput
+from .alloy_evaluator import AlloyEvaluationCrew
+from .config.alloy_parameters import TCP, classify_tcp_risk
 
 class FailureMode(Enum):
     """Structured classification of design failure reasons."""
@@ -33,10 +35,9 @@ class IterativeDesignCrew:
 
         self.designer = self.agents["designer"]
         self.optimization_advisor = self.agents["optimization_advisor"]
-        self.validator = self.agents["validator"]
-        self.arbitrator = self.agents["arbitrator"]
-        self.physicist = self.agents["physicist"]
-        self.summarizer = self.agents["summarizer"]
+        self.analyst = self.agents["analyst"]
+        self.reviewer = self.agents["reviewer"]
+        self.llm = self.agents.get("llm")
 
 
         self.min_yield = float(target_props.get("Yield Strength", 0))
@@ -46,6 +47,13 @@ class IterativeDesignCrew:
         self.max_density = float(target_props.get("Density", 99.0))
         self.min_gamma_prime = float(target_props.get("Gamma Prime", 0))
         self.failure_history = []
+
+        # Reuse the evaluation pipeline (shared Analyst + Reviewer agents)
+        self.evaluator = AlloyEvaluationCrew(agents={
+            'analyst': self.analyst,
+            'reviewer': self.reviewer,
+            'llm': self.llm,
+        })
 
         self._setup_tasks()
         self._setup_crews()
@@ -59,10 +67,12 @@ class IterativeDesignCrew:
             warnings = []
 
             md_gamma = features.get("Md_gamma", 0)
-            if md_gamma > 0.97:
-                warnings.append(f"Critical: Md_gamma={md_gamma:.3f} > 0.97 (TCP phase formation risk)")
-            elif md_gamma > 0.95:
-                warnings.append(f"Warning: Md_gamma={md_gamma:.3f} > 0.95 (approaching TCP danger zone)")
+            md_avg = features.get("Md_avg", 0)
+            tcp_level = classify_tcp_risk(md_gamma, md_avg)
+            if tcp_level in ("Critical", "Elevated"):
+                warnings.append(f"Critical: Md_avg={md_avg:.3f} > {TCP['MD_ELEVATED']} (TCP phase formation risk: {tcp_level})")
+            elif tcp_level == "Moderate":
+                warnings.append(f"Warning: Md_avg={md_avg:.3f} > {TCP['MD_MODERATE']} (approaching TCP danger zone)")
 
             delta = features.get("lattice_mismatch_pct", 0)
             if abs(delta) > 0.9:
@@ -97,7 +107,7 @@ class IterativeDesignCrew:
         feedback_lower = feedback.lower()
 
         if "tcp" in feedback_lower or "md" in feedback_lower or "phase" in feedback_lower:
-            return "TCP risk reduction (lower Re/W/Mo, increase Cr, optimize Md_gamma < 0.95)"
+            return f"TCP risk reduction (lower Re/W/Mo, increase Cr, optimize Md_gamma < {TCP['MD_DESIGN_TARGET']})"
 
         if "yield" in feedback_lower and "strength" in feedback_lower:
             return "Strength improvement (increase γ' formers: Al, Ti, Ta)"
@@ -133,7 +143,7 @@ class IterativeDesignCrew:
 
                 "✅ SUCCESS CRITERIA:\n"
                 "1. All target properties met (within ±10%)\n"
-                "2. TCP risk = Low (Md_gamma < 0.95)\n"
+                "2. TCP risk = Low (Md_gamma < {md_target})\n"
                 "3. Lattice mismatch < 0.8%\n"
                 "4. Cr = 5-20%, γ' formers appropriate for {processing}\n\n"
 
@@ -172,82 +182,11 @@ class IterativeDesignCrew:
             context=[self.task_design],
         )
 
-
-        self.task_validation = Task(
-            description=(
-                "Validate composition at {temperature}°C using AlloyPredictorTool.\n\n"
-                "Execute: AlloyPredictorTool(\n"
-                "  composition={composition_json},\n"
-                "  temperature_c={temperature},\n"
-                "  processing='{processing}'\n"
-                ")\n\n"
-                "Return ONLY the tool's output. Do NOT invent or modify any values."
-            ),
-            expected_output="Structured ML predictions with confidence.",
-            output_pydantic=ValidationOutput,
-            agent=self.validator,
-            async_execution=False,
-        )
-
-        self.task_arbitration = Task(
-            description=(
-                "Fuse ML predictions with KG data using DataFusionTool.\n\n"
-                "Execute DataFusionTool with these INPUT parameters ONLY:\n"
-                "  composition: {composition_json}\n"
-                "  ml_prediction_json: <JSON string from Validator's ml_prediction>\n"
-                "  rag_context: {kg_context}\n"
-                "  target_temperature_c: {temperature}\n"
-                "  processing: '{processing}'\n"
-                "  mode: 'design'  (weights ML at 70% for bolder novel designs)\n\n"
-                "DO NOT add any other parameters like 'properties', 'status', 'confidence', etc.\n"
-                "Those are OUTPUT fields that the tool will return.\n\n"
-                "Return the tool's complete output exactly as provided."
-            ),
-            expected_output="Fused properties with confidence and intervals.",
-            output_pydantic=ArbitrationOutput,
-            agent=self.arbitrator,
-            context=[self.task_validation],
-        )
-
-        self.task_physics = Task(
-            description=(
-                "Audit and apply physics corrections using MetallurgyVerifierTool.\n\n"
-                "1. Infer alloy_type using priority order:\n"
-                "   - 'high_corrosion' if Cr > 21%\n"
-                "   - 'high_strength' if Al+Ti > 4% AND Cr ≤ 21%\n"
-                "   - 'standard' otherwise\n\n"
-                "2. Execute MetallurgyVerifierTool with these INPUT parameters ONLY:\n"
-                "   composition: {composition_json}\n"
-                "   anchored_properties_json: <JSON with {{properties, processing}} from Arbitrator>\n"
-                "   temperature_c: {temperature}\n"
-                "   alloy_type: <inferred_type>\n\n"
-                "   DO NOT add output fields like 'status', 'tcp_risk', 'audit_penalties', 'corrections_applied', etc.\n"
-                "   Those will be returned by the tool.\n\n"
-                "3. PRESERVE the complete tool output including 'corrections_applied'\n\n"
-                "4. Add ONLY a 3-5 sentence human-readable 'explanation':\n"
-                "   - Identify dominant strengthening mechanism (γ' vs solid solution)\n"
-                "   - Note any corrections applied and why\n"
-                "   - Suggest suitable applications\n"
-                "   - DO NOT modify any numerical values in your explanation\n\n"
-                "Note: MetallurgyVerifierTool handles SSS and γ' temperature corrections internally."
-            ),
-            expected_output="Complete physics audit with corrections and human-readable explanation.",
-            output_pydantic=CorrectedPropertiesOutput,
-            agent=self.physicist,
-            context=[self.task_arbitration],
-        )
-
     def _setup_crews(self):
         """Instantiate Crews once."""
         self.crew_synthesis = Crew(
             agents=[self.designer],
             tasks=[self.task_design],
-            verbose=True,
-        )
-
-        self.crew_analysis = Crew(
-            agents=[self.validator, self.arbitrator, self.physicist],
-            tasks=[self.task_validation, self.task_arbitration, self.task_physics],
             verbose=True,
         )
 
@@ -311,6 +250,7 @@ class IterativeDesignCrew:
             "processing": processing,
             "novelty_msg": novelty_msg,
             "priority_focus": priority_focus,
+            "md_target": TCP["MD_DESIGN_TARGET"],
         }
 
         try:
@@ -330,8 +270,8 @@ class IterativeDesignCrew:
                 return {"error": "Designer returned invalid composition."}
 
             total = sum(designer_comp.values())
-            if total < 90.0 or total > 110.0:
-                return {"error": f"Composition sum ({total:.1f}%) is outside acceptable range (90-110%)."}
+            if total < 95.0 or total > 105.0:
+                return {"error": f"Composition sum ({total:.1f}%) is outside acceptable range (95-105%)."}
 
             designer_comp = round_composition(designer_comp, decimals=2)
 
@@ -341,144 +281,36 @@ class IterativeDesignCrew:
         except Exception as e:
             return {"error": f"Designer output extraction failed: {e}"}
 
-        try:
-            kg_raw = AlloySearchTool()._run(composition=designer_comp, limit=3)
-            kg_context = _slim_kg_context(kg_raw, target_temp=temperature)
-        except Exception:
-            kg_context = "[]"
-
+        # Phase 2: Evaluate designed composition via shared pipeline
         novelty_new_design = self._run_novelty_check(designer_comp)
 
-
-        inputs_analysis = {
-            "composition_json": json.dumps(designer_comp),
-            "temperature": temperature,
-            "processing": processed_route,
-            "kg_context": kg_context,
-        }
-
-        try:
-            self.crew_analysis.kickoff(inputs=inputs_analysis)
-        except Exception as e:
-            return {"error": f"Analysis Crew Failed: {e}"}
-
-        physics_output = getattr(self.task_physics.output, "pydantic", None)
-        if not physics_output:
-            return {"error": "Physicist did not return structured output."}
-
-        validator_output = getattr(self.task_validation.output, "pydantic", None)
-        if validator_output and hasattr(validator_output, 'ml_prediction'):
-            ml_truth = validator_output.ml_prediction
-
-            for prop_name in ["Yield Strength", "Tensile Strength", "Elongation", "Elastic Modulus", "Density"]:
-                if prop_name in ml_truth and prop_name in physics_output.properties:
-                    ml_value = ml_truth[prop_name]
-                    phys_value = physics_output.properties[prop_name]
-
-                    if ml_value > 0 and abs(phys_value - ml_value) > max(0.01 * ml_value, 1):
-                        diff_pct = abs(phys_value - ml_value) / ml_value * 100
-                        print(f"📊 Physics correction applied to {prop_name}: {ml_value:.1f} → {phys_value:.1f} ({diff_pct:+.1f}%)")
-
-        physics_output.properties = apply_calibration_safe(
-            physics_output.properties,
-            designer_comp,
-            physics_output
-        )
-
-        # === PHYSICS ENFORCEMENT (Hard Constraints) ===
-        confidence = physics_output.confidence if isinstance(physics_output.confidence, dict) else {}
-        kg_distance = confidence.get("similarity_distance", 999)
-        confidence_level = confidence.get("level", "MEDIUM")
-
-        physics_output.properties, physics_corrections = enforce_physics_constraints(
-            properties=physics_output.properties,
+        result = self.evaluator.evaluate_properties(
             composition=designer_comp,
-            temperature_c=temperature,
             processing=processed_route,
-            confidence_level=confidence_level,
-            kg_distance=kg_distance
+            temperature=temperature,
+            apply_calibration=True,
+            summary_context={
+                "min_yield": self.min_yield,
+                "max_density": self.max_density,
+                "min_tensile": self.min_tensile,
+                "min_elongation": self.min_elongation,
+                "min_elastic_modulus": self.min_elastic_modulus,
+                "min_gamma_prime": self.min_gamma_prime,
+            },
+            extra_output_fields={
+                "composition": designer_comp,
+                "novelty": novelty_new_design,
+            },
         )
 
-        if physics_corrections:
-            print(f"⚡ Physics enforcement applied {len(physics_corrections)} corrections:")
-            for corr in physics_corrections:
-                print(f"   - {corr}")
-
-        # Re-run coherency checks with POST-calibration values
-        non_coherency_penalties = [
-            p for p in physics_output.audit_penalties
-            if not any(x in p.name.lower() for x in ["coherency", "mismatch"])
-        ]
-        fresh_warnings = validate_property_coherency(physics_output.properties, designer_comp)
-        fresh_penalties = [AuditPenalty(**p) for p in warnings_to_penalties(fresh_warnings)]
-        physics_output.audit_penalties = non_coherency_penalties + fresh_penalties
-
-        try:
-            summarizer = self.summarizer
-            comp_str = ", ".join([f"{elem}: {wt:.1f}%" for elem, wt in sorted(designer_comp.items(), key=lambda x: x[1], reverse=True)[:5]])
-
-            summary_task = Task(
-                description=(
-                    f"Generate a 3-paragraph summary for this alloy design:\n\n"
-                    f"**Target**: Yield Strength ≥ {self.min_yield} MPa, Density ≤ {self.max_density} g/cm³\n\n"
-                    f"**Designed Composition**: {comp_str}, ...\n\n"
-                    f"**Achieved Properties**:\n"
-                    f"- Yield Strength: {physics_output.properties.get('Yield Strength', 'N/A')} MPa\n"
-                    f"- Tensile Strength: {physics_output.properties.get('Tensile Strength', 'N/A')} MPa\n"
-                    f"- Elongation: {physics_output.properties.get('Elongation', 'N/A')}%\n"
-                    f"- Elastic Modulus: {physics_output.properties.get('Elastic Modulus', 'N/A')} GPa\n"
-                    f"- Gamma Prime: {physics_output.properties.get('Gamma Prime', 'N/A')} vol%\n\n"
-                    f"**Physics Audit**:\n"
-                    f"- TCP Risk: {physics_output.tcp_risk}\n"
-                    f"- Violations: {len(physics_output.audit_penalties)}\n\n"
-                    f"Explain (1) What was designed, (2) Performance vs target, (3) Trade-offs and recommendations."
-                ),
-                expected_output="3-paragraph technical summary in clear language",
-                agent=summarizer
-            )
-            
-            summary_crew = Crew(
-                agents=[summarizer],
-                tasks=[summary_task],
-                verbose=False
-            )
-            
-            summary_result = summary_crew.kickoff()
-            summary_text = str(summary_result.raw) if hasattr(summary_result, 'raw') else str(summary_result)
-            
-        except Exception as e:
-            print(f"⚠️  Could not generate summary: {e}")
-            summary_text = physics_output.explanation  # Fallback to physicist explanation
-
-        # Cleanup LLM output (normalize keys, filter invalid metrics)
-        clean_properties, clean_intervals, clean_metrics = cleanup_llm_output(
-            physics_output.properties,
-            physics_output.property_intervals,
-            physics_output.metallurgy_metrics or {},
-            designer_comp
-        )
-
-        return {
-            "composition": designer_comp,
-            "processing": processed_route,
-            "properties": clean_properties,
-            "property_intervals": clean_intervals,
-            "metallurgy_metrics": clean_metrics,
-            "confidence": cleanup_confidence(physics_output.confidence),
-            "explanation": summary_text,
-            "novelty": novelty_new_design,
-            "penalty_score": physics_output.penalty_score,
-            "tcp_risk": physics_output.tcp_risk,
-            "audit_penalties": [p.dict() for p in physics_output.audit_penalties] if physics_output.audit_penalties else [],
-            "status": physics_output.status,
-        }
+        return result
 
     def _is_design_successful(self, result):
         """Determine if a design meets all success criteria."""
         if result.get("error"):
             return False
 
-        if result.get("tcp_risk", "High") == "High":
+        if result.get("tcp_risk", "Critical") in ("Critical", "Elevated"):
             return False
 
         penalties = result.get("audit_penalties", [])
@@ -505,12 +337,11 @@ class IterativeDesignCrew:
             gp_max = self.min_gamma_prime + gp_tolerance
 
             if actual_gp < gp_min:
-                print(f"❌ DESIGN FAILED: Gamma Prime {actual_gp:.1f}% is TOO LOW (target range: {gp_min:.1f}-{gp_max:.1f}%)")
+                logger.error(f"DESIGN FAILED: Gamma Prime {actual_gp:.1f}% is TOO LOW (target range: {gp_min:.1f}-{gp_max:.1f}%)")
                 return False
             if actual_gp > gp_max:
-                print(f"❌ DESIGN FAILED: Gamma Prime {actual_gp:.1f}% is TOO HIGH (target range: {gp_min:.1f}-{gp_max:.1f}%)")
-                print(f"   ⚠️  You designed a HIGH-γ' turbine blade alloy when user requested LOW-γ' structural alloy!")
-                print(f"   ⚠️  MUST reduce Al+Ti+Ta to ~{self.min_gamma_prime / 3:.1f}% total (currently {sum([result.get('composition', {}).get(el, 0) for el in ['Al', 'Ti', 'Ta']]):.1f}%)")
+                logger.error(f"DESIGN FAILED: Gamma Prime {actual_gp:.1f}% is TOO HIGH (target range: {gp_min:.1f}-{gp_max:.1f}%)")
+                logger.error(f"Designed a HIGH-gamma-prime turbine blade alloy when user requested LOW-gamma-prime structural alloy! MUST reduce Al+Ti+Ta to ~{self.min_gamma_prime / 3:.1f}% total (currently {sum([result.get('composition', {}).get(el, 0) for el in ['Al', 'Ti', 'Ta']]):.1f}%)")
                 return False
 
         return True
@@ -520,10 +351,10 @@ class IterativeDesignCrew:
         failures_by_mode = {mode: [] for mode in FailureMode}
 
         tcp = result.get("tcp_risk", "Unknown")
-        if tcp == "High":
-            failures_by_mode[FailureMode.TCP_RISK].append("TCP Risk is HIGH (topologically close-packed phase formation)")
-        elif tcp == "Medium":
-            failures_by_mode[FailureMode.TCP_RISK].append("TCP Risk is MEDIUM (approaching danger zone)")
+        if tcp == "Critical":
+            failures_by_mode[FailureMode.TCP_RISK].append("TCP Risk is CRITICAL (topologically close-packed phase formation)")
+        elif tcp == "Elevated":
+            failures_by_mode[FailureMode.TCP_RISK].append("TCP Risk is ELEVATED (approaching danger zone)")
 
         penalties = result.get("audit_penalties", [])
         if penalties:
@@ -640,85 +471,35 @@ class IterativeDesignCrew:
 
         for i in range(max_iterations):
             iteration_num = i + 1
-            print(f"\n⚡ ITERATION {iteration_num}/{max_iterations}")
+            logger.info(f"ITERATION {iteration_num}/{max_iterations}")
 
             if use_direct_application and current_comp:
-                print("🔬 DIRECT APPLICATION MODE: Using physics-optimized composition directly (bypassing LLM)")
+                logger.info("DIRECT APPLICATION MODE: Using physics-optimized composition directly (bypassing LLM)")
                 if not isinstance(current_comp, dict) or not current_comp:
-                    print("⚠️ Direct mode composition invalid, falling back to LLM")
+                    logger.warning("Direct mode composition invalid, falling back to LLM")
                     use_direct_application = False
                     current_comp = None
                     continue
 
                 total = sum(current_comp.values())
-                if total < 90.0 or total > 110.0:
-                    print(f"⚠️ Direct mode composition sum ({total:.1f}%) out of range, falling back to LLM")
+                if total < 95.0 or total > 105.0:
+                    logger.warning(f"Direct mode composition sum ({total:.1f}%) out of range (95-105%), falling back to LLM")
                     use_direct_application = False
                     current_comp = None
                     continue
 
-                result = {
-                    "composition": current_comp,
-                    "processing": processing,
-                    "reasoning": "Direct application of physics-based optimization"
-                }
-
-                inputs_validation = {
-                    "composition_json": json.dumps(current_comp),
-                    "temperature": temperature,
-                    "processing": processing,
-                    "kg_context": "[]",
-                }
                 try:
-                    self.crew_analysis.kickoff(inputs=inputs_validation)
-
-                    val_output = getattr(self.task_validation.output, "pydantic", None)
-
-                    # Get physics output
-                    phys_output = getattr(self.task_physics.output, "pydantic", None)
-
-                    if phys_output:
-                        result["properties"] = phys_output.properties
-                        result["tcp_risk"] = phys_output.tcp_risk
-                        result["audit_penalties"] = [p.model_dump() for p in phys_output.audit_penalties]
-
-                        if val_output and hasattr(val_output, 'ml_prediction'):
-                            ml_truth = val_output.ml_prediction
-                            for prop_name in ["Yield Strength", "Tensile Strength", "Elongation", "Elastic Modulus", "Density"]:
-                                if prop_name in ml_truth and prop_name in result["properties"]:
-                                    ml_value = ml_truth[prop_name]
-                                    corr_value = result["properties"][prop_name]
-                                    if ml_value > 0 and abs(corr_value - ml_value) > max(0.01 * ml_value, 1):
-                                        diff_pct = abs(corr_value - ml_value) / ml_value * 100
-                                        print(f"📊 Correction applied to {prop_name}: {ml_value:.1f} → {corr_value:.1f} ({diff_pct:+.1f}%)")
-
-                        result["properties"] = apply_calibration_safe(
-                            result["properties"],
-                            current_comp,
-                            phys_output
-                        )
-
-                        # Physics enforcement for direct mode
-                        conf = phys_output.confidence if isinstance(phys_output.confidence, dict) else {}
-                        result["properties"], _ = enforce_physics_constraints(
-                            properties=result["properties"],
-                            composition=current_comp,
-                            temperature_c=temperature,
-                            processing=processing,
-                            confidence_level=conf.get("level", "MEDIUM"),
-                            kg_distance=conf.get("similarity_distance", 999)
-                        )
-                    else:
-                        raw_phys = getattr(self.task_physics.output, "raw", "")
-                        if raw_phys:
-                             try:
-                                phys_data = json.loads(raw_phys)
-                                result["tcp_risk"] = phys_data.get("tcp_risk", "Unknown")
-                                result["audit_penalties"] = phys_data.get("audit_penalties", [])
-                             except:
-                                pass
+                    result = self.evaluator.evaluate_properties(
+                        composition=current_comp,
+                        processing=processing,
+                        temperature=temperature,
+                        apply_calibration=True,
+                    )
+                    result["composition"] = current_comp
+                    result["processing"] = processing
+                    result["reasoning"] = "Direct application of physics-based optimization"
                 except Exception as e:
-                    print(f"⚠️ Validation error in direct mode: {e}")
+                    logger.warning(f"Validation error in direct mode: {e}")
                     use_direct_application = False  # Fall back to LLM
             
             if not use_direct_application or not current_comp:
@@ -732,7 +513,7 @@ class IterativeDesignCrew:
                 )
 
             if "error" in result:
-                print(f"❌ Aborted: {result['error']}")
+                logger.error(f"Aborted: {result['error']}")
                 current_comp = result.get("composition", current_comp)
                 feedback = f"Design Failed: {result['error']}. Fix constraints."
 
@@ -744,14 +525,14 @@ class IterativeDesignCrew:
                 is_valid, precheck_warnings = self._quick_physics_precheck(result["composition"])
 
                 if not is_valid:
-                    print("\n⚡ FAST PHYSICS PRE-CHECK: Critical violations detected")
+                    logger.info("FAST PHYSICS PRE-CHECK: Critical violations detected")
                     for w in precheck_warnings:
                         if w.startswith("Critical"):
-                            print(f"   🔴 {w}")
+                            logger.warning(w)
                         else:
-                            print(f"   🟡 {w}")
+                            logger.info(w)
 
-                    print("\n🔧 EARLY OPTIMIZATION: Getting physics-based corrections...")
+                    logger.info("EARLY OPTIMIZATION: Getting physics-based corrections...")
                     try:
                         optimization_inputs = {
                             "composition_json": json.dumps(result["composition"]),
@@ -770,9 +551,9 @@ class IterativeDesignCrew:
 
                         opt_output = getattr(self.task_optimization.output, "pydantic", None)
                         if opt_output and opt_output.recommended_actions:
-                            print("📊 EARLY OPTIMIZATION SUGGESTIONS:")
+                            logger.info("EARLY OPTIMIZATION SUGGESTIONS:")
                             for action in opt_output.recommended_actions[:3]:
-                                print(f"   • {action}")
+                                logger.info(f"  {action}")
 
                             feedback = (
                                 f"⚠️ PRE-VALIDATION FAILURES DETECTED:\n"
@@ -782,33 +563,33 @@ class IterativeDesignCrew:
                                 f"Apply these corrections and propose a revised composition that fixes the critical issues above."
                             )
 
-                            print(f"\n🔄 Skipping full validation, applying corrections in next iteration...")
+                            logger.info("Skipping full validation, applying corrections in next iteration...")
                             # Continue to next iteration with corrective feedback (skip validation)
                             continue
                     except Exception as e:
-                        print(f"⚠️ Early optimization failed: {e}, proceeding with full validation")
+                        logger.warning(f"Early optimization failed: {e}, proceeding with full validation")
 
-            print(f"   Proposed: {result['composition']}")
+            logger.debug(f"Proposed: {result['composition']}")
             props = result.get("properties", {})
             tcp = result.get("tcp_risk", "Unknown")
             penalties = len(result.get("audit_penalties", []))
-            print(f"   Properties: YS={props.get('Yield Strength', 0)}, TCP={tcp}, Penalties={penalties}")
+            logger.debug(f"Properties: YS={props.get('Yield Strength', 0)}, TCP={tcp}, Penalties={penalties}")
 
 
             if self._is_design_successful(result):
-                print("\n✅ SUCCESS! Converged.")
+                logger.info("SUCCESS! Design converged.")
                 break
 
             # 📊 STRUCTURED FAILURE ANALYSIS
             failures_by_mode = self._classify_failures(result)
 
             # Print structured failure report
-            print("\n📊 FAILURE ANALYSIS:")
+            logger.debug("FAILURE ANALYSIS:")
             for mode, messages in failures_by_mode.items():
                 mode_label = mode.value.replace("_", " ")
-                print(f"   [{mode_label}]")
+                logger.debug(f"  [{mode_label}]")
                 for msg in messages:
-                    print(f"      • {msg}")
+                    logger.debug(f"    {msg}")
 
             # Build flat failure list for backward compatibility
             failures = []
@@ -818,12 +599,11 @@ class IterativeDesignCrew:
             # --- PRIORITY ENFORCEMENT LOGIC ---
             # Once YS target is met, focus EXCLUSIVELY on TCP risk
             ys_target_met = props.get("Yield Strength", 0) >= self.min_yield if self.min_yield > 0 else True
-            tcp_critical = tcp == "High" or tcp == "Medium"
+            tcp_critical = tcp in ("Critical", "Elevated")
             
             if ys_target_met and tcp_critical:
                 # PRIORITY MODE: Only focus on TCP, ignore other property improvements
-                print("\n⚡ PRIORITY MODE: YS target met ({:.0f} >= {:.0f} MPa). Focusing ONLY on TCP risk reduction.".format(
-                    props.get("Yield Strength", 0), self.min_yield))
+                logger.info("PRIORITY MODE: YS target met ({:.0f} >= {:.0f} MPa). Focusing ONLY on TCP risk reduction.".format(props.get("Yield Strength", 0), self.min_yield))
                 
 
                 tcp_failures = [f for f in failures if "TCP" in f or "Md" in f or "Physics" in f]
@@ -842,7 +622,7 @@ class IterativeDesignCrew:
 
 
             try:
-                target_str = (
+                opt_target_str = (
                     f"- Yield Strength > {self.min_yield} MPa\n"
                     f"- Tensile Strength > {self.min_tensile} MPa\n"
                     f"- Elongation > {self.min_elongation} %\n"
@@ -850,10 +630,10 @@ class IterativeDesignCrew:
                     f"- Density < {self.max_density} g/cm3\n"
                     f"- Gamma Prime > {self.min_gamma_prime} %"
                 )
-                
+
                 optimization_inputs = {
                     "composition_json": json.dumps(result["composition"]),
-                    "target_props_str": target_str,
+                    "target_props_str": opt_target_str,
                     "current_props_json": json.dumps(props),
                     "failure_reasons": json.dumps(failures_for_advisor),  # Use filtered failures
                     "processing": processing,
@@ -870,9 +650,9 @@ class IterativeDesignCrew:
 
                 opt_output = getattr(self.task_optimization.output, "pydantic", None)
                 if opt_output and opt_output.recommended_actions:
-                    print("\n📊 OPTIMIZATION SUGGESTIONS:")
+                    logger.info("OPTIMIZATION SUGGESTIONS:")
                     for action in opt_output.recommended_actions[:3]:
-                        print(f"   • {action}")
+                        logger.info(f"  {action}")
 
                     failure_mode_summary = []
                     for mode, msgs in failures_by_mode.items():
@@ -905,7 +685,7 @@ class IterativeDesignCrew:
                         f"Propose a new composition to fix these issues."
                     )
             except Exception as e:
-                print(f"⚠️  Optimization advisor error: {e}")
+                logger.warning(f"Optimization advisor error: {e}")
                 failure_str = ", ".join(failures) if failures else "unspecified issues"
                 feedback = f"Design FAILED: {failure_str}. Propose a new composition to fix these issues."
 
@@ -917,26 +697,26 @@ class IterativeDesignCrew:
             issues = []
             recommendations = []
 
-            if tcp_risk == "High":
+            if tcp_risk == "Critical":
                 md_val = result.get("metallurgy_metrics", {}).get("md_gamma_matrix", "?")
                 issues.append({
                     "type": "TCP Risk",
                     "severity": "High",
-                    "description": f"High risk of TCP phase formation (Md={md_val}, safe limit <0.99). This can cause brittleness.",
+                    "description": f"Critical risk of TCP phase formation (Md={md_val}, safe limit <{TCP['MD_DESIGN_SAFE']}). This can cause brittleness.",
                     "recommendation": "Reduce refractory elements (Re, W, Mo) or increase Cr/Co to lower Md value."
                 })
-            elif tcp_risk == "Medium":
+            elif tcp_risk == "Elevated":
                 issues.append({
                     "type": "TCP Risk",
                     "severity": "Medium",
-                    "description": "Medium TCP risk - approaching danger zone for phase formation.",
+                    "description": "Elevated TCP risk - approaching danger zone for phase formation.",
                     "recommendation": "Consider reducing refractory element content."
                 })
 
             if penalties:
                 for penalty in penalties:
                     penalty_name = penalty.get("name", "Unknown")
-                    penalty_desc = penalty.get("description", "No description")
+                    penalty_desc = penalty.get("reason", "No description")
                     issues.append({
                         "type": "Audit Violation",
                         "severity": "Medium",
@@ -998,12 +778,12 @@ class IterativeDesignCrew:
 
             has_high_severity = any(issue["severity"] == "High" for issue in issues)
             if has_high_severity and result.get("status") == "PASS":
-                print(f"\n🔴 Overriding status from PASS to REJECT due to HIGH severity design issues")
+                logger.warning("Overriding status from PASS to REJECT due to HIGH severity design issues")
                 result["status"] = "REJECT"
 
-            print(f"\n⚠️ Design completed with {len(issues)} issues after {max_iterations} iterations")
+            logger.warning(f"Design completed with {len(issues)} issues after {max_iterations} iterations")
             for issue in issues:
-                print(f"   • [{issue['severity']}] {issue['type']}: {issue['description']}")
+                logger.warning(f"  [{issue['severity']}] {issue['type']}: {issue['description']}")
 
         else:
             result["design_status"] = "success"

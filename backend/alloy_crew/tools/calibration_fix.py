@@ -1,6 +1,6 @@
 import logging
 
-from ..config.alloy_parameters import get_params
+from ..config.alloy_parameters import get_params, is_sss_alloy
 
 logger = logging.getLogger(__name__)
 
@@ -19,18 +19,12 @@ def get_calibration_factor(composition, kg_distance, processing="cast"):
 
     # Composition-dependent calibration for SSS alloys
     # SSS alloys (Al+Ti+Ta < 2%) tend to be over-predicted due to:
-    al = composition.get("Al", composition.get("al", 0)) or 0
-    ti = composition.get("Ti", composition.get("ti", 0)) or 0
-    ta = composition.get("Ta", composition.get("ta", 0)) or 0
     cr = composition.get("Cr", composition.get("cr", 0)) or 0
-    al_ti_ta = al + ti + ta
 
-    if al_ti_ta < 2.0:
+    if is_sss_alloy(composition):
         # SSS alloy detected - apply processing-specific calibration
         if processing == "cast":
-            # Cast SSS alloys
-            ys_factor = ys_factor * 0.85
-            uts_factor = uts_factor * 0.85
+            logger.info(f"Cast SSS alloy - no extra calibration (physics already applies CAST_REDUCTION)")
         elif processing in ["wrought", "forged"]:
             # Wrought SSS alloys
             if cr < 18.0:
@@ -54,7 +48,7 @@ def get_calibration_factor(composition, kg_distance, processing="cast"):
     return {
         "Yield Strength": 1.0 + blend_weight * (ys_factor - 1.0),
         "Tensile Strength": 1.0 + blend_weight * (uts_factor - 1.0),
-        "Elastic Modulus": 1.0 + blend_weight * 0.05,
+        "Elastic Modulus": 1.0,
         "Elongation": 1.0 + blend_weight * (el_factor - 1.0)
     }
 
@@ -67,6 +61,8 @@ def apply_calibration(properties, composition, kg_distance, processing="cast"):
     for prop, factor in factors.items():
         if prop in calibrated and factor != 1.0:
             original = calibrated[prop]
+            if not isinstance(original, (int, float)):
+                continue
             new_value = original * factor
 
             if new_value <= 0 or not (abs(new_value) < 1e10):
@@ -82,6 +78,8 @@ def apply_calibration(properties, composition, kg_distance, processing="cast"):
 def apply_calibration_safe(properties, composition, physics_output_or_confidence):
     """Safely apply calibration with automatic error handling."""
     try:
+        if physics_output_or_confidence is None:
+            return properties.copy()
         if hasattr(physics_output_or_confidence, 'confidence'):
             confidence_dict = physics_output_or_confidence.confidence
             kg_distance = confidence_dict.get("similarity_distance", 999) if isinstance(confidence_dict, dict) else 999

@@ -7,26 +7,27 @@ import logging
 logger = logging.getLogger(__name__)
 
 from ..models.feature_engineering import compute_alloy_features, MD_VALUES
+from ..config.alloy_parameters import TCP, SSS, classify_tcp_risk
 from ..schemas import ElementSuggestion, SuggestionGroup, CompositionSensitivityInput
 
 # =============================================================================
 # Physical Constants (Evidence-Based)
 # =============================================================================
 
-# TCP risk thresholds (Reed 2006, Pollock & Tin 2006)
-MD_TCP_THRESHOLD = 1.00  # Elevated risk threshold - suggest optimization above this
-MD_HIGH_RISK = 1.05      # Critical risk threshold - strongly recommend optimization
+# TCP risk thresholds — from centralized alloy_parameters.py
+MD_TCP_THRESHOLD = TCP["MD_DESIGN_SAFE"]  # Suggest optimization above this
+MD_HIGH_RISK = TCP["MD_CRITICAL"]         # Critical risk — strongly recommend optimization
 
 # Strengthening coefficients
 GP_STRENGTH_COEFFICIENT = 35.0  # MPa per vol% γ' (Pollock & Tin 2006)
-MAX_GP_WROUGHT = 6.0     # Max γ' for wrought processing
-MAX_GP_CAST = 10.0       # Max γ' for cast processing
+MAX_GP_FORMERS_WROUGHT = 6.0   # Max γ' formers (Al+Ti+Ta+Nb) wt% for wrought processing
 
 # Element groups with Md values
 MD_RAISERS = [("Re", 1.267), ("Mo", 1.55), ("W", 1.655), ("Ta", 2.224), ("Nb", 2.117)]
 MD_DEPRESSORS = [("Cr", 1.142), ("Co", 0.777), ("Ni", 0.717)]
 GP_FORMERS = ["Al", "Ti", "Ta", "Nb"]
-SSS_ELEMENTS = [("Mo", 12.0), ("W", 10.0)]  # (element, MPa per wt%)
+# SSS potency from centralized alloy_parameters.py (Mo=10, W=12 per Labusch-Nabarro)
+SSS_ELEMENTS = [("W", SSS["POTENCY"]["W"]), ("Mo", SSS["POTENCY"]["Mo"])]
 
 
 class AlloyOptimizationAdvisor(BaseTool):
@@ -155,8 +156,8 @@ class AlloyOptimizationAdvisor(BaseTool):
                 # Check processing limits
                 if processing == "wrought":
                     gp_total = sum(composition.get(e, 0) for e in GP_FORMERS)
-                    if gp_total + wt_pct_needed > MAX_GP_WROUGHT:
-                        wt_pct_needed = max(0.0, MAX_GP_WROUGHT - gp_total)
+                    if gp_total + wt_pct_needed > MAX_GP_FORMERS_WROUGHT:
+                        wt_pct_needed = max(0.0, MAX_GP_FORMERS_WROUGHT - gp_total)
                 
                 if wt_pct_needed > 0.5:
                     suggestions.append(ElementSuggestion(
@@ -301,12 +302,14 @@ class AlloyOptimizationAdvisor(BaseTool):
                     suggestion_groups.append(strength_group)
 
             # Build output
+            md_gamma = features.get("Md_gamma", current_md)
+
             output = {
                 "status": "OK",
                 "current_features": {
                     "Md_avg": current_md,
                     "gamma_prime_vol": current_gp,
-                    "TCP_risk": "High" if current_md > MD_HIGH_RISK else "Low"
+                    "TCP_risk": classify_tcp_risk(md_gamma, current_md)
                 },
                 "suggestion_groups": [g.model_dump() for g in suggestion_groups],
                 "summary": f"Generated {len(suggestion_groups)} suggestion groups with {sum(len(g.suggestions) for g in suggestion_groups)} total options."
