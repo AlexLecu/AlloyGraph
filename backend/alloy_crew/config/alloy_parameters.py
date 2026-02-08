@@ -1,59 +1,54 @@
 # =============================================================================
 # SSS (SOLID SOLUTION STRENGTHENING) ALLOY PARAMETERS
-# For alloys with Al+Ti+Ta < 2% (e.g., Haynes 230, Inconel 617)
+# For alloys with Al+Ti+Ta < 2%
 # =============================================================================
 
 SSS = {
-    # Classification threshold
     "AL_TI_TA_MAX": 2.0,           # wt% threshold for SSS classification
 
-    # Yield Strength bounds at room temperature
-    "YS_MIN_RT": 240,              # Minimum YS at RT (MPa)
-    "YS_MAX_RT": 500,              # Maximum YS at RT (MPa)
-    "YS_TYPICAL": 375,             # Typical YS at RT (MPa)
+    "YS_MIN_RT": 240,              # MPa
+    "YS_MAX_RT": 500,              # MPa
+    "GP_MAX": 5.0,                 # Maximum allowed γ' (%)
 
-    # Gamma Prime (should be ~0% for SSS alloys)
-    "GP_MAX": 5.0,                 # Maximum allowed γ' for SSS (%)
+    "EM_MIN": 200.0,               # GPa
+    "EM_MAX": 220.0,               # GPa
+    "EM_TYPICAL": 212.0,           # GPa
 
-    # Elastic Modulus bounds
-    "EM_MIN": 200.0,               # Minimum EM (GPa)
-    "EM_MAX": 220.0,               # Maximum EM (GPa)
-    "EM_TYPICAL": 212.0,           # Typical EM (GPa)
-
-    # Elongation by processing
-    "EL_MIN_WROUGHT": 35.0,        # Min elongation for wrought SSS (%)
-    "EL_MAX_WROUGHT": 65.0,        # Max elongation for wrought SSS (%)
-    "EL_TYPICAL_WROUGHT": 52.0,    # Typical elongation for wrought SSS (%)
+    # Elongation (min lowered from 35→28 based on datasheet validation)
+    "EL_MIN_WROUGHT": 28.0,        # %
+    "EL_MAX_WROUGHT": 65.0,
+    "EL_TYPICAL_WROUGHT": 52.0,
     "EL_MIN_CAST": 5.0,
     "EL_MAX_CAST": 20.0,
     "EL_TYPICAL_CAST": 10.0,
 
-    # UTS/YS ratio for SSS alloys (higher than γ' alloys due to work hardening)
-    "UTS_YS_RATIO_MIN": 1.6,
-    "UTS_YS_RATIO_MAX": 2.4,
-    "UTS_YS_RATIO_TYPICAL": 2.0,
+    # UTS/YS ratio — wrought (high work hardening)
+    "UTS_YS_RATIO_MIN_WROUGHT": 1.6,
+    "UTS_YS_RATIO_MAX_WROUGHT": 2.4,
+    "UTS_YS_RATIO_TYPICAL_WROUGHT": 2.0,
+    # UTS/YS ratio — cast
+    "UTS_YS_RATIO_MIN_CAST": 1.3,
+    "UTS_YS_RATIO_MAX_CAST": 1.7,
+    "UTS_YS_RATIO_TYPICAL_CAST": 1.5,
 
-    # SSS potency factors (MPa per wt%) - Labusch-Nabarro model
+    # SSS potency factors (MPa/wt%) — Labusch-Nabarro model
     "POTENCY": {
-        "Re": 18.0, "W": 12.0, "Mo": 10.0, "Nb": 8.0, "Ta": 7.0,
-        "Ti": 6.0, "Cr": 6.5, "Fe": 6.0, "Co": 2.0, "Al": 1.0,
-        "Mn": 0.5, "Si": 0.3,
+        "Re": 18.0, "W": 12.0, "Mo": 10.0, "Hf": 10.0, "Nb": 8.0, "Ta": 7.0,
+        "Ti": 6.0, "Cr": 3.0, "Al": 1.5, "Fe": 1.5, "Co": 2.0,
+        "V": 4.0, "Mn": 0.5, "Si": 0.3,
     },
 
-    # SSS strength model parameters
     "SIGMA_BASE": 120,             # Base strength (MPa)
     "SIGMA_HP_WROUGHT": 40,        # Hall-Petch for wrought (MPa)
     "SIGMA_HP_CAST": 20,           # Hall-Petch for cast (MPa)
-    "BLEND_FACTOR": 0.7,           # Physics/ML blend factor
-    "CAST_REDUCTION": 0.80,        # Cast strength reduction factor
+    "CAST_REDUCTION": 0.68,        # ~32% reduction for cast
 
-    # Temperature degradation parameters
-    "TEMP_TRANSITION": 600.0,      # Temperature where decay accelerates (°C)
+    "TEMP_TRANSITION": 600.0,      # °C — decay accelerates above this
     "TEMP_DECAY_SLOW": 0.00030,    # Linear decay rate below transition
-    "TEMP_DECAY_TAU": 280.0,       # Exponential decay constant above transition
-    "TEMP_MIN_FACTOR": 0.12,       # Minimum retention factor at very high T
-    "EL_TEMP_TRANSITION": 500.0,   # Elongation temperature transition (°C)
-    "EL_TEMP_FACTOR": 0.0019,      # Elongation increase rate with temp
+    "TEMP_DECAY_TAU": 450.0,       # Exponential decay constant above transition
+    "TEMP_MIN_FACTOR": 0.12,
+    "EL_TEMP_TRANSITION": 500.0,   # °C
+    "EL_TEMP_FACTOR": 0.0019,      # Elongation increase rate per °C
 }
 
 # =============================================================================
@@ -62,18 +57,20 @@ SSS = {
 # =============================================================================
 
 GP_TEMP = {
-    # Classification threshold
     "AL_TI_TA_MIN": 2.0,           # wt% threshold for γ' classification
 
-    # Three-stage temperature degradation model
-    "STAGE1_END": 750.0,           # End of linear stage (°C)
-    "STAGE2_END": 900.0,           # End of first exponential stage (°C)
+    # Three-stage degradation: linear → exp(TAU1) → exp(TAU2)
+    "STAGE1_END": 750.0,           # °C
+    "STAGE2_END": 900.0,           # °C
 
-    # Decay rates
-    "DECAY_LINEAR": 0.00020,       # Linear decay rate (per °C)
-    "DECAY_TAU1": 400.0,           # First exponential decay constant
-    "DECAY_TAU2": 80.0,            # Second exponential decay constant (rapid)
-    "MIN_FACTOR": 0.10,            # Minimum retention factor
+    # Calibrated to wrought γ' bar datasheet:
+    #   538C→0.912, 649C→0.868, 760C→0.849, 871C→0.654, 982C→0.176
+    "DECAY_LINEAR": 0.00020,       # per °C (linear stage)
+    "DECAY_TAU1": 450.0,           # γ' coarsening (750–900°C)
+    "DECAY_TAU2": 66.0,            # γ' dissolution (>900°C)
+    "MIN_FACTOR": 0.10,
+
+    "EL_TEMP_FACTOR": 0.0018,      # Elongation increase per °C above 650
 }
 
 # =============================================================================
@@ -82,83 +79,92 @@ GP_TEMP = {
 # =============================================================================
 
 SC_DS = {
-    # Temperature degradation (SC/DS retain strength longer)
-    "TEMP_TRANSITION": 850.0,      # Higher transition than polycrystalline
-    "TEMP_DECAY_TAU": 250.0,       # Slower decay
-    "TEMP_MIN_FACTOR": 0.35,       # Better high-temp retention
-    "TEMP_DECAY_LINEAR": 0.00006,  # Very slow linear decay
+    # Temperature degradation (SC/DS retain strength longer than polycrystalline)
+    "TEMP_TRANSITION": 850.0,      # °C
+    "TEMP_DECAY_TAU": 250.0,
+    "TEMP_MIN_FACTOR": 0.35,
+    "TEMP_DECAY_LINEAR": 0.00006,
 
-    # Detection thresholds (composition-based)
-    "RE_MIN": 2.0,                 # Re content for 2nd+ gen SC
-    "TA_W_MIN": 10.0,              # Ta+W threshold with Re
-    "TA_ALONE_MIN": 10.0,          # Ta alone threshold for 1st gen
-    "TA_W_HIGH": 11.0,             # High Ta+W threshold
+    # Detection thresholds
+    "RE_MIN": 2.0,                 # 2nd+ gen SC
+    "TA_W_MIN": 10.0,              # Ta+W with Re
+    "TA_ALONE_MIN": 10.0,          # 1st gen SC
+    "TA_W_HIGH": 11.0,
 
-    # UTS/YS ratio at room temperature (lower due to single crystal)
-    "UTS_YS_RATIO_RT_BASE": 1.12,
-    "UTS_YS_RATIO_RT_MIN": 1.05,
-    "UTS_YS_RATIO_RT_MAX": 1.20,
+    # UTS/YS ratio
+    "UTS_YS_RATIO_MIN": 1.03,
+    "UTS_YS_RATIO_MAX": 1.30,
+    "UTS_YS_RATIO_EXPECTED": 1.12,
+
+    "ELONGATION_MIN": 3.0,         # %
+    "ELONGATION_MAX": 15.0,
+    "ELONGATION_EXPECTED": 8.0,
 }
 
 # =============================================================================
-# PROPERTY BOUNDS (physical limits for all superalloys)
+# TCP PHASE STABILITY (Md THRESHOLDS)
+# Morinaga d-electron theory. Single authoritative source.
 # =============================================================================
 
-BOUNDS = {
-    # Yield Strength (MPa)
-    "YS_MAX": 2000,                # Maximum known superalloy YS
+TCP = {
+    # Thresholds on Md_avg (bulk), not Md_gamma (matrix).
+    # Morinaga (1984) calibrated against bulk Md. Using Md_gamma causes false positives.
+    "MD_CRITICAL": 0.955,     # σ/μ phases highly likely
+    "MD_ELEVATED": 0.940,     # TCP possible but manageable
+    "MD_MODERATE": 0.925,     # Moderate concern
 
-    # Tensile Strength (MPa)
-    "UTS_MAX": 2500,               # Maximum known superalloy UTS
+    # Md_gamma > 0.980 upgrades risk by one level (heavy partitioning edge case)
+    "MD_GAMMA_BOOST": 0.980,
 
-    # Elongation (%)
-    "EL_MIN": 0,
-    "EL_MAX": 100,
-
-    # Elastic Modulus (GPa) - Ni-based superalloys
-    "EM_HARD_MIN": 90,             # Absolute minimum
-    "EM_HARD_MAX": 300,            # Absolute maximum
-    "EM_TYPICAL_MIN": 100,         # Typical range minimum
-    "EM_TYPICAL_MAX": 250,         # Typical range maximum
-    "EM_EXPECTED_MIN": 180,        # Expected for standard alloys
-    "EM_EXPECTED_MAX": 230,
-
-    # Density (g/cm³)
-    "DENSITY_MIN": 7.0,
-    "DENSITY_MAX": 10.0,
-    "DENSITY_TYPICAL_MIN": 7.5,
-    "DENSITY_TYPICAL_MAX": 9.5,
-
-    # Gamma Prime (%)
-    "GP_MAX": 75,                  # Maximum typical γ'
+    # Design targets
+    "MD_DESIGN_TARGET": 0.920,
+    "MD_DESIGN_SAFE": 0.935,
 }
+
+
+def classify_tcp_risk(md_gamma: float, md_avg: float = 0.0) -> str:
+    """Classify TCP risk. Primary: Md_avg (bulk). Secondary: Md_gamma > 0.980 upgrades by one level."""
+    if md_avg <= 0:
+        md_avg = md_gamma
+
+    if md_avg > TCP["MD_CRITICAL"]:
+        base_risk = "Critical"
+    elif md_avg > TCP["MD_ELEVATED"]:
+        base_risk = "Elevated"
+    elif md_avg > TCP["MD_MODERATE"]:
+        base_risk = "Moderate"
+    else:
+        base_risk = "Low"
+
+    if md_gamma > TCP["MD_GAMMA_BOOST"] and base_risk != "Critical":
+        risk_levels = ["Low", "Moderate", "Elevated", "Critical"]
+        current_idx = risk_levels.index(base_risk)
+        return risk_levels[current_idx + 1]
+
+    return base_risk
+
 
 # =============================================================================
 # UTS/YS RATIO CONSTRAINTS BY PROCESSING AND CONDITION
 # =============================================================================
 
 UTS_YS_RATIO = {
-    # Wrought alloys
+    # Wrought GP alloys (WROUGHT_MIN lowered for γ" alloys)
     "WROUGHT_BASE": 1.40,
-    "WROUGHT_MIN": 1.30,
+    "WROUGHT_MIN": 1.15,
     "WROUGHT_MAX": 1.60,
-    "WROUGHT_GP_FACTOR": 0.15,     # Additional ratio per 100% γ'
-    "WROUGHT_HIGH_GP_MAX": 1.35,   # Cap for high-γ' (>40%) wrought
+    "WROUGHT_HIGH_GP_MAX": 1.35,   # γ' > 40%
+    "WROUGHT_HIGH_GP_MIN": 1.30,
     "WROUGHT_HIGH_GP_EXPECTED": 1.30,
 
-    # Cast alloys
+    # Cast GP alloys
     "CAST_BASE": 1.15,
     "CAST_MIN": 1.08,
     "CAST_GP_FACTOR": 0.2,
 
-    # High temperature adjustments
-    "ELEVATED_TEMP_THRESHOLD": 400,  # °C
-    "ELEVATED_TEMP_EXPECTED": 1.55,
-    "ELEVATED_TEMP_MIN": 1.45,
-
-    # Coherency bounds (warning thresholds)
-    "COHERENCY_MIN": 1.05,         # Below this = insufficient work hardening
-    "COHERENCY_MAX": 1.60,         # Above this = unusual
+    # Coherency warning thresholds
+    "COHERENCY_MIN": 1.05,
+    "COHERENCY_MAX": 1.60,
 }
 
 # =============================================================================
@@ -166,17 +172,8 @@ UTS_YS_RATIO = {
 # =============================================================================
 
 ELONGATION = {
-    # High γ' limits (γ' reduces ductility)
-    "HIGH_GP_THRESHOLD": 60,       # γ' % above which ductility is limited
     "HIGH_GP_MAX_EL": 18.0,        # Max elongation for γ' > 60%
-    "MOD_GP_THRESHOLD": 40,        # Moderate γ' threshold
     "MOD_GP_MAX_EL": 25.0,         # Max elongation for γ' 40-60%
-
-    # Wrought minimum ductility (wrought should have good ductility)
-    "WROUGHT_LOW_GP_THRESHOLD": 25,
-    "WROUGHT_LOW_GP_BASE_EL": 22.0,
-    "WROUGHT_LOW_GP_FACTOR": 0.3,  # EL = BASE - (GP * FACTOR)
-    "WROUGHT_MOD_GP_MIN_EL": 15.0,
 }
 
 # =============================================================================
@@ -184,36 +181,27 @@ ELONGATION = {
 # =============================================================================
 
 WROUGHT = {
-    # Gamma Prime Strengthening Coefficients
-    # Formula: YS_physics = BASE_STRENGTH + COEFF_GP * γ' + COEFF_SSS * SSS + mismatch
-    "COEFF_GP": 28.0,              # γ' strengthening coefficient
-    "COEFF_GP_HIGH_STRENGTH": 33.0,  # For high-strength alloy types
-    "COEFF_GP_CORROSION": 18.0,      # For corrosion-resistant types
+    # γ' strengthening: YS = BASE_NI + COEFF_GP * γ' + SSS + Hall-Petch
+    "COEFF_GP": 28.0,
+    "COEFF_GP_HIGH_STRENGTH": 33.0,
+    "COEFF_GP_CORROSION": 18.0,
 
-    # Base Strength Components
-    "BASE_NI": 120.0,              # Base nickel contribution
-    "HALL_PETCH_BOOST": 50.0,      # Grain refinement boost (wrought has finer grains)
-    "COEFF_SSS": 5.0,              # Solid solution strengthening coefficient
-    "SSS_CONTRIBUTION_FACTOR": 12.0,  # SSS wt% contribution factor
+    "BASE_NI": 120.0,              # MPa
+    "HALL_PETCH_BOOST": 50.0,      # MPa (wrought grain refinement)
+    "SSS_CONTRIBUTION_FACTOR": 12.0,
 
-    # ML/Physics Blending Weights (by confidence level)
-    "ML_WEIGHT_HIGH_CONF": 0.70,   # 70% ML, 30% physics for HIGH confidence
-    "ML_WEIGHT_MED_CONF": 0.60,    # 60% ML, 40% physics for MEDIUM confidence
-    "ML_WEIGHT_LOW_CONF": 0.50,    # 50% ML, 50% physics for LOW confidence
+    # ML/Physics blending weights
+    "ML_WEIGHT_HIGH_CONF": 0.70,
+    "ML_WEIGHT_MED_CONF": 0.60,
+    "ML_WEIGHT_LOW_CONF": 0.50,
 
-    # Physics Enforcement (enforce_physics_constraints)
-    "ENFORCE_BASE_YS": 400,        # Base YS for enforcement formula
-    "ENFORCE_GP_COEFF": 18,        # γ' coefficient for enforcement
-
-    # Calibration Factors
-    # Combined with UTS/YS ratio constraint (1.35 cap for high-γ' wrought in enforce_physics_constraints)
-    "CAL_YS_FACTOR": 0.90,         # YS calibration multiplier (10% reduction)
-    "CAL_UTS_FACTOR": 0.90,        # UTS calibration multiplier (10% reduction)
-    "CAL_EL_FACTOR": 1.0,          # Elongation calibration multiplier
+    "CAL_YS_FACTOR": 0.90,
+    "CAL_UTS_FACTOR": 0.90,
+    "CAL_EL_FACTOR": 1.0,
 
     # Ductility
-    "BASE_DUCTILITY": 40.0,        # Base elongation %
-    "MIN_ELONGATION": 12.0,        # Minimum elongation floor
+    "BASE_DUCTILITY": 28.0,        # %
+    "MIN_ELONGATION": 10.0,
 }
 
 # =============================================================================
@@ -221,65 +209,25 @@ WROUGHT = {
 # =============================================================================
 
 CAST = {
-    # Gamma Prime Strengthening Coefficients
-    "COEFF_GP": 10.0,              # γ' strengthening coefficient (lower than wrought)
+    "COEFF_GP": 10.0,
     "COEFF_GP_HIGH_STRENGTH": 14.0,
     "COEFF_GP_CORROSION": 7.0,
 
-    # Base Strength Components
-    "BASE_NI": 120.0,
-    "HALL_PETCH_BOOST": 0.0,       # No grain refinement boost for cast
-    "COEFF_SSS": 5.0,
+    "BASE_NI": 120.0,              # MPa
+    "HALL_PETCH_BOOST": 0.0,       # No grain refinement for cast
     "SSS_CONTRIBUTION_FACTOR": 12.0,
 
-    # ML/Physics Blending Weights
     "ML_WEIGHT_HIGH_CONF": 0.70,
     "ML_WEIGHT_MED_CONF": 0.60,
     "ML_WEIGHT_LOW_CONF": 0.50,
 
-    # Physics Enforcement
-    "ENFORCE_BASE_YS": 400,
-    "ENFORCE_GP_COEFF": 10,        # Lower coefficient for cast
-
-    # Calibration Factors
-    "CAL_YS_FACTOR": 0.95,         # Slight reduction for cast
+    "CAL_YS_FACTOR": 0.95,
     "CAL_UTS_FACTOR": 0.95,
     "CAL_EL_FACTOR": 1.0,
 
-    # Ductility
-    "BASE_DUCTILITY": 20.0,        # Lower base ductility for cast
+    "BASE_DUCTILITY": 20.0,        # %
     "MIN_ELONGATION": 5.0,
 }
-
-# =============================================================================
-# COMMON PARAMETERS (processing-independent)
-# =============================================================================
-
-COMMON = {
-    # Physics Enforcement Thresholds (% deviation to trigger correction)
-    "THRESHOLD_LOW_CONF": 40,      # Stricter for low confidence
-    "THRESHOLD_MED_CONF": 50,
-    "THRESHOLD_HIGH_CONF": 70,     # More lenient for high confidence
-
-    # Blend factors when physics correction is applied
-    "BLEND_LOW_CONF": 0.5,         # 50% physics, 50% ML for low confidence
-    "BLEND_HIGH_CONF": 0.3,        # 30% physics, 70% ML for high confidence
-
-    # KG Distance Thresholds
-    "KG_SKIP_THRESHOLD": 3.0,      # Skip physics enforcement if KG match < this
-
-    # UTS/YS Ratio Constraints
-    "UTS_YS_RATIO_MIN": 1.05,
-    "UTS_YS_RATIO_MAX": 1.60,
-    "UTS_YS_RATIO_EXPECTED": 1.2,
-
-    # Elastic Modulus Bounds
-    "EM_MIN_WROUGHT": 200,
-    "EM_MAX_WROUGHT": 225,
-    "EM_MIN_CAST": 180,
-    "EM_MAX_CAST": 215,
-}
-
 
 def get_params(processing: str) -> dict:
     """Get parameters for the specified processing type."""
@@ -299,19 +247,6 @@ def get_coeff_gp(processing: str, alloy_type: str = "standard") -> float:
         return params["COEFF_GP_CORROSION"]
     else:
         return params["COEFF_GP"]
-
-
-def get_ml_weight(processing: str, confidence_level: str) -> float:
-    """Get the ML blending weight for the given confidence level."""
-    params = get_params(processing)
-
-    if confidence_level == "HIGH":
-        return params["ML_WEIGHT_HIGH_CONF"]
-    elif confidence_level == "MEDIUM":
-        return params["ML_WEIGHT_MED_CONF"]
-    else:
-        return params["ML_WEIGHT_LOW_CONF"]
-
 
 # =============================================================================
 # TEMPERATURE DEGRADATION FUNCTIONS
@@ -371,11 +306,21 @@ def get_temperature_factor(temp_c: float, alloy_class: str) -> float:
 
 
 def is_sss_alloy(composition: dict) -> bool:
-    """Check if composition is an SSS alloy (Al+Ti+Ta < 2%)."""
+    """
+    Check if composition is an SSS alloy.
+
+    SSS alloys lack significant precipitation hardening phases.
+
+    Threshold: Al + Ti + Ta + 0.35*Nb < 2%
+    """
     al = composition.get("Al", composition.get("al", 0)) or 0
     ti = composition.get("Ti", composition.get("ti", 0)) or 0
     ta = composition.get("Ta", composition.get("ta", 0)) or 0
-    return (al + ti + ta) < SSS["AL_TI_TA_MAX"]
+    nb = composition.get("Nb", composition.get("nb", 0)) or 0
+
+    precipitate_formers = al + ti + ta + (0.35 * nb)
+
+    return precipitate_formers < SSS["AL_TI_TA_MAX"]
 
 
 def is_sc_ds_alloy(composition: dict) -> tuple:
@@ -400,6 +345,8 @@ def is_sc_ds_alloy(composition: dict) -> tuple:
         return True, f"Ta+W={ta+w:.1f}%, Ta={ta:.1f}% (1st gen SC composition)"
     if ta >= SC_DS["TA_ALONE_MIN"]:
         return True, f"Ta={ta:.1f}% (1st gen SC indicator)"
+    if (ta + w) >= 12.0 and w >= 8.0:  # W-rich DS
+        return True, f"Ta+W={ta+w:.1f}%, W={w:.1f}% (W-rich DS alloy)"
 
     return False, ""
 
@@ -417,6 +364,34 @@ def get_alloy_class(composition: dict) -> str:
     if is_sc:
         return "sc_ds"
     return "gp"
+
+
+# =============================================================================
+# ELASTIC MODULUS TEMPERATURE DECAY
+# =============================================================================
+
+EM_TEMP_DECAY_RATE = 0.00032  # ~0.032% per °C above RT
+EM_TEMP_RT_BASELINE = 20      # °C
+
+
+def get_em_temp_factor(temperature_c: float) -> float:
+    """Calculate EM temperature reduction factor (multiply RT value)."""
+    delta_t = max(0, temperature_c - EM_TEMP_RT_BASELINE)
+    return max(0.50, 1.0 - EM_TEMP_DECAY_RATE * delta_t)
+
+
+# =============================================================================
+# CORRECTION THRESHOLDS — minimum change to consider a correction meaningful
+# =============================================================================
+
+CORRECTION_THRESHOLDS = {
+    "Yield Strength": 5.0,       # MPa
+    "Tensile Strength": 5.0,     # MPa
+    "Elongation": 0.5,           # %
+    "Elastic Modulus": 1.0,      # GPa
+    "Density": 0.05,             # g/cm³
+    "Gamma Prime": 0.5,          # vol%
+}
 
 
 def get_sss_physics_ys(composition: dict, processing: str = "wrought") -> tuple:
