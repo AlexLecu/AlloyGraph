@@ -393,6 +393,16 @@ CORRECTION_THRESHOLDS = {
     "Gamma Prime": 0.5,          # vol%
 }
 
+AGENT_TRUST = {
+    "NOOP_THRESHOLD": 0.05,         # Correction within 5% of ML baseline → treated as no-op
+    "MIN_REASON_LENGTH": 20,        # Characters — shorter reasons are placeholders
+    "UNDOCUMENTED_DEVIATION": 0.15, # 15% deviation from ML without documentation triggers review
+    "PLACEHOLDER_STRINGS": [        # Known placeholder reasons from LLM output
+        "Correction reason",
+        "correction applied",
+    ],
+}
+
 
 def get_sss_physics_ys(composition: dict, processing: str = "wrought") -> tuple:
     """
