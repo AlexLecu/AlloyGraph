@@ -1,6 +1,6 @@
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field, field_validator, model_validator
-from typing import Type, Dict, Any
+from typing import Type, Dict, Any, Optional
 import weaviate
 from weaviate.classes.query import QueryReference
 import os
@@ -12,14 +12,26 @@ import hashlib
 logger = logging.getLogger(__name__)
 
 class AlloySearchInput(BaseModel):
-    """Input for Weaviate search."""
+    """Input for Weaviate search — composition-based or text-based."""
+    model_config = {"extra": "ignore"}
+
     composition: Dict[str, float] = Field(
-        ...,
+        default={},
         description=(
-            "Target composition to find similar alloys for as a dict of wt% values, "
-            "e.g. {'Ni': 60.0, 'Al': 5.0}. "
-            "If you only have a JSON string, pass it and it will be parsed."
+            "Composition dict of wt% values, e.g. {'Ni': 60.0, 'Al': 5.0}. "
+            "Pass empty dict for text search."
         ),
+    )
+    query: str = Field(
+        "",
+        description=(
+            "Text search query — alloy name ('Waspaloy'), class ('disc alloys'), "
+            "or description ('high strength wrought'). Pass empty string for composition search."
+        ),
+    )
+    target_temperature_c: float = Field(
+        0.0,
+        description="Target temperature in °C. 0 = ignore. When set, adds a property_summary with closest measurement."
     )
     limit: int = Field(3, description="Number of results to return.")
 
@@ -37,13 +49,37 @@ class AlloySearchInput(BaseModel):
 
         normalized = dict(data)
 
+        # Unwrap composition (could be schema-echo, nested dict, or null)
         comp = normalized.get("composition")
-        if isinstance(comp, dict):
+        if comp is None:
+            normalized["composition"] = {}
+        elif isinstance(comp, dict):
             for key in ("value", "composition", "description"):
                 if key in comp:
                     normalized["composition"] = comp[key]
                     break
 
+        # Unwrap query (could be schema-echo)
+        q = normalized.get("query")
+        if isinstance(q, dict):
+            for key in ("value", "query", "default"):
+                if key in q:
+                    normalized["query"] = q[key]
+                    break
+            else:
+                normalized.pop("query", None)
+
+        # Unwrap target_temperature_c (could be schema-echo)
+        ttc = normalized.get("target_temperature_c")
+        if isinstance(ttc, dict):
+            for key in ("value", "default"):
+                if key in ttc:
+                    normalized["target_temperature_c"] = ttc[key]
+                    break
+            else:
+                normalized.pop("target_temperature_c", None)
+
+        # Unwrap limit (could be schema-echo)
         lim = normalized.get("limit")
         if isinstance(lim, dict):
             for key in ("value", "limit", "default"):
@@ -58,6 +94,9 @@ class AlloySearchInput(BaseModel):
     @field_validator("composition", mode="before")
     @classmethod
     def _parse_composition(cls, value: Any) -> Dict[str, float]:
+        if value is None or value == {}:
+            return {}
+
         if isinstance(value, dict):
             if "description" in value and isinstance(value["description"], str):
                 value = value["description"]
@@ -79,20 +118,6 @@ class AlloySearchInput(BaseModel):
             return {str(k): float(v) for k, v in parsed.items()}
 
         raise ValueError("Invalid composition format; expected dict or JSON string.")
-
-    @field_validator("limit", mode="before")
-    @classmethod
-    def _parse_limit(cls, value: Any) -> int:
-        if value is None:
-            return 3
-        if isinstance(value, dict):
-            for key in ("value", "limit", "default"):
-                if key in value:
-                    value = value[key]
-                    break
-            else:
-                return 3
-        return int(value)
 
 
 # ============================================================
@@ -126,11 +151,11 @@ def _get_cached_search(composition: Dict[str, float], limit: int) -> tuple:
 
     if cache_key in _kg_search_cache:
         _cache_hits += 1
-        logging.debug(f"✓ KG Cache HIT (hits={_cache_hits}, misses={_cache_misses})")
+        logger.debug("KG Cache HIT (hits=%d, misses=%d)", _cache_hits, _cache_misses)
         return _kg_search_cache[cache_key], True
     else:
         _cache_misses += 1
-        logging.debug(f"✗ KG Cache MISS (hits={_cache_hits}, misses={_cache_misses})")
+        logger.debug("KG Cache MISS (hits=%d, misses=%d)", _cache_hits, _cache_misses)
         return None, False
 
 
@@ -140,7 +165,7 @@ def _store_cached_search(composition: Dict[str, float], limit: int, result: str)
 
     cache_key = _create_cache_key(composition, limit)
 
-    # Simple LRU: if cache exceeds 128 entries, remove oldest
+    # FIFO eviction: if cache exceeds 128 entries, remove oldest
     if len(_kg_search_cache) >= 128:
         # Remove first (oldest) entry
         oldest_key = next(iter(_kg_search_cache))
@@ -165,72 +190,105 @@ def get_cache_stats() -> dict:
 
 
 class AlloySearchTool(BaseTool):
-    name: str = "AlloyKnowledgeGraphSearch"
+    name: str = "AlloySearchTool"
     description: str = (
-        "Searches the Weaviate Knowledge Graph for existing alloys similar to the input composition. "
-        "Returns a list of matching alloys with their properties, composition, and processing family. "
-        "Use this for Research and Benchmarking. "
-        "IMPORTANT: pass real values, not the schema. Example Action Input: "
-        "{'composition': {'Ni': 58.0, 'Cr': 19.5}, 'limit': 3}."
+        "Searches the Weaviate Knowledge Graph for alloys. Two modes:\n"
+        "1. Composition search: pass composition={'Ni': 58.0, 'Cr': 19.5} to find similar alloys.\n"
+        "2. Text search: pass query='Waspaloy' or query='disc alloys' to search by name/class.\n"
+        "Optionally set target_temperature_c to get property values at a specific temperature."
     )
     args_schema: Type[BaseModel] = AlloySearchInput
 
-    def _run(self, composition: Dict[str, float], limit: int = 3, **kwargs: Any) -> Any:
-        # Check cache first
-        cached_result, cache_hit = _get_cached_search(composition, limit)
-        if cache_hit:
-            return cached_result
+    def _run(
+        self,
+        composition: Optional[Dict[str, float]] = None,
+        query: str = "",
+        target_temperature_c: float = 0.0,
+        limit: int = 3,
+        **kwargs: Any,
+    ) -> Any:
+        if not composition and not query:
+            return json.dumps({"error": "Provide either 'composition' or 'query'.", "results": []})
+
+        # Composition mode: check cache
+        if composition and not query:
+            cached_result, cache_hit = _get_cached_search(composition, limit)
+            if cache_hit:
+                return cached_result
 
         client = None
         try:
-            WEAVIATE_HOST = os.getenv('WEAVIATE_HOST', 'localhost')
-            WEAVIATE_PORT = int(os.getenv('WEAVIATE_PORT', 8081))
-            WEAVIATE_GRPC_PORT = int(os.getenv('WEAVIATE_GRPC_PORT', 50052))
-            
-            client = weaviate.connect_to_local(
-                host=WEAVIATE_HOST,
-                port=WEAVIATE_PORT,
-                grpc_port=WEAVIATE_GRPC_PORT
-            )
-            
+            client = _connect_weaviate()
             if not client.is_live():
-                return "Error: Weaviate instance is not reachable."
+                return json.dumps({"error": "Weaviate instance is not reachable.", "results": []})
 
-            # 2. Query Strategy: Wide Net + Reranking
             collection = client.collections.get("Variant")
-            
-            query_parts = [f"{v}% {k}" for k, v in composition.items() if v > 1.0]
-            query_str = "Superalloy with " + ", ".join(query_parts)
 
-            response = collection.query.hybrid(
-                query=query_str,
-                limit=50,
-                return_properties=[
-                    "name", "processingMethod", "densityCalculated", "gammaPrimeEstimate", 
-                    "mdAverage", "tcpRisk", "sssTotalWtPct", "refractoryTotalWtPct", 
-                    "gpFormersWtPct", "atomicCompositionJson"
-                ],
-                return_references=[
+            # Build query string
+            if query:
+                query_str = query
+                fetch_limit = limit * 2  # text search needs less overfetch
+            else:
+                query_parts = [f"{v}% {k}" for k, v in composition.items() if v > 1.0]
+                query_str = "Superalloy with " + ", ".join(query_parts)
+                fetch_limit = 50  # composition needs wide net for distance reranking
+
+            # Shared return schema — includes property refs for text mode (eager fetch)
+            return_props = [
+                "name", "processingMethod", "densityCalculated", "gammaPrimeEstimate",
+                "mdAverage", "tcpRisk", "sssTotalWtPct", "refractoryTotalWtPct",
+                "gpFormersWtPct"
+            ]
+            comp_refs = [
+                QueryReference(
+                    link_on="hasComposition",
+                    return_references=[
+                        QueryReference(
+                            link_on="hasComponent",
+                            return_references=[
+                                QueryReference(link_on="hasElement", return_properties=["symbol"]),
+                                QueryReference(link_on="hasMassFraction", return_properties=["numericValue", "nominal"])
+                            ]
+                        )
+                    ]
+                )
+            ]
+            # Text mode: fetch properties inline (eager) to avoid N+1 queries
+            if query:
+                comp_refs.append(
                     QueryReference(
-                        link_on="hasComposition",
+                        link_on="hasPropertySet",
                         return_references=[
+                            QueryReference(link_on="measuresProperty", return_properties=["propertyType"]),
                             QueryReference(
-                                link_on="hasComponent",
+                                link_on="hasMeasurement",
+                                return_properties=["stress", "lifeHours"],
                                 return_references=[
-                                    QueryReference(link_on="hasElement", return_properties=["symbol"]),
-                                    QueryReference(link_on="hasMassFraction", return_properties=["numericValue", "nominal"])
+                                    QueryReference(link_on="hasQuantity", return_properties=["numericValue", "unitSymbol"]),
+                                    QueryReference(
+                                        link_on="hasTestCondition",
+                                        return_references=[
+                                            QueryReference(link_on="hasTemperature", return_properties=["numericValue"])
+                                        ]
+                                    )
                                 ]
                             )
                         ]
                     )
-                ]
-            )
-            
-            if not response.objects:
-                return "No similar alloys found in Knowledge Graph."
+                )
 
+            response = collection.query.hybrid(
+                query=query_str,
+                limit=fetch_limit,
+                return_properties=return_props,
+                return_references=comp_refs,
+            )
+
+            if not response.objects:
+                return json.dumps({"error": f"No alloys found for '{query or query_str}'.", "results": []})
+
+            # --- Build candidates ---
             candidates = []
-            
             for obj in response.objects:
                 props = obj.properties
                 candidate = {
@@ -245,151 +303,239 @@ class AlloySearchTool(BaseTool):
                     "refractory_wt_pct": props.get("refractoryTotalWtPct", "N/A"),
                     "gp_formers_wt_pct": props.get("gpFormersWtPct", "N/A"),
                     "composition": {},
-                    "properties": {} 
+                    "properties": {},
                 }
 
-                try:
-                    if obj.references and "hasComposition" in obj.references:
-                        comp_ref_obj = obj.references["hasComposition"].objects[0]
-                        if comp_ref_obj.references and "hasComponent" in comp_ref_obj.references:
-                             for comp_node in comp_ref_obj.references["hasComponent"].objects:
-                                 if "hasElement" in comp_node.references and "hasMassFraction" in comp_node.references:
-                                     sym = comp_node.references["hasElement"].objects[0].properties["symbol"]
-                                     mf_node = comp_node.references["hasMassFraction"].objects[0]
-                                     wt = mf_node.properties.get("numericValue")
-                                     if wt is None: wt = mf_node.properties.get("nominal", 0.0)
-                                     if wt is not None:
-                                         candidate["composition"][sym] = float(wt)
-                except Exception:
-                    pass
+                # Extract composition from graph refs
+                _extract_composition(obj, candidate)
 
-                ac_json = props.get("atomicCompositionJson")
-                if ac_json and isinstance(ac_json, str):
-                    try:
-                        candidate["_atomic_comp"] = json.loads(ac_json)
-                    except Exception:
-                        pass
+                # Composition mode: compute Euclidean distance for reranking
+                if composition:
+                    candidate["_distance"] = _composition_distance(composition, candidate["composition"])
+                else:
+                    candidate["_distance"] = 0.0  # text mode: keep hybrid relevance order
 
-                # Normalize compositions for fair comparison
-                def normalize_comp(c):
-                    total = sum(c.values())
-                    if total == 0: return c
-                    return {k: (v/total)*100 for k, v in c.items()}
-                
-                test_norm = normalize_comp(composition)
-                cand_norm = normalize_comp(candidate["composition"])
-                
-                # Calculate distance on normalized compositions
-                dist = 0.0
-                all_keys = set(test_norm.keys()) | set(cand_norm.keys())
-                for k in all_keys:
-                    v1 = test_norm.get(k, 0.0)
-                    v2 = cand_norm.get(k, 0.0)
-                    dist += (v1 - v2) ** 2
-                dist = dist ** 0.5
-                
-                candidate["_distance"] = dist
+                # Text mode: extract properties inline (eager)
+                if query:
+                    _extract_properties_inline(obj, candidate)
+
                 candidates.append(candidate)
 
-                if len(candidates) <= 3:
-                     logger.debug(f"Distance calc: {candidate.get('name', 'Unknown')}: {dist:.4f} | Test(norm): {test_norm} | Cand(norm): {cand_norm}")
+            # Composition mode: rerank by distance
+            if composition:
+                candidates.sort(key=lambda x: x["_distance"])
 
-            candidates.sort(key=lambda x: x["_distance"])
             top_results = candidates[:limit]
+            logger.info("Top %d KG: %s", limit, [(c.get("name"), round(c["_distance"], 2)) for c in top_results])
 
-            top_summaries = [f"{c.get('name')} (d={c.get('_distance', 'N/A')})" for c in top_results]
-            logger.info(f"Top {limit} KG Results: {top_summaries}")
+            # Composition mode: lazy-fetch properties via UUID
+            if composition and not query:
+                for cand in top_results:
+                    try:
+                        cand["properties"] = _fetch_properties_for_uuid(client, cand["uuid"])
+                    except Exception as e:
+                        logger.debug("Failed to fetch properties for %s: %s", cand.get('name'), e)
 
-            for cand in top_results:
-                try:
-                    props = _fetch_properties_for_uuid(client, cand["uuid"])
-                    cand["properties"] = props
-                except Exception as e:
-                    logging.debug(f"Failed to fetch properties for {cand.get('name')}: {e}")
-
+            # --- Serialize output ---
             final_output = []
             for c in top_results:
                 serialized = {
                     "name": c.get("name"),
                     "processing": c.get("processing"),
-                    "_distance": c.get("_distance", 999.0),
+                    "_distance": round(c.get("_distance", 999.0), 2),
                     "metallurgy": {
                         "md_avg": c.get("md_avg"),
                         "tcp_risk": c.get("tcp_risk"),
                         "density_gcm3": c.get("density"),
                         "gamma_prime_vol": c.get("gamma_prime"),
                         "sss_wt_pct": c.get("sss_wt_pct"),
-                        "refractory_wt_pct": c.get("refractory_wt_pct")
+                        "refractory_wt_pct": c.get("refractory_wt_pct"),
                     },
-                    "properties": {}
+                    "properties": {},
                 }
-                
-                if "composition" in c:
-                    serialized["composition_wt_pct"] = {str(k): round(float(v), 2) for k, v in c["composition"].items() if v is not None and v > 0}
-                
-                if "properties" in c:
-                    for prop, measurements in c["properties"].items():
-                        summary_list = []
-                        for m in measurements:
-                            val = round(m.get("val") or 0.0, 0)
-                            temp = round(m.get("temp_c") or 20.0, 0)
-                            unit = m.get("unit") or ""
-                            
-                            if "stress" in m:
-                                stress = round(m.get("stress") or 0.0, 0)
-                                summary_list.append(f"Life: {val}{unit}, Temp: {temp}C, Stress: {stress}MPa")
-                            else:
-                                if unit:
-                                    summary_list.append(f"{val} {unit} @ {temp}C")
-                                else:
-                                    summary_list.append(f"{val} @ {temp}C")
-                        serialized["properties"][prop] = ", ".join(summary_list)
-                
+
+                if c.get("composition"):
+                    serialized["composition_wt_pct"] = {
+                        str(k): round(float(v), 2)
+                        for k, v in c["composition"].items() if v is not None and v > 0
+                    }
+
+                # Format properties
+                if c.get("properties"):
+                    for prop_name, measurements in c["properties"].items():
+                        serialized["properties"][prop_name] = _format_measurements(measurements)
+
+                # Temperature-matched summary (when target_temperature_c is set)
+                if target_temperature_c and c.get("properties"):
+                    serialized["property_summary"] = _pick_closest_temp(
+                        c["properties"], target_temperature_c
+                    )
+
                 final_output.append(serialized)
 
             result_json = json.dumps(final_output, indent=2)
-            _store_cached_search(composition, limit, result_json)
+
+            # Cache composition-mode results only
+            if composition and not query:
+                _store_cached_search(composition, limit, result_json)
 
             return result_json
 
         except Exception as e:
-            logger.error(f"RAG Search failed: {e}")
-            return f"Error executing RAG search: {str(e)}"
+            logger.error("KG Search failed: %s", e)
+            return json.dumps({"error": str(e), "results": []})
         finally:
             if client:
                 client.close()
 
 
+# ============================================================
+# SHARED HELPERS
+# ============================================================
+
+def _connect_weaviate():
+    """Create a Weaviate client from environment variables."""
+    return weaviate.connect_to_local(
+        host=os.getenv('WEAVIATE_HOST', 'localhost'),
+        port=int(os.getenv('WEAVIATE_PORT', 8081)),
+        grpc_port=int(os.getenv('WEAVIATE_GRPC_PORT', 50052)),
+    )
+
+
+def _extract_composition(obj, candidate: dict):
+    """Extract composition from Weaviate graph references into candidate dict."""
+    try:
+        if obj.references and "hasComposition" in obj.references:
+            comp_ref = obj.references["hasComposition"].objects[0]
+            if comp_ref.references and "hasComponent" in comp_ref.references:
+                for comp_node in comp_ref.references["hasComponent"].objects:
+                    if "hasElement" in comp_node.references and "hasMassFraction" in comp_node.references:
+                        sym = comp_node.references["hasElement"].objects[0].properties["symbol"]
+                        mf_node = comp_node.references["hasMassFraction"].objects[0]
+                        wt = mf_node.properties.get("numericValue")
+                        if wt is None:
+                            wt = mf_node.properties.get("nominal", 0.0)
+                        if wt is not None:
+                            candidate["composition"][sym] = float(wt)
+    except Exception as e:
+        logger.warning("Failed to extract composition for %s: %s", candidate.get("name", "?"), e)
+
+
+def _extract_property_sets(pset_objects) -> dict:
+    """Extract properties from a list of PropertySet graph objects.
+
+    Shared by text-mode (eager inline fetch) and composition-mode (lazy UUID fetch).
+    Returns {prop_type: [{val, temp_c, unit, ?stress}, ...]}.
+    """
+    properties = {}
+    for pset in pset_objects:
+        prop_type = "Unknown"
+        if pset.references and "measuresProperty" in pset.references:
+            prop_type = pset.references["measuresProperty"].objects[0].properties.get("propertyType", "Unknown")
+
+        if not (pset.references and "hasMeasurement" in pset.references):
+            continue
+
+        for meas in pset.references["hasMeasurement"].objects:
+            val, unit, temp_c = 0.0, "", 20.0
+            stress = meas.properties.get("stress")
+            life_hours = meas.properties.get("lifeHours")
+
+            if life_hours is not None:
+                val, unit = life_hours, "h"
+            elif meas.references and "hasQuantity" in meas.references:
+                quant = meas.references["hasQuantity"].objects[0]
+                val = quant.properties.get("numericValue", 0.0)
+                unit = quant.properties.get("unitSymbol", "")
+
+            if meas.references and "hasTestCondition" in meas.references:
+                tc = meas.references["hasTestCondition"].objects[0]
+                if tc.references and "hasTemperature" in tc.references:
+                    temp_c = tc.references["hasTemperature"].objects[0].properties.get("numericValue", 20.0)
+
+            if prop_type not in properties:
+                properties[prop_type] = []
+            entry = {"val": val, "temp_c": temp_c, "unit": unit}
+            if stress is not None:
+                entry["stress"] = stress
+            properties[prop_type].append(entry)
+    return properties
+
+
+def _extract_properties_inline(obj, candidate: dict):
+    """Extract properties from eagerly-fetched graph refs (text search mode)."""
+    if not (obj.references and "hasPropertySet" in obj.references):
+        return
+    candidate["properties"] = _extract_property_sets(obj.references["hasPropertySet"].objects)
+
+
+def _composition_distance(target: Dict[str, float], candidate_comp: Dict[str, float]) -> float:
+    """Euclidean distance on normalized compositions."""
+    def normalize(c):
+        total = sum(c.values())
+        return {k: (v / total) * 100 for k, v in c.items()} if total > 0 else c
+
+    t_norm = normalize(target)
+    c_norm = normalize(candidate_comp)
+    all_keys = set(t_norm) | set(c_norm)
+    return sum((t_norm.get(k, 0) - c_norm.get(k, 0)) ** 2 for k in all_keys) ** 0.5
+
+
+def _format_measurements(measurements: list) -> str:
+    """Format a list of measurement dicts into a compact summary string."""
+    parts = []
+    for m in measurements:
+        val = round(m.get("val") or 0.0)
+        temp = round(m.get("temp_c") or 20.0)
+        unit = m.get("unit") or ""
+        if "stress" in m:
+            stress = round(m.get("stress") or 0.0)
+            parts.append(f"Life: {val}{unit}, Temp: {temp}C, Stress: {stress}MPa")
+        elif unit:
+            parts.append(f"{val} {unit} @ {temp}C")
+        else:
+            parts.append(f"{val} @ {temp}C")
+    return ", ".join(parts)
+
+
+def _pick_closest_temp(properties: dict, target_temp: float) -> dict:
+    """For each property, pick the measurement closest to target temperature."""
+    summary = {}
+    for prop_type, measurements in properties.items():
+        best, best_diff = None, float("inf")
+        for m in measurements:
+            diff = abs((m.get("temp_c") or 20.0) - target_temp)
+            if diff < best_diff:
+                best_diff = diff
+                best = m
+        if best and best.get("val") is not None:
+            summary[prop_type] = {
+                "value": round(best["val"], 1),
+                "unit": best.get("unit", ""),
+                "at_temperature_c": best.get("temp_c", target_temp),
+            }
+    return summary
+
+
 def _fetch_properties_for_uuid(client, uuid):
-    """Fetches mechanical properties for a given Variant UUID (Direct Query)."""
+    """Fetch properties for a Variant UUID via separate query (composition-mode lazy fetch)."""
     variant_coll = client.collections.get("Variant")
-    
-    # Get the Variant properties directly
     v_obj = variant_coll.query.fetch_object_by_id(
         uuid,
         return_references=[
             QueryReference(
                 link_on="hasPropertySet",
                 return_references=[
-                    QueryReference(
-                        link_on="measuresProperty",
-                        return_properties=["propertyType"]
-                    ),
+                    QueryReference(link_on="measuresProperty", return_properties=["propertyType"]),
                     QueryReference(
                         link_on="hasMeasurement",
                         return_properties=["stress", "lifeHours"],
                         return_references=[
-                            QueryReference(
-                                link_on="hasQuantity", 
-                                return_properties=["numericValue", "unitSymbol"]
-                            ),
+                            QueryReference(link_on="hasQuantity", return_properties=["numericValue", "unitSymbol"]),
                             QueryReference(
                                 link_on="hasTestCondition",
                                 return_references=[
-                                    QueryReference(
-                                        link_on="hasTemperature",
-                                        return_properties=["numericValue"]
-                                    )
+                                    QueryReference(link_on="hasTemperature", return_properties=["numericValue"])
                                 ]
                             )
                         ]
@@ -398,51 +544,6 @@ def _fetch_properties_for_uuid(client, uuid):
             )
         ]
     )
-    
-    if not v_obj:
+    if not v_obj or not v_obj.references or "hasPropertySet" not in v_obj.references:
         return {}
-    
-    # 2. Results Container
-    properties = {} 
-
-    # 3. Process the single variant object
-    if not v_obj.references or "hasPropertySet" not in v_obj.references:
-        return {}
-            
-    for pset in v_obj.references["hasPropertySet"].objects:
-        p_name = "Unknown"
-        if pset.references and "measuresProperty" in pset.references:
-            p_name = pset.references["measuresProperty"].objects[0].properties.get("propertyType", "Unknown")
-        
-        if pset.references and "hasMeasurement" in pset.references:
-            for meas in pset.references["hasMeasurement"].objects:
-                stress = meas.properties.get("stress")
-                life_hours = meas.properties.get("lifeHours")
-                
-                val = 0.0
-                unit = ""
-                temp_c = 20
-                
-                if life_hours is not None:
-                    val = life_hours 
-                    unit = "h"
-                elif meas.references and "hasQuantity" in meas.references:
-                    quant = meas.references["hasQuantity"].objects[0]
-                    val = quant.properties.get("numericValue", 0.0)
-                    unit = quant.properties.get("unitSymbol", "")
-                
-                if meas.references and "hasTestCondition" in meas.references:
-                    tc = meas.references["hasTestCondition"].objects[0]
-                    if tc.references and "hasTemperature" in tc.references:
-                        temp_c = tc.references["hasTemperature"].objects[0].properties.get("numericValue", 20)
-                        
-                if p_name not in properties:
-                    properties[p_name] = []
-                    
-                entry = {"val": val, "temp_c": temp_c, "unit": unit}
-                if stress is not None:
-                    entry["stress"] = stress
-                
-                properties[p_name].append(entry)
-    
-    return properties
+    return _extract_property_sets(v_obj.references["hasPropertySet"].objects)
