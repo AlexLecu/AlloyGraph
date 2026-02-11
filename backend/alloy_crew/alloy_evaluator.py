@@ -1,25 +1,38 @@
 from typing import Dict, Any
+from enum import Enum
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 from crewai import Task, Crew, Process
 from .agents import get_evaluation_agents
 from .tools.rag_tools import AlloySearchTool
+from .tools.ml_tools import AlloyPredictorTool
+from .tools.analysis_tool import AlloyAnalysisTool as AnalysisTool
 from .schemas import (
-    ValidationOutput, ArbitrationOutput,
-    PhysicsAuditWithCorrectionsOutput, CorrectedPropertiesOutput,
+    PhysicsAuditWithCorrectionsOutput,
     AuditPenalty
 )
-from .tools.calibration_fix import apply_calibration_safe
 from .tools.metallurgy_tools import (
-    validate_property_coherency, enforce_physics_constraints,
-    cleanup_llm_output, cleanup_confidence, warnings_to_penalties,
-    compute_fallback_metrics, PROPERTY_KEY_MAP, VALID_PROPERTIES, REQUIRED_METRIC_KEYS,
+    cleanup_confidence,
+    compute_metallurgy_validation,
+    validate_property_bounds,
+    PROPERTY_KEY_MAP, VALID_PROPERTIES,
 )
+from .tools.calibration_fix import apply_calibration_safe
+from .config.alloy_parameters import (
+    CORRECTION_THRESHOLDS, UTS_YS_RATIO, ELONGATION, AGENT_TRUST,
+    is_sss_alloy, get_em_temp_factor,
+)
+from .models.feature_engineering import compute_alloy_features, calculate_em_rule_of_mixtures
+
+
+class TrustDecision(Enum):
+    TRUST_PROPOSAL = "trust_proposal"
 
 
 def _slim_kg_context(kg_json_str: str, target_temp: int = 20) -> str:
-    """
-    Compress KG context to only essential fields for fusion.
-    """
+    """Compress KG context to essential fields. Extracts RT or target-temp properties."""
     try:
         alloys = json.loads(kg_json_str)
         slim_alloys = []
@@ -27,9 +40,13 @@ def _slim_kg_context(kg_json_str: str, target_temp: int = 20) -> str:
         for alloy in alloys[:3]:  # Only top 3 matches
             slim = {
                 "name": alloy.get("name", "Unknown"),
-                "distance": round(alloy.get("_distance", 999), 2),
+                "_distance": round(alloy.get("_distance", 999), 2),
                 "processing": alloy.get("processing", "unknown"),
             }
+
+            comp_wt = alloy.get("composition_wt_pct", {})
+            if comp_wt:
+                slim["composition_wt_pct"] = comp_wt
 
             props = alloy.get("properties", {})
             slim_props = {}
@@ -37,14 +54,21 @@ def _slim_kg_context(kg_json_str: str, target_temp: int = 20) -> str:
                 if isinstance(prop_values, str):
                     parts = prop_values.split(", ")
                     relevant = []
-                    for p in parts[:2]:
-                        if f"@ {target_temp}" in p or "@ 20" in p or "@ 25" in p:
-                            relevant.append(p.split(" @ ")[0])
+                    for p in parts:
+                        if " @ " in p:
+                            temp_part = p.split(" @ ")[1].replace("C", "").strip()
+                            try:
+                                temp_val = float(temp_part)
+                                if 15 <= temp_val <= 30 or abs(temp_val - target_temp) < 50:
+                                    value_part = p.split(" @ ")[0].strip()
+                                    relevant.append(f"{value_part} @ {temp_val:.0f}C")
+                            except ValueError:
+                                pass
                     if relevant:
-                        slim_props[prop_name] = ", ".join(relevant)
+                        slim_props[prop_name] = ", ".join(relevant[:2])
 
             if slim_props:
-                slim["props"] = slim_props
+                slim["properties"] = slim_props
 
             slim_alloys.append(slim)
         return json.dumps(slim_alloys, separators=(',', ':'))
@@ -52,43 +76,36 @@ def _slim_kg_context(kg_json_str: str, target_temp: int = 20) -> str:
         return kg_json_str[:1500] if len(kg_json_str) > 1500 else kg_json_str
 
 class AlloyEvaluationCrew:
-    def __init__(self, llm_config=None):
-        # Initialize agents with optional local LLM config
-        self.agents_map = get_evaluation_agents(llm=llm_config)
-        self.validator = self.agents_map['validator']
-        self.arbitrator = self.agents_map['arbitrator']
-        self.physicist = self.agents_map['physicist']
-        self.summarizer = self.agents_map['summarizer']
+    def __init__(self, llm_config=None, agents=None):
+        if agents:
+            self.agents_map = agents
+        else:
+            self.agents_map = get_evaluation_agents(llm=llm_config)
+        self.analyst = self.agents_map['analyst']
+        self.reviewer = self.agents_map['reviewer']
+        self.llm = self.agents_map.get('llm')  # For direct summary call
 
     @staticmethod
     def validate_composition(composition: Dict[str, float]) -> Dict[str, Any]:
-        """
-        Validates and cleans composition by removing non-positive values.
-        Returns dict with cleaned composition and any validation warnings.
-        """
+        """Validates and cleans composition. Removes non-positive values, warns on totals."""
         warnings = []
-        
-        # Remove non-positive values
         cleaned = {k: max(0.0, float(v)) for k, v in composition.items() if float(v) > 0}
-        
+
         if not cleaned:
             raise ValueError("Composition is empty after removing non-positives.")
 
         total = sum(cleaned.values())
-        
-        # Trust user input if close to 100%
+
         if 99.5 <= total <= 100.5:
             return {"composition": cleaned, "warnings": warnings}
-        
-        # Collect warnings for significant deviations
+
         if total < 95.0:
             warnings.append(f"Composition sums to {total:.1f}%, which seems incomplete. Consider adding missing elements.")
         elif total > 105.0:
             warnings.append(f"Composition sums to {total:.1f}%, which exceeds 100%. This may indicate an error.")
         elif abs(total - 100.0) > 2.0:
             warnings.append(f"Composition sums to {total:.1f}% (expected ~100%).")
-        
-        # Reject if total is way off
+
         if total < 90.0 or total > 110.0:
             raise ValueError(
                 f"Composition total ({total:.1f}%) is outside acceptable range (90-110%). "
@@ -99,100 +116,380 @@ class AlloyEvaluationCrew:
             "composition": {k: round(v, 3) for k, v in cleaned.items()},
             "warnings": warnings
         }
-            
-            
-    def run(self, composition: dict, processing: str = "wrought", temperature: int = 900) -> Dict[str, Any]:
-        """
-        Runs the Physics Audit evaluation.
-        Args:
-            composition: Dict of element wt%.
-            processing: Alloy processing hint.
-            temperature: Target temp in C.
-        """
+
+
+    @staticmethod
+    def _build_kg_summary(kg_context_str: str, processing: str) -> str:
+        """Build human-readable KG summary for agent consumption."""
         try:
-            validation_result = self.validate_composition(composition)
-            current_comp = validation_result["composition"]
-        except Exception as e:
-            return {"status": "FAIL", "stage": "validation", "error": str(e)}
-        
-        # 0. KG Context (Pre-Agent Lookup for robustness)
+            alloys = json.loads(kg_context_str)
+            if not isinstance(alloys, list) or not alloys:
+                return "KG search returned no matches."
+        except Exception:
+            return "KG unavailable."
+
+        lines = []
+        for i, alloy in enumerate(alloys[:3]):
+            name = alloy.get("name", "Unknown")
+            dist = alloy.get("_distance", 999)
+            proc = alloy.get("processing", "unknown")
+            proc_match = "same" if proc == processing else f"different ({proc})"
+
+            props = alloy.get("properties", {})
+            prop_parts = []
+            for prop_name, prop_val in props.items():
+                prop_parts.append(f"{prop_name}={prop_val}")
+
+            prop_str = ", ".join(prop_parts) if prop_parts else "no property data"
+            rank = ["Closest", "2nd", "3rd"][i]
+            lines.append(
+                f"{rank}: {name} (dist={dist:.2f}, {proc_match} processing). {prop_str}."
+            )
+
+        return " ".join(lines)
+
+    @staticmethod
+    def _build_anchor_text(analysis: dict, ml_fallback: dict) -> str:
+        """Build compact anchor summary (ML/Physics/KG values) for agent consumption."""
+        _UNITS = {
+            "Yield Strength": "MPa", "Tensile Strength": "MPa",
+            "Elongation": "%", "Elastic Modulus": "GPa", "Gamma Prime": "%",
+        }
+        _MECH_PROPS = ["Yield Strength", "Tensile Strength", "Elongation", "Elastic Modulus"]
+
+        def _fmt(prop, val):
+            return f"  {prop}: {val:.1f} {_UNITS.get(prop, '')}"
+
+        lines = []
+
+        info = analysis.get("alloy_analysis", {})
+        gp = info.get("gamma_prime_pct", 0) or 0
+        lines.append(
+            f"CLASS: {(info.get('class', '?')).upper()} | "
+            f"γ'={gp:.1f}% | ρ={info.get('density_gcm3', 0)} g/cm³"
+        )
+
+        preds = analysis.get("predictions", {})
+        ml = preds.get("ml", {})
+        if ml and not ml.get("error"):
+            lines.append("ML:")
+            lines.extend(_fmt(p, ml[p]) for p in _MECH_PROPS if ml.get(p) is not None)
+        elif ml_fallback:
+            ml_pred = ml_fallback
+            lines.append("ML (fallback):")
+            lines.extend(_fmt(p, ml_pred[p]) for p in _MECH_PROPS if ml_pred.get(p) is not None)
+
+        physics = preds.get("physics", {})
+        if physics and not physics.get("error"):
+            model = physics.get("physics_model", "physics")
+            lines.append(f"PHYSICS ({model}):")
+            for p in _MECH_PROPS + ["Gamma Prime"]:
+                if physics.get(p) is not None:
+                    lines.append(_fmt(p, physics[p]))
+            if physics.get("model_breakdown"):
+                lines.append(f"  Breakdown: {physics['model_breakdown']}")
+
+        kg = preds.get("kg")
+        if kg and kg.get("matched"):
+            lines.append(f"KG: '{kg.get('name', '?')}' (dist={kg.get('distance', 999):.2f})")
+            for prop, val in kg.get("properties", {}).items():
+                if isinstance(val, (int, float)):
+                    lines.append(f"  {prop}: {val:.1f} {_UNITS.get(prop, '')} (experimental)")
+
+        disc = analysis.get("discrepancy", {})
+        if disc.get("detected"):
+            affected = ", ".join(disc.get("properties_affected", []))
+            lines.append(f"⚠️ DISCREPANCY ({disc.get('severity', '?').upper()}): {affected}")
+            for d in disc.get("details", []):
+                lines.append(
+                    f"  {d.get('property', '')}: ML={d.get('ml_value', 0):.0f} vs "
+                    f"Physics={d.get('physics_value', 0):.0f} ({d.get('difference_pct', 0):.0f}%)"
+                )
+        else:
+            lines.append("✓ Sources agree.")
+
+        proposals = analysis.get("proposed_corrections", [])
+        if proposals:
+            lines.append(f"PROPOSALS ({len(proposals)}):")
+            for p in proposals:
+                lines.append(
+                    f"  [{p.get('confidence', '?')}] {p['property_name']}: "
+                    f"{p['current_value']:.1f} → {p['proposed_value']:.1f} — {p['reasoning']}"
+                )
+
+        return "\n".join(lines)
+
+    @staticmethod
+    def _evaluate_agent_trust(
+        output: PhysicsAuditWithCorrectionsOutput,
+        ml_fallback: dict,
+        analysis_anchors: dict,
+    ) -> Dict[str, tuple]:
+        """Safety net: overrides agent values only for ignored HIGH proposals."""
+        ml_pred = ml_fallback if ml_fallback else {}
+        proposals = {
+            p["property_name"]: p
+            for p in (analysis_anchors or {}).get("proposed_corrections", [])
+        }
+        def _is_real_correction(c):
+            norm_name = PROPERTY_KEY_MAP.get(c.property_name, c.property_name)
+            ml_val = ml_pred.get(norm_name)
+
+            if (isinstance(ml_val, (int, float)) and ml_val > 0
+                    and isinstance(c.corrected_value, (int, float))):
+                if abs(c.corrected_value - ml_val) / ml_val < AGENT_TRUST["NOOP_THRESHOLD"]:
+                    logger.info(f"[TRUST] No-op filtered: {norm_name} corrected={c.corrected_value:.1f} ≈ ML={ml_val:.1f}")
+                    return False
+
+            reason = (c.correction_reason or "").strip()
+            for placeholder in AGENT_TRUST["PLACEHOLDER_STRINGS"]:
+                if placeholder.lower() in reason.lower():
+                    logger.info(f"[TRUST] Placeholder filtered: {norm_name}")
+                    return False
+
+            if len(reason) < AGENT_TRUST["MIN_REASON_LENGTH"]:
+                logger.info(f"[TRUST] Short reason filtered: {norm_name} ({len(reason)} chars)")
+                return False
+
+            return True
+
+        agent_corrections = {
+            PROPERTY_KEY_MAP.get(c.property_name, c.property_name): c
+            for c in (output.corrections_applied or [])
+            if _is_real_correction(c)
+        }
+
+        original_errors = set(validate_property_bounds(dict(output.properties)))
+
+        def _passes_bounds(prop, val):
+            test = dict(output.properties)
+            test[prop] = val
+            new_errors = set(validate_property_bounds(test)) - original_errors
+            return not new_errors
+
+        decisions = {}
+
+        for prop in ["Yield Strength", "Tensile Strength", "Elongation", "Elastic Modulus"]:
+            current_val = output.properties.get(prop)
+            ml_val = ml_pred.get(prop)
+            if not isinstance(current_val, (int, float)):
+                continue
+
+            proposal = proposals.get(prop)
+            if proposal and proposal.get("confidence") == "HIGH":
+                proposed_val = proposal.get("proposed_value")
+                if isinstance(proposed_val, (int, float)):
+                    threshold = CORRECTION_THRESHOLDS.get(prop, 1.0)
+                    if abs(current_val - proposed_val) > threshold and _passes_bounds(prop, proposed_val):
+                        decisions[prop] = (
+                            TrustDecision.TRUST_PROPOSAL, proposed_val,
+                            f"HIGH proposal ignored by both agents: {proposal.get('reasoning', '')[:100]}"
+                        )
+                        continue
+
+        return decisions
+
+    @staticmethod
+    def _build_summary_prompt(
+        composition: dict,
+        output: PhysicsAuditWithCorrectionsOutput,
+        temperature: int,
+        alloy_class_label: str,
+        summary_context: dict = None,
+    ) -> str:
+        """Build summary prompt for LLM."""
+        comp_str = ", ".join(
+            f"{el}: {wt:.1f}%" for el, wt in
+            sorted(composition.items(), key=lambda x: x[1], reverse=True)[:5]
+        )
+        props = output.properties
+        confidence = output.confidence if isinstance(output.confidence, dict) else {}
+
+        props_block = (
+            f"- YS: {props.get('Yield Strength', 'N/A')} MPa | "
+            f"UTS: {props.get('Tensile Strength', 'N/A')} MPa\n"
+            f"- EL: {props.get('Elongation', 'N/A')}% | "
+            f"EM: {props.get('Elastic Modulus', 'N/A')} GPa\n"
+            f"- γ': {props.get('Gamma Prime', 'N/A')} vol% | "
+            f"Density: {props.get('Density', 'N/A')} g/cm³"
+        )
+
+        audit_block = (
+            f"Audit: {output.status} | TCP: {output.tcp_risk} | "
+            f"Violations: {len(output.audit_penalties)} | "
+            f"Confidence: {confidence.get('level', 'MEDIUM')} ({confidence.get('score', 0.5):.2f})"
+        )
+
+        reasoning_lines = []
+        if output.analyst_reasoning:
+            reasoning_lines.append(f"Analyst: {output.analyst_reasoning[:250]}")
+        if output.reviewer_assessment:
+            reasoning_lines.append(f"Reviewer: {output.reviewer_assessment[:150]}")
+        reasoning_block = "\n".join(reasoning_lines)
+
+        if summary_context:
+            targets = []
+            if summary_context.get("min_yield", 0) > 0:
+                targets.append(f"YS>={summary_context['min_yield']}")
+            if summary_context.get("min_tensile", 0) > 0:
+                targets.append(f"UTS>={summary_context['min_tensile']}")
+            if summary_context.get("max_density", 99) < 99:
+                targets.append(f"Density<={summary_context['max_density']}")
+            target_str = ", ".join(targets) if targets else "None"
+
+            instruction = (
+                f"3-paragraph design summary: (1) What was designed, "
+                f"(2) Performance vs target, (3) Trade-offs and recommendations."
+            )
+            header = f"Target: {target_str}\nComposition: {comp_str}\n"
+        else:
+            instruction = (
+                f"2-3 sentence technical summary: (1) Strengthening mechanism, "
+                f"(2) Audit concerns, (3) Applications. Class: {alloy_class_label}"
+            )
+            header = f"Composition: {comp_str}\n"
+
+        return (
+            f"{header}Properties at {temperature}°C:\n{props_block}\n"
+            f"{audit_block}\n{reasoning_block}\n\n"
+            f"{instruction}\n"
+            f"Use ONLY the values above — do not invent numbers."
+        )
+
+    def evaluate_properties(
+        self,
+        composition: dict,
+        processing: str = "wrought",
+        temperature: int = 900,
+        *,
+        apply_calibration: bool = False,
+        summary_context: dict = None,
+        extra_output_fields: dict = None,
+    ) -> Dict[str, Any]:
+        """Shared evaluation pipeline: Pre-compute → Agents → Trust → Validation → Summary."""
+        # === PRE-AGENT COMPUTATION ===
         try:
             search_tool = AlloySearchTool()
-            kg_raw = search_tool._run(composition=current_comp, limit=3)
+            kg_raw = search_tool._run(composition=composition, limit=3)
             kg_context_str = _slim_kg_context(kg_raw, target_temp=temperature)
         except Exception as e:
-            return {"status": "FAIL", "stage": "kg_lookup", "error": str(e)}
+            logger.warning(f"KG lookup failed (non-fatal): {e}. Continuing without KG context.")
+            kg_context_str = "KG unavailable — no experimental reference data."
 
-        comp_json = json.dumps(current_comp, ensure_ascii=False)
-        
-        # --- TASK 1: VALIDATION ---
-        task_validation = Task(
-            description=(
-                f"Validate composition at {temperature}°C using AlloyPredictorTool.\n\n"
-                f"Execute: AlloyPredictorTool(\n"
-                f"  composition={comp_json},\n"
-                f"  temperature_c={temperature},\n"
-                f"  processing='{processing}'\n"
-                f")\n\n"
-                "Return ONLY the tool's output. Do NOT invent or modify any values."
-            ),
-            expected_output="Valid structured output validating the alloy composition.",
-            output_pydantic=ValidationOutput,
-            agent=self.validator
+        analysis_anchors = {}
+        ml_fallback = None
+        try:
+            analysis_tool = AnalysisTool()
+            analysis_raw = analysis_tool._run(
+                composition=composition,
+                temperature_c=temperature,
+                processing=processing,
+                kg_context=kg_context_str
+            )
+            analysis_anchors = json.loads(analysis_raw) if isinstance(analysis_raw, str) else analysis_raw
+            logger.info(f"Pre-computed analysis anchors (discrepancy={analysis_anchors.get('discrepancy_detected', False)})")
+
+            ml_from_analysis = analysis_anchors.get("predictions", {}).get("ml", {})
+            if ml_from_analysis and not ml_from_analysis.get("error"):
+                alloy_info = analysis_anchors.get("alloy_analysis", {})
+                ml_fallback = {
+                    **ml_from_analysis,
+                    "Density": alloy_info.get("density_gcm3", 0),
+                    "Gamma Prime": alloy_info.get("gamma_prime_pct", 0),
+                }
+        except Exception as e:
+            logger.warning(f"Analysis pre-computation failed: {e}")
+
+        if ml_fallback is None:
+            try:
+                predictor = AlloyPredictorTool()
+                ml_raw = predictor._run(
+                    composition=composition,
+                    temperature_c=temperature,
+                    processing=processing
+                )
+                ml_fallback = json.loads(ml_raw) if isinstance(ml_raw, str) else ml_raw
+            except Exception as e:
+                logger.warning(f"ML fallback computation failed: {e}")
+
+        comp_json = json.dumps(composition, ensure_ascii=False)
+        anchor_text = self._build_anchor_text(analysis_anchors, ml_fallback)
+        kg_summary = self._build_kg_summary(kg_context_str, processing)
+
+        alloy_info = analysis_anchors.get("alloy_analysis", {})
+        alloy_class_name = (alloy_info.get("class", "") or "").upper()
+        gp_pct_ctx = alloy_info.get("gamma_prime_pct", 0) or 0
+        is_sss = alloy_class_name == "SSS" or gp_pct_ctx < 5
+        alloy_class_label = (
+            f"SSS (solid solution strengthened, 0% gamma-prime)"
+            if is_sss else
+            f"Gamma-prime precipitation hardened ({gp_pct_ctx:.0f} vol%)"
         )
 
-        # --- TASK 2: ARBITRATION ---
-        task_arbitration = Task(
+        # === AGENT PIPELINE ===
+        task_analysis = Task(
             description=(
-                f"Fuse ML predictions with KG data using DataFusionTool.\n\n"
-                f"Execute DataFusionTool with these INPUT parameters ONLY:\n"
-                f"  composition: {comp_json}\n"
-                f"  ml_prediction_json: <JSON string from Validator's ml_prediction>\n"
-                f"  rag_context: {kg_context_str}\n"
-                f"  target_temperature_c: {temperature}\n"
-                f"  processing: '{processing}'\n"
-                f"  mode: 'evaluate'  (standard 50/50 ML/KG weighting for evaluation)\n\n"
-                "DO NOT add any other parameters. The tool will return properties, property_intervals, and confidence.\n"
-                "Return the tool's complete output exactly as provided."
+                f"COMPOSITION: {comp_json}\n"
+                f"TEMPERATURE: {temperature}°C | PROCESSING: {processing}\n"
+                f"ALLOY CLASS: {alloy_class_label}\n\n"
+                f"=== ANCHOR VALUES ===\n{anchor_text}\n====================\n\n"
+                f"=== PRE-COMPUTED KG MATCHES ===\n{kg_summary}\n==============================\n\n"
+                f"WORKFLOW:\n"
+                f"1. ALWAYS call AlloySearchTool(composition=<composition dict>) to find experimental data.\n"
+                f"2. Compare KG experimental values with ML and physics anchors.\n"
+                f"3. Select the best value for each property using the decision rules below.\n\n"
+                f"DECISION RULES:\n"
+                f"- KG match (distance < 2.0): treat experimental values as ground truth\n"
+                f"- KG match (distance 2.0-4.0): weight KG evidence — closer = more trusted\n"
+                f"- KG match (distance > 4.0): note findings but rely on ML/physics\n"
+                f"- Sources agree (within 15%) and no close KG match: use ML value\n"
+                f"- SSS alloy + disagreement: prefer Physics (Labusch-Nabarro is calibrated)\n"
+                f"- γ' alloy + disagreement: use proposed correction if available\n"
+                f"- UTS MUST be >= YS. If your UTS < YS, you have an error — fix it.\n\n"
+                f"OUTPUT: status='PASS', processing='{processing}', properties={{...}}\n\n"
+                f"FIELD DIRECTIVES:\n"
+                f"- analyst_reasoning: for EACH property state 'YS=[val] from [source] — [reason]'. Cite numbers.\n"
+                f"- investigation_findings: copy KG matches above, then add your own search results with values.\n"
+                f"- source_reliability: state '[ML/Physics/KG] most reliable for this class because [reason]'.\n"
+                f"- corrections_applied: only for properties where you chose differently from ML.\n"
+                f"- corrections_explanation: what changed and why.\n"
+                f"- Do NOT fill metallurgy_metrics, property_intervals, or audit_penalties."
             ),
-            expected_output="Fused properties with confidence scores.",
-            output_pydantic=ArbitrationOutput,
-            agent=self.arbitrator,
-            context=[task_validation]
-        )
-
-        # --- TASK 3: PHYSICS AUDIT + CORRECTIONS (merged) ---
-        task_physics = Task(
-            description=(
-                f"Audit and correct physical validity of composition using MetallurgyVerifierTool.\n\n"
-                "1. Infer alloy_type using priority order:\n"
-                "   - 'high_corrosion' if Cr > 21%\n"
-                "   - 'high_strength' if Al+Ti > 4% AND Cr ≤ 21%\n"
-                "   - 'standard' otherwise\n\n"
-                f"2. Execute MetallurgyVerifierTool with these INPUT parameters ONLY:\n"
-                f"   composition: {comp_json}\n"
-                f"   anchored_properties_json: <JSON with {{properties, processing}} from Arbitrator>\n"
-                f"   temperature_c: {temperature}\n"
-                "   alloy_type: <inferred_type>\n\n"
-                "   DO NOT add output fields like 'status', 'tcp_risk', 'audit_penalties', etc.\n"
-                "   Those will be returned by the tool.\n\n"
-                "3. PRESERVE the complete tool output including 'corrections_applied'\n\n"
-                "4. Add ONLY a 3-5 sentence human-readable 'explanation':\n"
-                "   - Identify dominant strengthening mechanism (γ' vs solid solution)\n"
-                "   - Note any corrections applied and why\n"
-                "   - Suggest suitable applications\n"
-                "   - DO NOT modify any numerical values in your explanation"
-            ),
-            expected_output="Complete physics audit with corrections applied.",
+            expected_output="Property predictions with metallurgical reasoning chain.",
             output_pydantic=PhysicsAuditWithCorrectionsOutput,
-            agent=self.physicist,
-            context=[task_arbitration]
+            agent=self.analyst
         )
 
-        # Create and run crew
+        task_review = Task(
+            description=(
+                f"Validate and correct the Analyst's predictions. ALLOY CLASS: {alloy_class_label}\n\n"
+                f"=== REFERENCE ANCHORS ===\n{anchor_text}\n========================\n\n"
+                f"WORKFLOW:\n"
+                f"1. Call MetallurgyVerifierTool(composition={comp_json}, "
+                f"anchored_properties_json=<Analyst's properties as JSON>, temperature_c={temperature}).\n"
+                f"2. For EACH violation the verifier reports:\n"
+                f"   - Correct the value using proposals, physics, or KG data from the anchors above.\n"
+                f"   - OR justify why the violation is acceptable for this alloy class.\n"
+                f"3. Check if HIGH-confidence proposals in the anchors were ignored — apply or justify rejection.\n"
+                f"4. If you need independent evidence, search KG with AlloySearchTool.\n\n"
+                f"OUTPUT: status='PASS', processing='{processing}', properties={{...}}\n\n"
+                f"FIELD DIRECTIVES:\n"
+                f"- reviewer_assessment: for EACH violation state 'Violation: [property] [issue] — corrected [old]->[new] using [evidence]'.\n"
+                f"- corrections_applied: ADD your corrections to the Analyst's list (keep existing ones).\n"
+                f"- corrections_explanation: update to include both Analyst and your corrections.\n"
+                f"- CRITICAL: If UTS < YS, fix it — this is a physical impossibility.\n"
+                f"- Preserve analyst_reasoning, investigation_findings, source_reliability from the Analyst.\n"
+                f"- Do NOT fill metallurgy_metrics, property_intervals, or audit_penalties."
+            ),
+            expected_output="Validated and corrected properties with evidence-based decisions.",
+            output_pydantic=PhysicsAuditWithCorrectionsOutput,
+            agent=self.reviewer,
+            context=[task_analysis]
+        )
+
         evaluation_crew = Crew(
-            agents=[self.validator, self.arbitrator, self.physicist],
-            tasks=[task_validation, task_arbitration, task_physics],
+            agents=[self.analyst, self.reviewer],
+            tasks=[task_analysis, task_review],
             process=Process.sequential,
             verbose=True
         )
@@ -200,253 +497,288 @@ class AlloyEvaluationCrew:
         try:
             crew_output = evaluation_crew.kickoff()
 
-            # Extract structured output
-            physics_output = None
+            output = None
             if hasattr(crew_output, "pydantic") and crew_output.pydantic:
-                physics_output = crew_output.pydantic
+                output = crew_output.pydantic
             elif hasattr(crew_output, "raw"):
-                # Fallback: attempt manual parse
                 try:
                     data = json.loads(crew_output.raw)
-                    physics_output = PhysicsAuditWithCorrectionsOutput(**data)
-                except:
-                    print(f"⚠️  Failed to parse LLM output as JSON, attempting recovery...")
-                    physics_output = None
+                    output = PhysicsAuditWithCorrectionsOutput(**data)
+                except Exception:
+                    logger.warning("Failed to parse Reviewer output as JSON, attempting recovery...")
+                    output = None
 
-            if physics_output is None:
-                # Try to get from task output
-                last_task_output = task_physics.output
-                if last_task_output and last_task_output.pydantic:
-                    physics_output = last_task_output.pydantic
+            if output is None:
+                review_task_output = task_review.output
+                if review_task_output and review_task_output.pydantic:
+                    output = review_task_output.pydantic
                 else:
-                    # Final fallback: construct from validator
-                    print("⚠️  Physics task failed, falling back to validator output...")
-                    validator_output = getattr(task_validation.output, "pydantic", None)
-
-                    if validator_output:
-                        props = validator_output.ml_prediction
-                        physics_output = PhysicsAuditWithCorrectionsOutput(
+                    logger.warning("Reviewer task failed, falling back to Analyst output...")
+                    analyst_task_output = task_analysis.output
+                    if analyst_task_output and analyst_task_output.pydantic:
+                        output = analyst_task_output.pydantic
+                        output.reviewer_assessment = "Review skipped due to parsing failure."
+                    elif ml_fallback:
+                        logger.warning("Analyst also failed, using ML fallback...")
+                        output = PhysicsAuditWithCorrectionsOutput(
                             status='PASS',
                             processing=processing,
-                            penalty_score=0,
-                            tcp_risk='LOW',
-                            properties=props,
-                            property_intervals={},
-                            metallurgy_metrics={},
-                            audit_penalties=[],
-                            confidence={},
-                            explanation="Analysis completed with fallback processing due to LLM parsing issues.",
-                            corrections_applied=[],
-                            corrections_explanation=""
+                            properties=ml_fallback,
+                            explanation="ML-only fallback — agent pipeline failed.",
+                            analyst_reasoning="Agent pipeline failed. Using raw ML predictions.",
+                            reviewer_assessment="Review not performed.",
                         )
                     else:
                         raise ValueError("Could not recover output from any pipeline stage.")
-
-            # Convert PhysicsAuditWithCorrectionsOutput to CorrectedPropertiesOutput for compatibility
-            corrected_output = CorrectedPropertiesOutput(
-                status=getattr(physics_output, 'status', 'PASS'),
-                processing=getattr(physics_output, 'processing', processing),
-                penalty_score=getattr(physics_output, 'penalty_score', 0),
-                tcp_risk=getattr(physics_output, 'tcp_risk', 'LOW'),
-                properties=getattr(physics_output, 'properties', {}),
-                property_intervals=getattr(physics_output, 'property_intervals', {}),
-                metallurgy_metrics=getattr(physics_output, 'metallurgy_metrics', {}),
-                audit_penalties=getattr(physics_output, 'audit_penalties', []),
-                confidence=getattr(physics_output, 'confidence', {}),
-                explanation=getattr(physics_output, 'explanation', ''),
-                corrections_applied=getattr(physics_output, 'corrections_applied', []),
-                corrections_explanation=getattr(physics_output, 'corrections_explanation', '')
-            )
 
         except Exception as e:
             return {"status": "FAIL", "stage": "crew_execution", "error": str(e)}
 
         # === PROPERTY RECOVERY ===
-        # LLM agents sometimes drop properties. Recover from earlier pipeline stages.
         required_props = ["Yield Strength", "Tensile Strength", "Elongation", "Elastic Modulus", "Density", "Gamma Prime"]
-        missing_props = [p for p in required_props if p not in corrected_output.properties or corrected_output.properties.get(p) in [None, 0, "N/A"]]
+
+        def _is_truly_missing(prop_name, value):
+            if value is None or value == "N/A":
+                return True
+            if prop_name in ("Gamma Prime", "Elongation"):
+                return False  # 0 is a valid value for these
+            return value == 0
+
+        missing_props = [p for p in required_props if p not in output.properties or _is_truly_missing(p, output.properties.get(p))]
 
         if missing_props:
-            print(f"⚠️  Missing properties detected: {missing_props}. Attempting recovery...")
+            logger.warning(f"Missing properties detected: {missing_props}. Attempting recovery...")
 
-            # Try to recover from validator's ml_prediction
-            validator_output = getattr(task_validation.output, "pydantic", None)
-            if validator_output and hasattr(validator_output, 'ml_prediction'):
-                ml_pred = validator_output.ml_prediction
+            if ml_fallback:
+                ml_pred = ml_fallback
                 for prop in missing_props[:]:
-                    if prop in ml_pred and ml_pred[prop] not in [None, 0]:
-                        corrected_output.properties[prop] = ml_pred[prop]
+                    if prop in ml_pred and ml_pred[prop] is not None and ml_pred[prop] != "N/A":
+                        output.properties[prop] = ml_pred[prop]
                         missing_props.remove(prop)
-                        print(f"  ✓ Recovered {prop} from ML prediction: {ml_pred[prop]}")
+                        logger.info(f"Recovered {prop} from ML fallback: {ml_pred[prop]}")
 
-            # Try to recover confidence, intervals, metrics from earlier stages
-            if not corrected_output.confidence or corrected_output.confidence == {}:
-                physicist_output = getattr(task_physics.output, "pydantic", None)
-                if physicist_output and hasattr(physicist_output, 'confidence'):
-                    corrected_output.confidence = physicist_output.confidence
-                    print("  ✓ Recovered confidence from Physicist output")
+                if not output.confidence:
+                    conf = ml_pred.get("confidence", {})
+                    if conf:
+                        output.confidence = conf
+                        logger.info("Recovered confidence from ML fallback")
 
-            if not corrected_output.property_intervals or corrected_output.property_intervals == {}:
-                if validator_output and hasattr(validator_output, 'ml_prediction'):
-                    intervals = validator_output.ml_prediction.get("property_intervals", {})
-                    if intervals:
-                        corrected_output.property_intervals = intervals
-                        print("  ✓ Recovered property_intervals from ML prediction")
-
-            # Recover metallurgy_metrics from Physicist output if missing required keys
-            metrics = corrected_output.metallurgy_metrics or {}
-            has_required_metrics = any(k in metrics for k in REQUIRED_METRIC_KEYS)
-
-            if not has_required_metrics:
-                physicist_output = getattr(task_physics.output, "pydantic", None)
-                if physicist_output and hasattr(physicist_output, 'metallurgy_metrics'):
-                    phys_metrics = physicist_output.metallurgy_metrics
-                    if phys_metrics and any(k in phys_metrics for k in REQUIRED_METRIC_KEYS):
-                        corrected_output.metallurgy_metrics = phys_metrics
-                        print("  ✓ Recovered metallurgy_metrics from Physicist output")
-                        has_required_metrics = True
-
-                if not has_required_metrics:
-                    corrected_output.metallurgy_metrics = compute_fallback_metrics(composition)
-                    print("  ✓ Computed metallurgy_metrics from feature_engineering")
-
-            # Final fallback: compute from feature_engineering
             if missing_props:
-                from .models.feature_engineering import compute_alloy_features
                 features = compute_alloy_features(composition)
                 if "Density" in missing_props and "density_calculated_gcm3" in features:
-                    corrected_output.properties["Density"] = round(features["density_calculated_gcm3"], 2)
+                    output.properties["Density"] = round(features["density_calculated_gcm3"], 2)
                     missing_props.remove("Density")
-                    print(f"  ✓ Computed Density from features: {corrected_output.properties['Density']}")
+                    logger.info(f"Computed Density from features: {output.properties['Density']}")
                 if "Gamma Prime" in missing_props and "gamma_prime_estimated_vol_pct" in features:
-                    # SSS alloy check: Al+Ti+Ta < 2% means γ' should be 0%
-                    al = composition.get("Al", composition.get("al", 0)) or 0
-                    ti = composition.get("Ti", composition.get("ti", 0)) or 0
-                    ta = composition.get("Ta", composition.get("ta", 0)) or 0
-                    al_ti_ta = al + ti + ta
-
-                    if al_ti_ta < 2.0:
-                        corrected_output.properties["Gamma Prime"] = 0.0
-                        print(f"  ✓ SSS alloy (Al+Ti+Ta={al_ti_ta:.1f}% < 2%) - Gamma Prime set to 0%")
+                    if is_sss_alloy(composition):
+                        output.properties["Gamma Prime"] = 0.0
+                        logger.info("SSS alloy (is_sss_alloy=True) — Gamma Prime set to 0%")
                     else:
-                        corrected_output.properties["Gamma Prime"] = round(features["gamma_prime_estimated_vol_pct"], 1)
-                        print(f"  ✓ Computed Gamma Prime from features: {corrected_output.properties['Gamma Prime']}")
+                        output.properties["Gamma Prime"] = round(features["gamma_prime_estimated_vol_pct"], 1)
+                        logger.info(f"Computed Gamma Prime from features: {output.properties['Gamma Prime']}")
                     missing_props.remove("Gamma Prime")
 
             if missing_props:
-                print(f"  ⚠️  Could not recover: {missing_props}")
+                logger.warning(f"Could not recover: {missing_props}")
 
-        corrected_output.properties = apply_calibration_safe(
-            corrected_output.properties,
-            composition,
-            corrected_output
-        )
+        # === NORMALIZE PROPERTY KEYS ===
+        if not output.corrections_explanation and output.corrections_applied:
+            output.corrections_explanation = "Analyst-driven corrections applied based on source triangulation."
 
-        if corrected_output.corrections_explanation:
-            corrected_output.corrections_explanation += "\n\nDatabase-driven calibration applied to account for systematic formula biases in literature equations."
-        else:
-            corrected_output.corrections_explanation = "Database-driven calibration applied to account for systematic formula biases in literature equations."
+        normalized_props = {}
+        for key, value in output.properties.items():
+            norm_key = PROPERTY_KEY_MAP.get(key, key)
+            if isinstance(value, str):  # LLMs sometimes return "520" instead of 520
+                try:
+                    value = float(value)
+                except (ValueError, TypeError):
+                    pass
+            normalized_props[norm_key] = value
+        output.properties = normalized_props
 
-        # === PHYSICS ENFORCEMENT (Hard Constraints) ===
-        # Programmatic corrections for extreme deviations that LLM agents may have missed
-        confidence = corrected_output.confidence if isinstance(corrected_output.confidence, dict) else {}
-        kg_distance = confidence.get("similarity_distance", 999)
-        confidence_level = confidence.get("level", "MEDIUM")
+        # === CORRECTION RECONCILIATION ===
+        # Apply corrections that agents documented but forgot to update in properties.
+        for c in (output.corrections_applied or []):
+            norm_name = PROPERTY_KEY_MAP.get(c.property_name, c.property_name)
+            current = output.properties.get(norm_name)
+            if (isinstance(current, (int, float))
+                    and isinstance(c.original_value, (int, float))
+                    and isinstance(c.corrected_value, (int, float))
+                    and c.corrected_value != c.original_value
+                    and abs(current - c.original_value) / max(abs(c.original_value), 1) < 0.05):
+                logger.info(
+                    f"[RECONCILE] {norm_name}: {current:.1f} → {c.corrected_value:.1f} "
+                    f"(correction documented but not applied)"
+                )
+                output.properties[norm_name] = c.corrected_value
 
-        corrected_output.properties, physics_corrections = enforce_physics_constraints(
-            properties=corrected_output.properties,
+        # === SAFETY NET ===
+        trust_decisions = self._evaluate_agent_trust(output, ml_fallback, analysis_anchors)
+
+        for prop_name, (decision, value, reason) in trust_decisions.items():
+            if decision == TrustDecision.TRUST_PROPOSAL:
+                logger.info(f"[SAFETY_NET] {prop_name} -> {value:.1f} ({reason})")
+                output.properties[prop_name] = value
+
+        # === DETERMINISTIC OVERRIDES (Density + Gamma Prime are composition-determined) ===
+        det_features = compute_alloy_features(composition)
+        det_density = round(det_features.get("density_calculated_gcm3", 0), 2)
+        det_gp = round(det_features.get("gamma_prime_estimated_vol_pct", 0), 1)
+        if is_sss_alloy(composition):
+            det_gp = 0.0
+
+        agent_density = output.properties.get("Density")
+        if det_density > 0 and agent_density != det_density:
+            if isinstance(agent_density, (int, float)) and agent_density > 0:
+                logger.info(f"[DET_OVERRIDE] Density: {agent_density} → {det_density} g/cm³ (composition-determined)")
+            output.properties["Density"] = det_density
+
+        agent_gp = output.properties.get("Gamma Prime")
+        if isinstance(agent_gp, (int, float)) and abs((agent_gp or 0) - det_gp) > 1.0:
+            logger.info(f"[DET_OVERRIDE] Gamma Prime: {agent_gp} → {det_gp}% (composition-determined)")
+        output.properties["Gamma Prime"] = det_gp
+
+        # === UTS/YS ENFORCEMENT ===
+        ys_val = output.properties.get("Yield Strength")
+        uts_val = output.properties.get("Tensile Strength")
+
+        if (isinstance(ys_val, (int, float)) and isinstance(uts_val, (int, float))
+                and ys_val > 0 and uts_val < ys_val):
+            min_uts = round(ys_val * 1.05, 1)
+            logger.warning(
+                f"[UTS_FLOOR] UTS ({uts_val:.1f}) < YS ({ys_val:.1f}) — "
+                f"setting UTS = YS × 1.05 = {min_uts:.1f}"
+            )
+            output.properties["Tensile Strength"] = min_uts
+            uts_val = min_uts
+
+        if isinstance(ys_val, (int, float)) and isinstance(uts_val, (int, float)) and ys_val > 0:
+            ratio = uts_val / ys_val
+            gp_val = det_gp
+            if is_sss_alloy(composition):
+                max_ratio = 2.4
+            elif processing in ["wrought", "forged"] and gp_val > 40:
+                max_ratio = UTS_YS_RATIO["WROUGHT_HIGH_GP_MAX"]
+            elif processing in ["wrought", "forged"]:
+                max_ratio = UTS_YS_RATIO["WROUGHT_MAX"]
+            else:
+                max_ratio = UTS_YS_RATIO["CAST_BASE"] + (gp_val / 100) * UTS_YS_RATIO["CAST_GP_FACTOR"] + 0.10
+            if ratio > max_ratio:
+                capped_uts = round(ys_val * max_ratio, 1)
+                logger.info(
+                    f"[UTS_CAP] UTS/YS ratio {ratio:.2f} > max {max_ratio:.2f} — "
+                    f"capping UTS: {uts_val:.1f} → {capped_uts:.1f}"
+                )
+                output.properties["Tensile Strength"] = capped_uts
+
+        # === ELONGATION CAP ===
+        el_val = output.properties.get("Elongation")
+        if isinstance(el_val, (int, float)) and el_val > 0:
+            if det_gp > 60 and el_val > ELONGATION["HIGH_GP_MAX_EL"]:
+                logger.info(
+                    f"[EL_CAP] γ'={det_gp:.0f}% (>60%) — capping EL: "
+                    f"{el_val:.1f}% → {ELONGATION['HIGH_GP_MAX_EL']}%"
+                )
+                output.properties["Elongation"] = ELONGATION["HIGH_GP_MAX_EL"]
+            elif det_gp > 40 and el_val > ELONGATION["MOD_GP_MAX_EL"]:
+                logger.info(
+                    f"[EL_CAP] γ'={det_gp:.0f}% (40-60%) — capping EL: "
+                    f"{el_val:.1f}% → {ELONGATION['MOD_GP_MAX_EL']}%"
+                )
+                output.properties["Elongation"] = ELONGATION["MOD_GP_MAX_EL"]
+
+        # === EM ENFORCEMENT (override if >20% from Reuss bound) ===
+        em_val = output.properties.get("Elastic Modulus")
+        if isinstance(em_val, (int, float)) and em_val > 0:
+            em_rt = calculate_em_rule_of_mixtures(composition)
+            em_temp_factor = get_em_temp_factor(temperature)
+            em_physics = round(em_rt * em_temp_factor, 1)
+            if em_physics > 0:
+                em_deviation = abs(em_val - em_physics) / em_physics
+                if em_deviation > 0.20:
+                    logger.info(
+                        f"[EM_OVERRIDE] Agent EM={em_val:.1f} GPa deviates {em_deviation:.0%} from "
+                        f"physics Reuss={em_physics:.1f} GPa — overriding"
+                    )
+                    output.properties["Elastic Modulus"] = em_physics
+
+        # === CALIBRATION (optional, used by design pipeline) ===
+        if apply_calibration:
+            output.properties = apply_calibration_safe(output.properties, composition, output)
+
+        # === DETERMINISTIC VALIDATION ===
+        validation_result = compute_metallurgy_validation(
+            properties=output.properties,
             composition=composition,
             temperature_c=temperature,
             processing=processing,
-            confidence_level=confidence_level,
-            kg_distance=kg_distance
+            confidence=output.confidence if isinstance(output.confidence, dict) else {}
         )
 
-        if physics_corrections:
-            print(f"⚡ Physics enforcement applied {len(physics_corrections)} corrections:")
-            for corr in physics_corrections:
-                print(f"   - {corr}")
-            # Add to corrections explanation
-            corrected_output.corrections_explanation += "\n\nPhysics enforcement corrections:\n" + "\n".join(f"• {c}" for c in physics_corrections)
+        output.penalty_score = validation_result["penalty_score"]
+        output.tcp_risk = validation_result["tcp_risk"]
+        output.property_intervals = validation_result["property_intervals"]
+        output.metallurgy_metrics = validation_result["metallurgy_metrics"]
+        output.audit_penalties = [AuditPenalty(**p) for p in validation_result["audit_penalties"]]
+        output.status = validation_result["status"]
 
-        # Re-run coherency checks with POST-calibration values
-        non_coherency_penalties = [
-            p for p in corrected_output.audit_penalties
-            if not any(x in p.name.lower() for x in ["coherency", "mismatch"])
-        ]
-        fresh_warnings = validate_property_coherency(corrected_output.properties, composition)
-        fresh_penalties = [AuditPenalty(**p) for p in warnings_to_penalties(fresh_warnings)]
-        corrected_output.audit_penalties = non_coherency_penalties + fresh_penalties
+        logger.info(f"Deterministic validation: status={validation_result['status']}, "
+                    f"penalty={validation_result['penalty_score']}, tcp_risk={validation_result['tcp_risk']}")
 
-        # Generate summary with POST-calibration values to avoid mismatch
+        # === GENERATE SUMMARY ===
         try:
-            comp_str = ", ".join([f"{elem}: {wt:.1f}%" for elem, wt in sorted(composition.items(), key=lambda x: x[1], reverse=True)[:5]])
-            props = corrected_output.properties
-            confidence = corrected_output.confidence if isinstance(corrected_output.confidence, dict) else {}
-
-            summary_task = Task(
-                description=(
-                    f"Generate a concise metallurgical analysis for this alloy evaluation:\n\n"
-                    f"**Composition**: {comp_str}, ...\n\n"
-                    f"**Predicted Properties** (at {temperature}°C):\n"
-                    f"- Yield Strength: {props.get('Yield Strength', 'N/A')} MPa\n"
-                    f"- Tensile Strength: {props.get('Tensile Strength', 'N/A')} MPa\n"
-                    f"- Elongation: {props.get('Elongation', 'N/A')}%\n"
-                    f"- Elastic Modulus: {props.get('Elastic Modulus', 'N/A')} GPa\n"
-                    f"- Gamma Prime: {props.get('Gamma Prime', 'N/A')} vol%\n"
-                    f"- Density: {props.get('Density', 'N/A')} g/cm³\n\n"
-                    f"**Physics Audit**:\n"
-                    f"- Status: {corrected_output.status}\n"
-                    f"- TCP Risk: {corrected_output.tcp_risk}\n"
-                    f"- Audit Violations: {len(corrected_output.audit_penalties)}\n"
-                    f"- Confidence: {confidence.get('level', 'MEDIUM')} ({confidence.get('score', 0.5):.2f})\n\n"
-                    f"Write a 2-3 sentence technical summary explaining:\n"
-                    f"1. What makes this alloy strong (or weak) based on its gamma prime content\n"
-                    f"2. Any concerns from the physics audit (TCP risk, coherency)\n"
-                    f"3. Suitable applications or recommendations\n\n"
-                    f"IMPORTANT: Use ONLY the property values provided above. Do not invent different numbers."
-                ),
-                expected_output="2-3 sentence metallurgical analysis using exact values provided",
-                agent=self.summarizer
+            summary_prompt = self._build_summary_prompt(
+                composition, output, temperature, alloy_class_label, summary_context
             )
 
-            summary_crew = Crew(
-                agents=[self.summarizer],
-                tasks=[summary_task],
-                verbose=False
-            )
+            llm = self.llm
+            if llm is None or not hasattr(llm, 'call'):
+                llm = getattr(self.analyst, 'llm', None)
 
-            summary_result = summary_crew.kickoff()
-            summary_text = str(summary_result.raw) if hasattr(summary_result, 'raw') else str(summary_result)
-            corrected_output.explanation = summary_text
+            if llm and hasattr(llm, 'call'):
+                summary_text = llm.call(summary_prompt)
+                output.explanation = str(summary_text)
+            else:
+                logger.warning("No LLM available for summary generation")
 
         except Exception as e:
-            print(f"⚠️  Could not generate summary: {e}")
-            # Keep original explanation but add note about calibration
-            if corrected_output.explanation:
-                corrected_output.explanation += "\n\n(Note: Final property values shown above reflect database-driven calibration.)"
+            logger.warning(f"Could not generate summary: {e}")
+            if not output.explanation:
+                output.explanation = validation_result.get("summary", "")
 
-        # Cleanup LLM output (normalize keys, filter invalid metrics)
-        clean_props, clean_intervals, clean_metrics = cleanup_llm_output(
-            corrected_output.properties,
-            corrected_output.property_intervals,
-            corrected_output.metallurgy_metrics or {},
-            composition
-        )
-        corrected_output.properties = clean_props
-        corrected_output.property_intervals = clean_intervals
-        corrected_output.metallurgy_metrics = clean_metrics
-        corrected_output.confidence = cleanup_confidence(corrected_output.confidence)
+        # === CLEANUP ===
+        output.properties = {k: v for k, v in output.properties.items() if k in VALID_PROPERTIES}
+        output.confidence = cleanup_confidence(output.confidence)
 
-        # Normalize corrections_applied
         normalized_corrections = []
-        for c in corrected_output.corrections_applied:
-            if "Correction reason" in c.correction_reason:
+        for c in output.corrections_applied:
+            reason_text = (c.correction_reason or "").strip().lower()
+            if any(p.lower() in reason_text for p in AGENT_TRUST["PLACEHOLDER_STRINGS"]):
                 continue
             norm_name = PROPERTY_KEY_MAP.get(c.property_name, c.property_name)
             if norm_name in VALID_PROPERTIES:
                 c.property_name = norm_name
             normalized_corrections.append(c)
-        corrected_output.corrections_applied = normalized_corrections
+        output.corrections_applied = normalized_corrections
 
-        return corrected_output.model_dump()
+        # === BUILD RESULT ===
+        result = output.model_dump()
+
+        if extra_output_fields:
+            result.update(extra_output_fields)
+
+        return result
+
+    def run(self, composition: dict, processing: str = "wrought", temperature: int = 900) -> Dict[str, Any]:
+        """Public entry point: validates composition then runs evaluate_properties()."""
+        try:
+            validation_result = self.validate_composition(composition)
+            current_comp = validation_result["composition"]
+            comp_warnings = validation_result.get("warnings", [])
+        except Exception as e:
+            return {"status": "FAIL", "stage": "validation", "error": str(e)}
+
+        result = self.evaluate_properties(current_comp, processing, temperature)
+        if comp_warnings and isinstance(result, dict):
+            result["composition_warnings"] = comp_warnings
+        return result
