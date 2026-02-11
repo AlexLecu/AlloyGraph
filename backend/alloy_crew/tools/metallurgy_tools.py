@@ -6,6 +6,9 @@ from ..models.feature_engineering import compute_alloy_features, calculate_em_ru
 from ..config.alloy_parameters import (
     TCP,
     classify_tcp_risk,
+    is_sss_alloy,
+    get_em_temp_factor,
+    get_temperature_factor,
 )
 import logging
 
@@ -61,8 +64,17 @@ def validate_property_bounds(properties: Dict[str, Any]) -> list[str]:
     
     return errors
 
-def validate_property_coherency(properties: Dict[str, Any], composition: Dict[str, float]) -> list[str]:
-    """Validate property consistency and composition-property alignment."""
+def validate_property_coherency(
+    properties: Dict[str, Any],
+    composition: Dict[str, float],
+    temperature_c: float = 20.0,
+) -> list[str]:
+    """Validate property consistency and composition-property alignment.
+
+    Thresholds are scaled by temperature so that elevated-temperature predictions
+    (lower EM, lower YS, higher elongation, compressed UTS/YS ratio) do not
+    trigger false-positive warnings calibrated for room temperature.
+    """
     warnings = []
 
     ys = properties.get("Yield Strength", 0)
@@ -81,20 +93,28 @@ def validate_property_coherency(properties: Dict[str, Any], composition: Dict[st
     heavy_refractories = re_wt + w_wt + ta_wt
     gp_formers = al_wt + ti_wt + ta_wt
 
-    # High Strength Requires Adequate γ' Fraction
+    # Temperature scaling factors
+    em_factor = get_em_temp_factor(temperature_c)           # EM decay (floor 0.50)
+    strength_factor = get_temperature_factor(temperature_c, "gp")  # YS decay
+    el_temp_boost = 1.0 + 0.0018 * max(0, temperature_c - 650)    # elongation increases above 650°C
+
+    # Rule 1: High Strength Requires Adequate γ' Fraction
+    # Scale RT thresholds (1400, 1200 MPa) by strength degradation factor
     if ys > 0 and gp > 0:
-        if ys > 1400 and gp < 50:
+        ys_thresh_high = 1400 * strength_factor
+        ys_thresh_mid = 1200 * strength_factor
+        if ys > ys_thresh_high and gp < 50:
             warnings.append(
                 f"⚠️ Coherency Warning: Exceptional yield strength ({ys:.0f} MPa) requires γ' > 50% "
                 f"(current: {gp:.1f}%). Verify composition has sufficient Al+Ti."
             )
-        elif ys > 1200 and gp < 40:
+        elif ys > ys_thresh_mid and gp < 40:
             warnings.append(
                 f"⚠️ Coherency Warning: High yield strength ({ys:.0f} MPa) typically requires γ' > 40% "
                 f"(current: {gp:.1f}%). Precipitation hardening may be insufficient."
             )
 
-    # Rule 2: Density vs Refractory Content
+    # Rule 2: Density vs Refractory Content (temperature-independent)
     if density > 0 and heavy_refractories > 0:
         baseline_density = 8.2
         expected_density = baseline_density + (heavy_refractories / 100) * 5.0
@@ -106,54 +126,69 @@ def validate_property_coherency(properties: Dict[str, Any], composition: Dict[st
                 f"Check if ML model correctly accounts for Re/W/Ta content."
             )
 
-    # High Ductility with Heavy Refractories is Rare
-    if el > 25 and heavy_refractories > 10:
+    # Rule 3: High Ductility with Heavy Refractories is Rare
+    # At elevated temperatures ductility increases, so raise thresholds
+    el_thresh_refr = 25 * el_temp_boost
+    el_thresh_re = 30 * el_temp_boost
+    if el > el_thresh_refr and heavy_refractories > 10:
         warnings.append(
             f"⚠️ Coherency Warning: Unusual combination - High elongation ({el:.1f}%) with heavy refractories "
             f"({heavy_refractories:.1f}%). Re/W typically reduce ductility. Verify if composition is exploratory."
         )
 
-    if el > 30 and re_wt > 6:
+    if el > el_thresh_re and re_wt > 6:
         warnings.append(
-            f"⚠️ Coherency Warning: High Re content ({re_wt:.1f}%) rarely compatible with elongation > 30%. "
+            f"⚠️ Coherency Warning: High Re content ({re_wt:.1f}%) rarely compatible with elongation > {el_thresh_re:.0f}%. "
             f"Current prediction: {el:.1f}%. This may indicate extrapolation beyond training data."
         )
 
     # Rule 4: Elastic Modulus vs Composition
-    # Decreases with Al (70 GPa), Ti (116 GPa)
+    # Scale RT expectations by EM temperature factor
     if em > 0:
-        expected_em = calculate_em_rule_of_mixtures(composition)
+        expected_em_rt = calculate_em_rule_of_mixtures(composition)
+        expected_em = expected_em_rt * em_factor  # temperature-adjusted
 
-        if abs(em - expected_em) > 30:
+        if abs(em - expected_em) > 30 * em_factor:
             warnings.append(
                 f"⚠️ Coherency Warning: Elastic modulus mismatch. "
                 f"Predicted: {em:.0f} GPa, Rule-of-mixtures estimate: {expected_em:.0f} GPa (Δ={abs(em - expected_em):.0f}). "
                 f"Large deviation suggests compositional effects beyond linear mixing."
             )
 
-        if not (180 <= em <= 230) and gp_formers < 10:
+        em_lo = 180 * em_factor
+        em_hi = 230 * em_factor
+        if not (em_lo <= em <= em_hi) and gp_formers < 10:
             warnings.append(
-                f"⚠️ Coherency Warning: Elastic modulus ({em:.0f} GPa) outside typical Ni-alloy range (180-230 GPa) "
-                f"and composition doesn't justify deviation (Al+Ti={gp_formers:.1f}%)."
+                f"⚠️ Coherency Warning: Elastic modulus ({em:.0f} GPa) outside typical Ni-alloy range "
+                f"({em_lo:.0f}-{em_hi:.0f} GPa) and composition doesn't justify deviation (Al+Ti={gp_formers:.1f}%)."
             )
 
-    # Rule 5: UTS/YS Ratio Sanity Check
-    # Ratio < 1.05 suggests insufficient work hardening capacity
-    # Ratio > 1.6 unusual for high-strength alloys
+    # Rule 5: UTS/YS Ratio Sanity Check (alloy-class-aware, temperature-aware)
+    # At elevated temperatures, UTS/YS compresses toward 1.0
     if ys > 0 and uts > 0:
         ratio = uts / ys
-        if ratio < 1.05:
+        if is_sss_alloy(composition):
+            max_coherent_ratio_rt = 2.5
+        else:
+            max_coherent_ratio_rt = 1.6
+        # Compress bounds toward 1.0 using EM factor as proxy for high-T softening
+        max_coherent_ratio = 1.0 + (max_coherent_ratio_rt - 1.0) * em_factor
+        min_coherent_ratio = 1.0 + (1.05 - 1.0) * em_factor  # floor also compresses
+
+        # At elevated temperatures (>650°C), work hardening vanishes and
+        # UTS ≈ YS is physically expected — skip the minimum ratio check.
+        if ratio < min_coherent_ratio and temperature_c <= 650:
             warnings.append(
                 f"⚠️ Coherency Warning: UTS/YS ratio ({ratio:.2f}) is unusually low. "
                 f"UTS ({uts:.0f}) barely exceeds YS ({ys:.0f}), suggesting limited work hardening."
             )
-        elif ratio > 1.6:
+        elif ratio > max_coherent_ratio:
             warnings.append(
                 f"⚠️ Coherency Warning: UTS/YS ratio ({ratio:.2f}) is unusually high. "
-                f"Typical superalloy ratio is 1.1-1.4. Verify if composition has unique hardening mechanism."
+                f"Expected max ~{max_coherent_ratio:.1f} for this alloy class."
             )
 
-    # Rule 6: Gamma Prime Fraction vs Formers
+    # Rule 6: Gamma Prime Fraction vs Formers (temperature-independent)
     if gp > 0 and gp_formers > 0:
         expected_gp = (al_wt + ti_wt + 0.7 * ta_wt) * 3.5
 
@@ -255,7 +290,7 @@ def compute_metallurgy_validation(
         penalties_list.append({"name": "Physical Limit Violation", "value": "Out of Bounds", "reason": be})
 
     # 4. Property coherency check
-    coherency_warnings = validate_property_coherency(properties, composition)
+    coherency_warnings = validate_property_coherency(properties, composition, temperature_c)
     for cw in coherency_warnings:
         warnings.append(cw)
         name = "Coherency Audit"
@@ -473,72 +508,6 @@ VALID_PROPERTIES = {
     "Density", "Gamma Prime", "Creep Life", "Fatigue Life", "Oxidation Resistance"
 }
 
-VALID_METRICS = {
-    "Md (TCP Stability)", "TCP Risk", "γ/γ' Misfit (%)", "Refractory Content (wt%)",
-    "Matrix + SSS Strength (MPa)", "Al+Ti (weldability)", "Cr (oxidation)",
-    "Md_gamma", "lattice_mismatch_pct", "refractory_total_wt_pct",
-    "gamma_prime_vol", "gamma_prime_fraction", "sss_wt_pct", "density_gcm3",
-    "kg_md_avg", "kg_tcp_risk", "kg_sss_wt_pct"
-}
-
-REQUIRED_METRIC_KEYS = {"Md (TCP Stability)", "γ/γ' Misfit (%)", "Al+Ti (weldability)"}
-
-def compute_fallback_metrics(composition: Dict[str, float]) -> Dict[str, Any]:
-    """Compute metallurgy metrics from feature_engineering when LLM output is invalid."""
-    features = compute_alloy_features(composition)
-    md_val = features.get("Md_gamma", 0)
-    md_avg = features.get("Md_avg", 0)
-    return {
-        "Md (TCP Stability)": round(md_val, 3),
-        "TCP Risk": classify_tcp_risk(md_val, md_avg),
-        "γ/γ' Misfit (%)": round(features.get("lattice_mismatch_pct", 0), 3),
-        "Refractory Content (wt%)": round(features.get("refractory_total_wt_pct", 0), 2),
-        "Al+Ti (weldability)": round(composition.get("Al", 0) + composition.get("Ti", 0), 2),
-        "Cr (oxidation)": round(composition.get("Cr", 0), 1),
-    }
-
-def cleanup_llm_output(
-    properties: Dict[str, Any],
-    property_intervals: Dict[str, Any],
-    metallurgy_metrics: Dict[str, Any],
-    composition: Dict[str, float]
-) -> tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
-    """Normalize and clean LLM output: property keys, intervals, and metrics."""
-    # 1. Normalize property keys
-    clean_props = {}
-    for key, value in properties.items():
-        norm_key = PROPERTY_KEY_MAP.get(key, key)
-        if norm_key in VALID_PROPERTIES:
-            clean_props[norm_key] = value
-
-    # Fix Gamma Prime if given as fraction
-    gp = clean_props.get("Gamma Prime", 0)
-    if gp is not None and 0 < gp < 1:
-        clean_props["Gamma Prime"] = round(gp * 100, 1)
-        logger.info(f"Converted Gamma Prime from fraction ({gp}) to percentage ({clean_props['Gamma Prime']}%)")
-
-    # 2. Normalize intervals
-    clean_intervals = {}
-    for key, value in property_intervals.items():
-        norm_key = PROPERTY_KEY_MAP.get(key, key)
-        if norm_key in VALID_PROPERTIES:
-            clean_intervals[norm_key] = value
-
-    # 3. Clean metrics (whitelist)
-    clean_metrics = {}
-    if metallurgy_metrics:
-        for key, value in metallurgy_metrics.items():
-            if key in VALID_METRICS:
-                clean_metrics[key] = value
-            else:
-                logger.warning(f"Filtered out invalid metric: {key}")
-
-    # Fallback if missing required metrics
-    if not any(k in clean_metrics for k in REQUIRED_METRIC_KEYS):
-        logger.warning("Missing required metrics - computing from feature_engineering...")
-        clean_metrics = compute_fallback_metrics(composition)
-
-    return clean_props, clean_intervals, clean_metrics
 
 VALID_CONFIDENCE_KEYS = {"level", "similarity_distance", "model_confidence", "data_quality", "score", "matched_alloy"}
 
@@ -562,22 +531,3 @@ def cleanup_confidence(confidence: Dict[str, Any]) -> Dict[str, Any]:
 
     return clean_conf
 
-def warnings_to_penalties(warnings: List[str]) -> List[dict]:
-    """Convert coherency warning strings to AuditPenalty-compatible dicts."""
-    penalties = []
-    for warning in warnings:
-        name = "Coherency Audit"
-        if "Density" in warning:
-            name = "Density Coherency"
-        elif "Elastic" in warning:
-            name = "Elastic Modulus Coherency"
-        elif "Yield" in warning or "strength" in warning.lower():
-            name = "Strength/Gamma Prime Coherency"
-        elif "Ductility" in warning or "Elongation" in warning:
-            name = "Ductility Coherency"
-        penalties.append({
-            "name": name,
-            "value": "MEDIUM",
-            "reason": warning.replace("⚠️ Coherency Warning: ", "")
-        })
-    return penalties
