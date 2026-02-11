@@ -108,17 +108,17 @@ SC_DS = {
 
 TCP = {
     # Thresholds on Md_avg (bulk), not Md_gamma (matrix).
-    # Morinaga (1984) calibrated against bulk Md. Using Md_gamma causes false positives.
-    "MD_CRITICAL": 0.955,     # σ/μ phases highly likely
-    "MD_ELEVATED": 0.940,     # TCP possible but manageable
-    "MD_MODERATE": 0.925,     # Moderate concern
+    # Morinaga (1984) TCP boundary at Md ≈ 0.985. Using Md_gamma causes false positives.
+    "MD_CRITICAL": 0.985,     # σ/μ phases highly likely (Morinaga boundary)
+    "MD_ELEVATED": 0.960,     # TCP possible under long exposure
+    "MD_MODERATE": 0.940,     # Moderate concern, monitor
 
     # Md_gamma > 0.980 upgrades risk by one level (heavy partitioning edge case)
     "MD_GAMMA_BOOST": 0.980,
 
     # Design targets
-    "MD_DESIGN_TARGET": 0.920,
-    "MD_DESIGN_SAFE": 0.935,
+    "MD_DESIGN_TARGET": 0.935,
+    "MD_DESIGN_SAFE": 0.955,
 }
 
 

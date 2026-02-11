@@ -43,18 +43,18 @@ Provides a clean API for the rest of the application:
 ### Current Benchmarks (trained on 79 alloys)
 | Property | Samples | Alloys | CV R² | CV MAE | Holdout R² | Holdout MAE |
 |----------|---------|--------|-------|--------|------------|-------------|
-| Yield Strength | 276 | 51 | 0.710 | 115.9 MPa | **0.896** | 75.4 MPa |
-| Tensile Strength | 308 | 54 | 0.699 | 148.6 MPa | **0.888** | 90.4 MPa |
-| Elongation | 298 | 53 | 0.558 | 8.4% | 0.127 | 6.6% |
-| Elastic Modulus | 351 | 47 | 0.577 | 14.8 GPa | 0.684 | 16.3 GPa |
+| Yield Strength | 276 | 51 | 0.710 | 117.5 MPa | **0.889** | 78.6 MPa |
+| Tensile Strength | 308 | 54 | 0.709 | 143.1 MPa | **0.863** | 98.6 MPa |
+| Elongation | 298 | 53 | 0.545 | 8.4% | 0.097 | 6.6% |
+| Elastic Modulus | 351 | 47 | 0.602 | 14.7 GPa | 0.701 | 16.1 GPa |
 
 ### Tuned Hyperparameters
 
 Tuned parameters are stored in `tuned_params/` folder:
-- `ys.json` - Yield Strength (tuned R²: 0.736)
-- `uts.json` - Ultimate Tensile Strength (tuned R²: 0.733)
-- `el.json` - Elongation (tuned R²: 0.582)
-- `em.json` - Elastic Modulus (tuned R²: 0.628)
+- `ys.json` - Yield Strength (tuned R²: 0.739)
+- `uts.json` - Ultimate Tensile Strength (tuned R²: 0.739)
+- `el.json` - Elongation (tuned R²: 0.595)
+- `em.json` - Elastic Modulus (tuned R²: 0.589)
 
 ## Usage
 
