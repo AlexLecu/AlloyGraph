@@ -147,6 +147,14 @@ def estimate_partitioning(at_percent: Dict[str, float], gamma_prime_vol_frac: fl
         c_gamma[el] = c_alloy / denom
         c_gamma_prime[el] = c_gamma[el] * k
 
+    # Normalize phase compositions to sum to 100%
+    total_gamma = sum(c_gamma.values())
+    total_gp = sum(c_gamma_prime.values())
+    if total_gamma > 0:
+        c_gamma = {el: v / total_gamma * 100 for el, v in c_gamma.items()}
+    if total_gp > 0:
+        c_gamma_prime = {el: v / total_gp * 100 for el, v in c_gamma_prime.items()}
+
     return c_gamma, c_gamma_prime
 
 

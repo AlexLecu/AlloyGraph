@@ -346,6 +346,28 @@ class AlloyAnalysisTool(BaseTool):
                         "source": "SSS_physics_model"
                     })
 
+                    # Derive UTS from corrected YS using SSS-appropriate ratio
+                    if ml_uts > 0:
+                        if processing in ["wrought", "forged"]:
+                            sss_uts_ratio = SSS["UTS_YS_RATIO_TYPICAL_WROUGHT"]
+                        else:
+                            sss_uts_ratio = SSS["UTS_YS_RATIO_TYPICAL_CAST"]
+                        sss_uts_ratio = _compress_ratio_for_temp(sss_uts_ratio, temperature_c)
+                        proposed_sss_uts = proposed_ys * sss_uts_ratio
+                        proposals.append({
+                            "property_name": "Tensile Strength",
+                            "current_value": ml_uts,
+                            "proposed_value": round(proposed_sss_uts, 1),
+                            "correction_type": "physics",
+                            "confidence": "HIGH" if deviation > 40 else "MEDIUM",
+                            "reasoning": (
+                                f"UTS derived from corrected SSS YS using {processing} ratio "
+                                f"({sss_uts_ratio:.2f}, temp-adjusted for {temperature_c}°C). "
+                                f"From {ml_uts:.0f} to {proposed_sss_uts:.0f} MPa."
+                            ),
+                            "source": "SSS_physics_model"
+                        })
+
             # SSS γ' should be 0%
             ml_gp = ml_pred.get("Gamma Prime", 0)
             if ml_gp and ml_gp > 5:
@@ -469,7 +491,15 @@ class AlloyAnalysisTool(BaseTool):
                 })
 
                 if ml_uts > 0:
-                    uts_ratio = ml_uts / ml_ys if ml_ys > 0 else 1.3
+                    # Use class-appropriate UTS/YS ratio
+                    if processing in ["wrought", "forged"] and gp > 40:
+                        uts_ratio = UTS_YS_RATIO["WROUGHT_HIGH_GP_EXPECTED"]
+                    elif processing in ["wrought", "forged"]:
+                        uts_ratio = UTS_YS_RATIO["WROUGHT_BASE"]
+                    else:
+                        uts_ratio = UTS_YS_RATIO["CAST_BASE"] + (gp / 100) * UTS_YS_RATIO["CAST_GP_FACTOR"]
+                    # Temperature-compress the ratio (converges toward 1.0 at high T)
+                    uts_ratio = _compress_ratio_for_temp(uts_ratio, temperature_c)
                     proposed_uts = proposed_ys * uts_ratio
 
                     proposals.append({
@@ -477,9 +507,10 @@ class AlloyAnalysisTool(BaseTool):
                         "current_value": ml_uts,
                         "proposed_value": round(proposed_uts, 1),
                         "correction_type": "physics",
-                        "confidence": "MEDIUM",
+                        "confidence": "HIGH",
                         "reasoning": (
-                            f"UTS scaled proportionally with YS correction (ratio={uts_ratio:.2f}). "
+                            f"UTS derived from corrected YS using class-appropriate ratio "
+                            f"({uts_ratio:.2f}, temp-adjusted for {temperature_c}°C). "
                             f"From {ml_uts:.0f} to {proposed_uts:.0f} MPa."
                         ),
                         "source": "high_GP_empirical_model"

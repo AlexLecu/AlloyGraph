@@ -123,9 +123,9 @@ class AlloySearchInput(BaseModel):
 # ============================================================
 # KG SEARCH CACHING
 # ============================================================
-def _create_cache_key(composition: Dict[str, float], limit: int) -> str:
+def _create_cache_key(composition: Dict[str, float], limit: int, target_temperature_c: float = 0.0) -> str:
     """
-    Create stable hash key for composition + limit.
+    Create stable hash key for composition + limit + temperature.
 
     Normalizes composition to handle rounding variations:
     - {Ni: 60.0, Al: 5.0} and {Ni: 60.01, Al: 4.99} → same key
@@ -133,7 +133,7 @@ def _create_cache_key(composition: Dict[str, float], limit: int) -> str:
     # Normalize to 2 decimal places and sort for consistent hashing
     normalized = {k: round(v, 2) for k, v in composition.items() if v > 0}
     sorted_comp = json.dumps(normalized, sort_keys=True)
-    cache_str = f"{sorted_comp}|{limit}"
+    cache_str = f"{sorted_comp}|{limit}|{target_temperature_c:.0f}"
     return hashlib.md5(cache_str.encode()).hexdigest()
 
 _kg_search_cache = {}
@@ -141,13 +141,13 @@ _cache_hits = 0
 _cache_misses = 0
 
 
-def _get_cached_search(composition: Dict[str, float], limit: int) -> tuple:
+def _get_cached_search(composition: Dict[str, float], limit: int, target_temperature_c: float = 0.0) -> tuple:
     """
     Get cached KG search result if available.
     """
     global _cache_hits, _cache_misses
 
-    cache_key = _create_cache_key(composition, limit)
+    cache_key = _create_cache_key(composition, limit, target_temperature_c)
 
     if cache_key in _kg_search_cache:
         _cache_hits += 1
@@ -159,11 +159,11 @@ def _get_cached_search(composition: Dict[str, float], limit: int) -> tuple:
         return None, False
 
 
-def _store_cached_search(composition: Dict[str, float], limit: int, result: str):
+def _store_cached_search(composition: Dict[str, float], limit: int, result: str, target_temperature_c: float = 0.0):
     """Store KG search result in cache."""
     global _kg_search_cache
 
-    cache_key = _create_cache_key(composition, limit)
+    cache_key = _create_cache_key(composition, limit, target_temperature_c)
 
     # FIFO eviction: if cache exceeds 128 entries, remove oldest
     if len(_kg_search_cache) >= 128:
@@ -212,7 +212,7 @@ class AlloySearchTool(BaseTool):
 
         # Composition mode: check cache
         if composition and not query:
-            cached_result, cache_hit = _get_cached_search(composition, limit)
+            cached_result, cache_hit = _get_cached_search(composition, limit, target_temperature_c)
             if cache_hit:
                 return cached_result
 
@@ -377,7 +377,7 @@ class AlloySearchTool(BaseTool):
 
             # Cache composition-mode results only
             if composition and not query:
-                _store_cached_search(composition, limit, result_json)
+                _store_cached_search(composition, limit, result_json, target_temperature_c)
 
             return result_json
 

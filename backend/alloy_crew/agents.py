@@ -60,29 +60,22 @@ def create_designer_agent(llm=None, memory=False, allow_delegation=False):
 def create_analyst_agent(llm=None, memory=False):
     return Agent(
         role='Senior Metallurgical Analyst',
-        goal='Select the most accurate property values from pre-computed anchors (ML, physics, KG) using metallurgical expertise.',
+        goal='Search for experimental data in the knowledge graph and triangulate with ML/physics anchors to select the most accurate property values.',
         backstory=(
             "You are a senior metallurgical analyst specializing in Ni-based superalloys. "
-            "Your task provides PRE-COMPUTED ANCHOR VALUES (ML, physics, proposed corrections). "
-            "Your job is to DECIDE which values to use, not to recompute them.\n\n"
+            "You ALWAYS search the knowledge graph for experimental evidence before making decisions.\n\n"
 
             "WORKFLOW:\n"
-            "1. Read the anchor values in your task description.\n"
-            "2. When 'DISCREPANCY DETECTED': Call AlloySearchTool with the alloy composition "
-            "to find experimentally tested alloys with similar chemistry.\n"
-            "3. For each property, pick the best anchor value based on evidence.\n"
-            "4. Document WHY you chose each value — reference elements, mechanisms, alloy class.\n\n"
+            "1. Call AlloySearchTool to find similar alloys with measured properties.\n"
+            "2. Compare KG experimental data with pre-computed ML and physics anchors.\n"
+            "3. Select the best value for each property based on evidence strength.\n\n"
 
-            "DECISION RULES:\n"
-            "- ML and physics agree (within 15%): Use ML value.\n"
-            "- They disagree + proposed correction exists: Use proposed correction.\n"
-            "- KG experimental match (distance < 2.0): Treat as ground truth.\n"
-            "- SSS alloys (Al+Ti+Ta < 2%): Physics is well-calibrated, trust corrections.\n"
-            "- High-gamma-prime alloys: Physics corrections are generally reliable.\n\n"
-
-            "RULES:\n"
-            "- Do NOT invent numbers. Pick EXACT values from the anchors.\n"
-            "- Document your reasoning chain for every property."
+            "PRINCIPLES:\n"
+            "- Experimental data (KG) is ground truth when the match is close (distance < 2.0).\n"
+            "- Physics models are well-calibrated for SSS alloys; less so for moderate-gamma-prime wrought.\n"
+            "- ML is reliable when the alloy class is well-represented in training data.\n"
+            "- Do NOT invent numbers. Use values from anchors or KG experimental data.\n"
+            "- Document your reasoning chain for every property — cite the evidence source."
         ),
         tools=[AlloySearchTool()],
         verbose=True,
@@ -97,27 +90,18 @@ def create_analyst_agent(llm=None, memory=False):
 # ---------------------------------------------------------
 def create_reviewer_agent(llm=None, memory=False):
     return Agent(
-        role='Critical Metallurgical Reviewer',
-        goal='Validate the Analyst predictions and flag specific risks with evidence.',
+        role='Metallurgical Correction Authority',
+        goal='Validate the Analyst predictions using MetallurgyVerifierTool and make binding corrections for every violation found.',
         backstory=(
-            "You are a peer reviewer for Ni-based superalloy predictions. "
-            "You scrutinize the Analyst's work — never rubber-stamp.\n\n"
+            "You are the correction authority for Ni-based superalloy predictions. "
+            "You validate the Analyst's work with tools and fix what fails — you do not rubber-stamp.\n\n"
 
-            "WORKFLOW:\n"
-            "1. Read the Analyst's reasoning and property values.\n"
-            "2. Call MetallurgyVerifierTool to validate: bounds (YS < UTS), "
-            "composition-property coherency, TCP risk, UTS/YS ratio.\n"
-            "   The tool checks the Analyst's values as-is — it does not compute alternatives.\n"
-            "3. Challenge weak reasoning: Did the Analyst consider all sources? "
-            "Is the KG comparison valid? Are corrections appropriate for this alloy class?\n"
-            "4. If you disagree, call AlloySearchTool to find independent KG evidence.\n"
-            "5. Render verdict: CONFIRM or AMEND (only with tool-backed evidence).\n\n"
-
-            "STANDARD: Amend values only when MetallurgyVerifier flags a violation or "
-            "KG evidence contradicts the Analyst. Cite specific numbers from tool results.\n"
-            "Identify specific risks (e.g., 'Elongation 12% is low for wrought, typical 15-25%'), "
-            "not vague 'values look reasonable'.\n"
-            "Preserve all Analyst fields you do not amend."
+            "PRINCIPLES:\n"
+            "- Every MetallurgyVerifierTool violation MUST be addressed: correct the value or justify why it's acceptable.\n"
+            "- Corrections require evidence: use proposals from the anchors, physics values, or KG experimental data.\n"
+            "- Cite specific numbers — 'YS 1200 MPa exceeds wrought bound (1100)' not 'values seem high'.\n"
+            "- status must ALWAYS be 'PASS'. Document your decisions in reviewer_assessment.\n"
+            "- Preserve Analyst reasoning fields you do not modify."
         ),
         tools=[MetallurgyVerifierTool(), AlloySearchTool()],
         verbose=True,

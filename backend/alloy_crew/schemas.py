@@ -61,19 +61,6 @@ class OptimizationOutput(BaseModel):
     summary: str = Field("", description="Summary of optimization analysis")
     recommended_actions: List[str] = Field(default_factory=list, description="Prioritized list of recommended adjustments")
 
-class PhysicsAuditOutput(BaseModel):
-    status: Literal["PASS", "REJECT", "FAIL"]
-    processing: str = Field(..., description="Alloy processing type (cast/wrought/unknown)")
-    penalty_score: float = 0.0
-    tcp_risk: str = "LOW"
-    properties: Dict[str, Any]
-    property_intervals: Dict[str, Any] = Field(default_factory=dict, description="Uncertainty intervals for properties")
-    metallurgy_metrics: Dict[str, Any]
-    audit_penalties: List[AuditPenalty] = []
-    errors: List[str] = []
-    confidence: Dict[str, Any] = Field(default_factory=dict)
-    explanation: str = ""
-
 
 class PropertyCorrection(BaseModel):
     """Single property correction with reasoning."""

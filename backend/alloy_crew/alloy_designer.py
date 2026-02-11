@@ -569,6 +569,9 @@ class IterativeDesignCrew:
                     except Exception as e:
                         logger.warning(f"Early optimization failed: {e}, proceeding with full validation")
 
+            # Track the latest composition so the next iteration builds on it
+            current_comp = result.get("composition", current_comp)
+
             logger.debug(f"Proposed: {result['composition']}")
             props = result.get("properties", {})
             tcp = result.get("tcp_risk", "Unknown")
