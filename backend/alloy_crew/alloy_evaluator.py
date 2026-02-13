@@ -222,41 +222,12 @@ class AlloyEvaluationCrew:
     @staticmethod
     def _evaluate_agent_trust(
         output: PhysicsAuditWithCorrectionsOutput,
-        ml_fallback: dict,
         analysis_anchors: dict,
     ) -> Dict[str, tuple]:
         """Safety net: overrides agent values only for ignored HIGH proposals."""
-        ml_pred = ml_fallback if ml_fallback else {}
         proposals = {
             p["property_name"]: p
             for p in (analysis_anchors or {}).get("proposed_corrections", [])
-        }
-        def _is_real_correction(c):
-            norm_name = PROPERTY_KEY_MAP.get(c.property_name, c.property_name)
-            ml_val = ml_pred.get(norm_name)
-
-            if (isinstance(ml_val, (int, float)) and ml_val > 0
-                    and isinstance(c.corrected_value, (int, float))):
-                if abs(c.corrected_value - ml_val) / ml_val < AGENT_TRUST["NOOP_THRESHOLD"]:
-                    logger.info(f"[TRUST] No-op filtered: {norm_name} corrected={c.corrected_value:.1f} ≈ ML={ml_val:.1f}")
-                    return False
-
-            reason = (c.correction_reason or "").strip()
-            for placeholder in AGENT_TRUST["PLACEHOLDER_STRINGS"]:
-                if placeholder.lower() in reason.lower():
-                    logger.info(f"[TRUST] Placeholder filtered: {norm_name}")
-                    return False
-
-            if len(reason) < AGENT_TRUST["MIN_REASON_LENGTH"]:
-                logger.info(f"[TRUST] Short reason filtered: {norm_name} ({len(reason)} chars)")
-                return False
-
-            return True
-
-        agent_corrections = {
-            PROPERTY_KEY_MAP.get(c.property_name, c.property_name): c
-            for c in (output.corrections_applied or [])
-            if _is_real_correction(c)
         }
 
         original_errors = set(validate_property_bounds(dict(output.properties)))
@@ -271,7 +242,6 @@ class AlloyEvaluationCrew:
 
         for prop in ["Yield Strength", "Tensile Strength", "Elongation", "Elastic Modulus"]:
             current_val = output.properties.get(prop)
-            ml_val = ml_pred.get(prop)
             if not isinstance(current_val, (int, float)):
                 continue
 
@@ -613,7 +583,7 @@ class AlloyEvaluationCrew:
                 output.properties[norm_name] = c.corrected_value
 
         # === SAFETY NET ===
-        trust_decisions = self._evaluate_agent_trust(output, ml_fallback, analysis_anchors)
+        trust_decisions = self._evaluate_agent_trust(output, analysis_anchors)
 
         for prop_name, (decision, value, reason) in trust_decisions.items():
             if decision == TrustDecision.TRUST_PROPOSAL:
