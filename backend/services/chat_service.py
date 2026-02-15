@@ -1,34 +1,29 @@
-import os
 import json
+import re
 import unicodedata
 from dataclasses import asdict
 from difflib import SequenceMatcher
 from typing import Optional
-from groq import Groq
+
 from .alloy_retriever import AlloyRetriever, AlloyData
-from .config import LLMConfig, SearchConfig, HistoryConfig, Prompts
+from .config import (
+    LLMConfig,
+    SearchConfig,
+    HistoryConfig,
+    Prompts,
+    PROPERTY_SEARCH_TERMS,
+)
 
-chat_sessions = {}
 
-# Property term mapping for search queries
-PROPERTY_SEARCH_TERMS = {
-    "strength": "strength",
-    "yield": "yield",
-    "tensile": "tensile",
-    "uts": "tensile",
-    "elongation": "elongation",
-    "density": "density",
-}
-
+# ── Helpers ──────────────────────────────────────────────────────────────
 
 def _map_property_term(prop_target: str) -> str:
-    """Map user property terms to search keywords. Later matches override earlier ones."""
+    """Map user property terms to search keywords (first match wins)."""
     prop_lower = prop_target.lower()
-    result = prop_lower
-    for key, value in PROPERTY_SEARCH_TERMS.items():
+    for key, value in PROPERTY_SEARCH_TERMS:
         if key in prop_lower:
-            result = value
-    return result
+            return value
+    return prop_lower
 
 
 def _extract_property_value(
@@ -42,156 +37,338 @@ def _extract_property_value(
         return None
 
     room_temp_val = None
-    any_val = None
+    best_non_rt = None       # (temperature_distance_from_RT, value)
 
     for p in alloy.properties:
         p_type = p.property_type.lower()
 
-        # Check if property matches search term
         is_match = False
         if "yield" in search_term and ("yield" in p_type or "0.2%" in p_type):
             is_match = True
         elif "tensile" in search_term and ("ultimate" in p_type or "tensile" in p_type or "uts" in p_type):
-            is_match = True
+            if "yield" not in p_type and "0.2%" not in p_type:
+                is_match = True
         elif "elongation" in search_term and "elongation" in p_type:
+            is_match = True
+        elif "elastic" in search_term and ("elastic" in p_type or "modulus" in p_type):
+            is_match = True
+        elif "creep" in search_term and ("creep" in p_type or "rupture" in p_type):
+            is_match = True
+        elif "hardness" in search_term and "hardness" in p_type:
             is_match = True
         elif search_term in p_type:
             is_match = True
 
         if is_match and p.value is not None:
-            temp = p.temperature_c if p.temperature_c is not None else -1
+            # Treat None temperature as room temperature (most datasheets
+            # omit explicit temperature when reporting RT values)
+            temp = p.temperature_c if p.temperature_c is not None else 22.0
             is_room = 20 <= temp <= 25
 
             if is_room and prefer_room_temp:
-                room_temp_val = p.value
-            elif any_val is None:
-                any_val = p.value
+                if room_temp_val is None or p.value > room_temp_val:
+                    room_temp_val = p.value
+            else:
+                # Prefer the value closest to room temperature
+                dist = abs(temp - 22.0)
+                if best_non_rt is None or dist < best_non_rt[0]:
+                    best_non_rt = (dist, p.value)
 
-    return room_temp_val if room_temp_val is not None else any_val
+    if room_temp_val is not None:
+        return room_temp_val
+    return best_non_rt[1] if best_non_rt is not None else None
+
 
 def _format_history(history: list, depth: int, max_content: int = 100) -> str:
     """Format conversation history for LLM context."""
     hist_str = ""
     for msg in reversed(history[-depth:]):
-        role = msg.get('role', '')
-        content = msg.get('content', '')[:max_content]
-        if role in ['user', 'assistant']:
+        role = msg.get("role", "")
+        content = msg.get("content", "")[:max_content]
+        if role in ("user", "assistant"):
             hist_str = f"{role}: {content}\n" + hist_str
     return hist_str
 
+
 def _normalize_text(text: str) -> str:
     """Normalize text by removing accents and converting to lowercase."""
-    # Decompose unicode characters and remove combining marks (accents)
-    normalized = unicodedata.normalize('NFD', text)
-    return ''.join(c for c in normalized if unicodedata.category(c) != 'Mn').lower()
+    normalized = unicodedata.normalize("NFD", text)
+    return "".join(c for c in normalized if unicodedata.category(c) != "Mn").lower()
+
 
 def _extract_core_name(alloy_name: str) -> str:
     """Extract the core alloy name, removing processing suffixes."""
-    name = alloy_name.lower().replace('*', '').strip()
-    # Remove common suffixes like "(forged)", "wrought", "cast", "Bar", etc.
-    for suffix in ['(forged)', '(cast)', 'wrought', 'cast', 'bar', 'sheet', 'plate', 'forged']:
-        name = name.replace(suffix, '')
+    name = alloy_name.lower().replace("*", "").strip()
+    name = re.sub(r"\(forged\)|\(cast\)", "", name)
+    # Word boundaries prevent partial matches inside names like "Nimocast"
+    for word in ["wrought", "cast", "bar", "sheet", "plate", "forged"]:
+        name = re.sub(rf"\b{word}\b", "", name)
     return name.strip()
 
-def find_best_match(target_name: str, search_results: list):
-    """
-    Find the best matching alloy from search results based on similarity.
-    Returns the best match if above threshold, None otherwise.
-    """
+
+def find_best_match(target_name: str, search_results: list[AlloyData]) -> Optional[AlloyData]:
+    """Find the best matching alloy from search results based on similarity."""
     if not search_results:
         return None
 
+    clean_target = _normalize_text(target_name.strip())
+
     scored = []
     for alloy in search_results:
-        # Normalize accents and extract core name for better matching
         clean_alloy_name = _normalize_text(_extract_core_name(alloy.name))
-        clean_target = _normalize_text(target_name.strip())
 
-        # Calculate similarity on core names
         ratio = SequenceMatcher(None, clean_target, clean_alloy_name).ratio()
 
-        # Boost score if target is substring of alloy name
         if clean_target in clean_alloy_name:
             ratio += SearchConfig.SUBSTRING_MATCH_BOOST
 
         scored.append((ratio, alloy))
 
-    # Sort by score and take best
     scored.sort(key=lambda x: x[0], reverse=True)
     best_score, best_alloy = scored[0]
 
-    # Return only if above minimum threshold
     if best_score >= SearchConfig.MIN_SIMILARITY_THRESHOLD:
         return best_alloy
-
     return None
 
-def detect_query_intent(prompt: str, history: list) -> dict:
-    """Classify the user query intent using LLM."""
-    try:
-        groq_key = os.getenv("GROQ_API_KEY")
-        if not groq_key:
-            return {"intent": "SEARCH"}
 
-        client = Groq(api_key=groq_key)
-        
-        hist_str = _format_history(history, HistoryConfig.EXTRACTION_CONTEXT_DEPTH, max_content=100)
+# ── Focused context builder ─────────────────────────────────────────────
+
+def _format_focused_context(alloys: list[AlloyData], query: str) -> str:
+    """Build LLM context trimmed to what the query actually asks about.
+
+    Always includes name and processing method.
+    Other sections are included only when keywords in the query match.
+    General queries default to composition + mechanical properties.
+    """
+    if not alloys:
+        return "No matching alloys found in the knowledge graph."
+
+    q = query.lower()
+
+    # Detect which sections the query cares about
+    want_composition = any(kw in q for kw in [
+        "composition", "wt%", "at%", "element", "chemistry",
+    ])
+    want_phase = any(kw in q for kw in [
+        "gamma", "γ", "phase", "precipitate", "matrix",
+    ])
+    want_physical = any(kw in q for kw in [
+        "density", "physical", "lattice", "mismatch",
+    ])
+    want_stability = any(kw in q for kw in [
+        "tcp", "md", "stability", "vec", "phase",
+    ])
+    want_strength_params = any(kw in q for kw in [
+        "sss", "solid solution", "precipitation", "hardening", "creep",
+        "strengthening", "mechanism",
+    ])
+    want_ratios = any(kw in q for kw in [
+        "ratio", "al/ti", "cr/co", "cr/ni", "mo/w",
+    ])
+    want_metrics = any(kw in q for kw in [
+        "refractory", "oxidation", "γ' former", "gp former",
+    ])
+    want_mechanical = any(kw in q for kw in [
+        "yield", "tensile", "uts", "ultimate", "strength", "elongation",
+        "ductility", "elastic", "modulus", "young", "creep", "rupture",
+        "hardness", "mechanical", "property", "properties", "mpa",
+    ])
+
+    # For very short / general queries, include composition + mechanical
+    is_general = not any([
+        want_composition, want_phase, want_physical, want_stability,
+        want_strength_params, want_ratios, want_metrics, want_mechanical,
+    ])
+    if is_general:
+        want_composition = True
+        want_mechanical = True
+
+    results = []
+    for alloy in alloys:
+        lines = [
+            f"\n{'='*50}",
+            f"Alloy: {alloy.name}",
+            f"Processing: {alloy.processing_method}",
+            f"{'='*50}",
+        ]
+
+        if (want_composition or want_phase) and alloy.composition:
+            lines.append("\nComposition (wt%):")
+            sorted_comp = sorted(alloy.composition.items(), key=lambda x: x[1], reverse=True)
+            for el, val in sorted_comp:
+                lines.append(f"  {el}: {val:.2f}%")
+
+        if want_phase or want_composition:
+            if alloy.atomic_composition:
+                lines.append("\nAtomic Composition (at%):")
+                for el, val in sorted(alloy.atomic_composition.items(), key=lambda x: x[1], reverse=True):
+                    lines.append(f"  {el}: {val:.2f}%")
+            if alloy.gamma_composition:
+                lines.append("\nGamma (Matrix) Phase (at%):")
+                for el, val in sorted(alloy.gamma_composition.items(), key=lambda x: x[1], reverse=True):
+                    lines.append(f"  {el}: {val:.2f}%")
+            if alloy.gamma_prime_composition:
+                lines.append("\nGamma Prime (Precipitate) Phase (at%):")
+                for el, val in sorted(alloy.gamma_prime_composition.items(), key=lambda x: x[1], reverse=True):
+                    lines.append(f"  {el}: {val:.2f}%")
+
+        if want_physical or is_general:
+            phys = []
+            if alloy.density_gcm3:
+                phys.append(f"Density: {alloy.density_gcm3:.2f} g/cm³")
+            if alloy.gamma_prime_vol_pct:
+                phys.append(f"γ' Volume Fraction: {alloy.gamma_prime_vol_pct:.1f}%")
+            if alloy.lattice_mismatch_pct is not None and want_physical:
+                phys.append(f"Lattice Mismatch: {alloy.lattice_mismatch_pct:.3f}%")
+            if phys:
+                lines.append("\nPhysical Properties:")
+                for p in phys:
+                    lines.append(f"  {p}")
+
+        if want_stability:
+            stab = []
+            if alloy.md_avg is not None:
+                stab.append(f"Md (avg): {alloy.md_avg:.3f}")
+            if alloy.md_gamma is not None:
+                stab.append(f"Md (γ matrix): {alloy.md_gamma:.3f}")
+            if alloy.vec_avg is not None:
+                stab.append(f"VEC (avg): {alloy.vec_avg:.2f}")
+            if alloy.tcp_risk:
+                stab.append(f"TCP Risk: {alloy.tcp_risk}")
+            if stab:
+                lines.append("\nPhase Stability:")
+                for s in stab:
+                    lines.append(f"  {s}")
+
+        if want_strength_params:
+            sp = []
+            if alloy.sss_wt_pct is not None:
+                sp.append(f"SSS Elements: {alloy.sss_wt_pct:.1f} wt%")
+            if alloy.sss_coefficient is not None:
+                sp.append(f"SSS Coefficient: {alloy.sss_coefficient:.4f}")
+            if alloy.precipitation_hardening_coeff is not None:
+                sp.append(f"Precipitation Hardening: {alloy.precipitation_hardening_coeff:.4f}")
+            if alloy.creep_resistance_param is not None:
+                sp.append(f"Creep Resistance: {alloy.creep_resistance_param:.2f}")
+            if sp:
+                lines.append("\nStrengthening Mechanisms:")
+                for s in sp:
+                    lines.append(f"  {s}")
+
+        if want_ratios:
+            rats = []
+            if alloy.al_ti_ratio is not None:
+                rats.append(f"Al/Ti (wt): {alloy.al_ti_ratio:.2f}")
+            if alloy.al_ti_at_ratio is not None:
+                rats.append(f"Al/Ti (at): {alloy.al_ti_at_ratio:.2f}")
+            if alloy.cr_co_ratio is not None:
+                rats.append(f"Cr/Co: {alloy.cr_co_ratio:.2f}")
+            if alloy.cr_ni_ratio is not None:
+                rats.append(f"Cr/Ni: {alloy.cr_ni_ratio:.3f}")
+            if alloy.mo_w_ratio is not None:
+                rats.append(f"Mo/W: {alloy.mo_w_ratio:.2f}")
+            if rats:
+                lines.append("\nElement Ratios:")
+                for r in rats:
+                    lines.append(f"  {r}")
+
+        if want_metrics:
+            cm = []
+            if alloy.refractory_wt_pct is not None:
+                cm.append(f"Refractory Elements: {alloy.refractory_wt_pct:.1f} wt%")
+            if alloy.gp_formers_wt_pct is not None:
+                cm.append(f"γ' Formers: {alloy.gp_formers_wt_pct:.1f} wt%")
+            if alloy.oxidation_resistance is not None:
+                cm.append(f"Oxidation Resistance Index: {alloy.oxidation_resistance:.2f}")
+            if cm:
+                lines.append("\nComposition Metrics:")
+                for c in cm:
+                    lines.append(f"  {c}")
+
+        if want_mechanical and alloy.properties:
+            lines.append("\nMechanical Properties:")
+            prop_groups: dict[str, list] = {}
+            for prop in alloy.properties:
+                if prop.property_type not in prop_groups:
+                    prop_groups[prop.property_type] = []
+                prop_groups[prop.property_type].append(prop)
+            for prop_type, measurements in prop_groups.items():
+                lines.append(f"  {prop_type}:")
+                for m in measurements:
+                    lines.append(f"    • {m.format()}")
+
+        results.append("\n".join(lines))
+
+    return "\n\n".join(results)
+
+
+# ── Routing (single LLM call) ───────────────────────────────────────────
+
+def route_query(prompt: str, history: list) -> dict:
+    """Classify intent AND extract alloy names in a single LLM call.
+
+    Returns: {"intent": str, "alloys": list[str], "params": dict}
+    """
+    client = LLMConfig.get_client()
+    if not client:
+        return {"intent": "SEARCH", "alloys": [], "params": {}}
+
+    try:
+        hist_str = _format_history(
+            history, HistoryConfig.EXTRACTION_CONTEXT_DEPTH, max_content=200,
+        )
 
         completion = client.chat.completions.create(
             model=LLMConfig.MODEL,
             messages=[
-                {"role": "system", "content": Prompts.INTENT_CLASSIFICATION},
-                {"role": "user", "content": f"History:\n{hist_str}\nQuery: {prompt}"}
+                {"role": "system", "content": Prompts.ROUTE_AND_EXTRACT},
+                {"role": "user", "content": f"History:\n{hist_str}\nQuery: {prompt}"},
             ],
-            temperature=0.0,
-            max_tokens=200,
-            response_format={"type": "json_object"}
+            temperature=LLMConfig.ROUTING_TEMPERATURE,
+            max_tokens=LLMConfig.ROUTING_MAX_TOKENS,
+            response_format={"type": "json_object"},
         )
-        
-        return json.loads(completion.choices[0].message.content)
+
+        data = json.loads(completion.choices[0].message.content)
+        alloys = data.get("alloys", [])
+        if isinstance(alloys, str):
+            alloys = [a.strip() for a in alloys.split(",") if a.strip() and a.strip().lower() != "none"]
+        return {
+            "intent": data.get("intent", "SEARCH"),
+            "alloys": alloys,
+            "params": data.get("params", {}),
+        }
     except Exception as e:
-        print(f"⚠️ Error in intent detection: {e}")
-        return {"intent": "SEARCH"}
+        print(f"Warning: route_query failed: {e}")
+        return {"intent": "SEARCH", "alloys": [], "params": {}}
 
-def get_target_alloy_from_llm(prompt: str, history: list) -> str:
+
+# ── Deduplication helper ─────────────────────────────────────────────────
+
+def _deduplicate_by_name(scored_alloys: list[tuple]) -> list[tuple]:
+    """Keep only the best-scoring variant per core alloy name.
+
+    Input: list of tuples where the first element is an AlloyData object.
+    Returns: filtered list with duplicates removed (first occurrence wins).
     """
-    Use LLM to identify which alloy is the subject of the user's query.
-    Handles context switches and implicit references ('it', 'the alloy').
-    """
-    try:
-        groq_key = os.getenv("GROQ_API_KEY")
-        if not groq_key:
-            return ""
+    seen_cores: set[str] = set()
+    result = []
+    for item in scored_alloys:
+        core = _extract_core_name(item[0].name)
+        if core not in seen_cores:
+            seen_cores.add(core)
+            result.append(item)
+    return result
 
-        client = Groq(api_key=groq_key)
-        
-        hist_str = _format_history(history, HistoryConfig.EXTRACTION_CONTEXT_DEPTH, max_content=200)
 
-        system_instruction = Prompts.ALLOY_EXTRACTION
+# ── Analytics / Target processors ────────────────────────────────────────
 
-        completion = client.chat.completions.create(
-            model=LLMConfig.MODEL,
-            messages=[
-                {"role": "system", "content": system_instruction},
-                {"role": "user", "content": f"History:\n{hist_str}\nCurrent Query: {prompt}"}
-            ],
-            temperature=LLMConfig.EXTRACTION_TEMPERATURE,
-            max_tokens=LLMConfig.EXTRACTION_MAX_TOKENS
-        )
-        
-        result = completion.choices[0].message.content.strip()
-        if "None" in result or not result:
-            return ""
-        return result
-    except Exception as e:
-        print(f"⚠️ Error in alloy extraction: {e}")
-        return ""
-
-def process_analytics_query(params: dict, retriever: AlloyRetriever):
-    """Handle analytical queries by fetching candidates and sorting in Python."""
-    prop_target = params.get('property', '')
-    direction = params.get('direction', 'highest')
-    limit = params.get('limit', 5)
+def process_analytics_query(params: dict, retriever: AlloyRetriever) -> list[AlloyData]:
+    """Handle analytical queries by fetching candidates and sorting."""
+    prop_target = params.get("property", "")
+    direction = params.get("direction", "highest")
+    limit = params.get("limit", 5)
 
     search_term = _map_property_term(prop_target)
     candidates = retriever.get_alloys_with_property(search_term, limit=100)
@@ -202,17 +379,19 @@ def process_analytics_query(params: dict, retriever: AlloyRetriever):
         if value is not None:
             scored.append((alloy, value))
 
-    scored.sort(key=lambda x: x[1], reverse=(direction == 'highest'))
+    scored.sort(key=lambda x: x[1], reverse=(direction == "highest"))
+    scored = _deduplicate_by_name(scored)
     return [alloy for alloy, _ in scored[:limit]]
 
-def process_target_query(params: dict, retriever: AlloyRetriever):
-    """Find alloys with properties closest to a target value."""
-    prop_target = params.get('property', '')
-    target_value = params.get('target_value', 0)
-    tolerance_pct = params.get('tolerance_pct', 20)
-    limit = params.get('limit', 3)
 
-    if not target_value:
+def process_target_query(params: dict, retriever: AlloyRetriever) -> list[AlloyData]:
+    """Find alloys with properties closest to a target value."""
+    prop_target = params.get("property", "")
+    target_value = params.get("target_value", 0)
+    tolerance_pct = params.get("tolerance_pct", 20)
+    limit = params.get("limit", 3)
+
+    if target_value is None:
         return []
 
     search_term = _map_property_term(prop_target)
@@ -223,175 +402,200 @@ def process_target_query(params: dict, retriever: AlloyRetriever):
         value = _extract_property_value(alloy, search_term)
         if value is not None:
             distance = abs(value - target_value)
-            pct_diff = (distance / target_value) * 100
+            pct_diff = (distance / target_value) * 100 if target_value else 0
             scored.append((alloy, distance, pct_diff))
 
-    scored.sort(key=lambda x: x[1])  # Sort by distance
+    scored.sort(key=lambda x: x[1])
+    scored = _deduplicate_by_name(scored)
 
-    # Filter by tolerance if we have enough results
+    # Drop extreme outliers: keep only alloys within tolerance range
     if tolerance_pct and len(scored) > limit:
-        filtered = [(a, d, p) for a, d, p in scored if p <= tolerance_pct * 2]
+        filtered = [(a, d, p) for a, d, p in scored if p <= tolerance_pct]
         if len(filtered) >= limit:
             scored = filtered
 
     return [alloy for alloy, _, _ in scored[:limit]]
 
+
+# ── Main streaming generator ────────────────────────────────────────────
+
 def stream_chat_response(prompt: str, session_id: str, history: list):
-    """
-    Generator function that streams both alloy data and LLM response.
-    """
+    """Generator that streams alloy data + LLM response as NDJSON chunks."""
+
+    try:
+        yield from _stream_chat_inner(prompt, session_id, history)
+    except Exception as e:
+        print(f"Stream error: {e}")
+        yield json.dumps({"type": "error", "content": f"Something went wrong: {e}"}) + "\n"
+
+
+def _stream_chat_inner(prompt: str, session_id: str, history: list):
+    """Inner generator — separated so the outer can catch and yield errors."""
+
     with AlloyRetriever() as retriever:
-        intent_data = detect_query_intent(prompt, history)
-        intent = intent_data.get("intent", "SEARCH")
-        
-        target_alloys = []
+        # ── 1. Single routing call (intent + alloy extraction) ───────
+        route = route_query(prompt, history)
+        intent = route["intent"]
+        extracted_alloys = route["alloys"]
+        params = route["params"]
+
+        target_alloys: list[AlloyData] = []
         final_context = ""
-        
+
+        # ── 2. Handle each intent ───────────────────────────────────
         if intent == "CONVERSATION":
-            # Conversational/Off-topic Path - respond without searching
             yield json.dumps({"type": "data", "alloys": []}) + "\n"
-
-            groq_key = os.getenv("GROQ_API_KEY")
-            if groq_key:
-                client = Groq(api_key=groq_key)
-
-                conv_prompt = """You are a friendly alloy research assistant. The user sent a casual/conversational message.
-
-                Respond briefly and warmly, then remind them you can help with:
-                - Looking up alloy compositions and properties
-                - Comparing different alloys
-                - Finding alloys with specific characteristics
-                - Answering questions about superalloys and materials
-                
-                Keep it short and friendly (1-2 sentences max)."""
-
+            client = LLMConfig.get_client()
+            if client:
+                conv_prompt = (
+                    "You are a friendly alloy research assistant. The user sent a casual/conversational message. "
+                    "Respond briefly and warmly, then remind them you can help with: "
+                    "looking up alloy compositions and properties, comparing alloys, "
+                    "finding alloys with specific characteristics, or answering questions about superalloys. "
+                    "Keep it short (1-2 sentences)."
+                )
                 stream = client.chat.completions.create(
                     model=LLMConfig.MODEL,
                     messages=[
                         {"role": "system", "content": conv_prompt},
-                        {"role": "user", "content": prompt}
+                        {"role": "user", "content": prompt},
                     ],
                     max_tokens=150,
                     temperature=0.7,
-                    stream=True
+                    stream=True,
                 )
-
                 for chunk in stream:
                     content = chunk.choices[0].delta.content
                     if content:
                         yield json.dumps({"type": "chunk", "content": content}) + "\n"
             else:
-                yield json.dumps({"type": "chunk", "content": "Hello! I'm an alloy research assistant. Ask me about alloy compositions, properties, or comparisons!"}) + "\n"
+                yield json.dumps({
+                    "type": "chunk",
+                    "content": "Hello! I'm an alloy research assistant. Ask me about alloy compositions, properties, or comparisons!",
+                }) + "\n"
             return
 
         elif intent == "ANALYTICS":
-            # Analytical Path
-            print(f"📊 Analytics Query: {intent_data}")
-            target_alloys = process_analytics_query(intent_data.get("params", {}), retriever)
-            final_context = f"Top results for {intent_data.get('params', {}).get('property')} ({intent_data.get('params', {}).get('direction')}):\n"
-            final_context += retriever.format_for_llm(target_alloys)
+            print(f"Analytics query: {params}")
+            target_alloys = process_analytics_query(params, retriever)
+            prop = params.get("property", "yield strength")
+            direction = params.get("direction", "highest")
+            final_context = f"Top results for {prop} ({direction}):\n"
+            final_context += _format_focused_context(target_alloys, prompt)
 
         elif intent == "TARGET":
-            # Target Value Path - find alloys closest to a specific value
-            params = intent_data.get("params", {})
-            print(f"🎯 Target Query: {params}")
-            target_alloys = process_target_query(params, retriever)
-            target_val = params.get('target_value', 0)
-            prop_name = params.get('property', 'property')
-            final_context = f"Alloys with {prop_name} closest to {target_val}:\n"
-            final_context += retriever.format_for_llm(target_alloys)
+            target_val = params.get("target_value")
+            prop_name = params.get("property", "yield strength")
+
+            reference_alloy_name = None
+            if target_val is None and extracted_alloys:
+                reference_alloy_name = extracted_alloys[0]
+                search_term = _map_property_term(prop_name)
+                ref_results = retriever.search_alloys(reference_alloy_name, limit=5)
+                ref_alloy = find_best_match(reference_alloy_name, ref_results)
+                if ref_alloy:
+                    resolved = _extract_property_value(ref_alloy, search_term)
+                    if resolved is not None:
+                        target_val = resolved
+                        params["target_value"] = target_val
+                        print(f"Resolved target from {ref_alloy.name}: {prop_name} = {target_val}")
+
+            print(f"Target query: {params}")
+
+            if target_val is not None:
+                target_alloys = process_target_query(params, retriever)
+
+                if reference_alloy_name and target_alloys:
+                    ref_core = _extract_core_name(reference_alloy_name)
+                    target_alloys = [
+                        a for a in target_alloys
+                        if _extract_core_name(a.name) != ref_core
+                    ]
+
+                display_val = f"{target_val}"
+                if reference_alloy_name:
+                    final_context = f"Alloys with {prop_name} similar to {reference_alloy_name} ({display_val}):\n"
+                else:
+                    final_context = f"Alloys with {prop_name} closest to {display_val}:\n"
+                final_context += _format_focused_context(target_alloys, prompt)
+            else:
+                print(f"TARGET fallback: no target_value, using ANALYTICS for {prop_name}")
+                direction = "lowest" if "density" in prop_name.lower() else "highest"
+                fallback_params = {"property": prop_name, "direction": direction, "limit": 5}
+                target_alloys = process_analytics_query(fallback_params, retriever)
+                final_context = f"Could not determine target value. Top alloys by {prop_name} ({direction}):\n"
+                final_context += _format_focused_context(target_alloys, prompt)
 
         elif intent == "DESIGN":
-            # Design Path
             final_context = "User wants to design an alloy. Encourage them to use the Designer tool."
-            
+
         else:
-            # Standard Search Path
-            target_names_str = get_target_alloy_from_llm(prompt, history)
-            
-            if not target_names_str:
-                 raw_results = retriever.search_alloys(prompt, limit=5)
-                 # Strict Filter for generic search
-                 for alloy in raw_results:
-                     ratio = SequenceMatcher(None, prompt.lower(), alloy.name.lower()).ratio()
-                     if ratio >= SearchConfig.MIN_SIMILARITY_THRESHOLD:
-                         target_alloys.append(alloy)
-            else:
-                 targets = [t.strip() for t in target_names_str.split(',') if t.strip()]
-                 target_alloys = []
-                 
-                 for t in targets:
-                    matches = retriever.search_alloys(t, limit=5)
-                    best = find_best_match(t, matches)
-                    if best:
-                        if not any(a.name == best.name for a in target_alloys):
+            # ── SEARCH intent ────────────────────────────────────────
+            if extracted_alloys:
+                found_names = set()
+                for name in extracted_alloys:
+                    matches = retriever.search_alloys(name, limit=5)
+                    best = find_best_match(name, matches)
+                    if best and not any(a.name == best.name for a in target_alloys):
+                        target_alloys.append(best)
+                        found_names.add(name)
+
+                missing = [n for n in extracted_alloys if n not in found_names]
+                if missing:
+                    for name in missing:
+                        extra = retriever.search_alloys(f"{name} alloy", limit=5)
+                        best = find_best_match(name, extra)
+                        if best and not any(a.name == best.name for a in target_alloys):
                             target_alloys.append(best)
-                 
-                 # Comparison Safety Net
-                 if len(target_alloys) < 2 and len(targets) > 1:
-                     extra = retriever.search_alloys(prompt, limit=5)
-                     for ex in extra:
-                         if not any(a.name == ex.name for a in target_alloys):
-                             # Apply strict filter here too
-                             ratio = SequenceMatcher(None, prompt.lower(), ex.name.lower()).ratio()
-                             if ratio >= SearchConfig.MIN_SIMILARITY_THRESHOLD:
-                                target_alloys.append(ex)
+            else:
+                raw_results = retriever.search_alloys(prompt, limit=5)
+                if raw_results:
+                    target_alloys = raw_results
 
-            final_context = retriever.format_for_llm(target_alloys)
+            final_context = _format_focused_context(target_alloys, prompt)
 
-        # Send Alloy Data Chunk
-        serialized_alloys = [asdict(a) for a in target_alloys] if target_alloys else []
-        yield json.dumps({"type": "data", "alloys": serialized_alloys}) + "\n"
-        
+        # ── 3. Send alloy data chunk ─────────────────────────────────
+        serialized = [asdict(a) for a in target_alloys] if target_alloys else []
+        yield json.dumps({"type": "data", "alloys": serialized}) + "\n"
+
         if intent == "DESIGN":
-             yield json.dumps({"type": "tool_suggestion", "tool": "designer"}) + "\n"
-        
+            yield json.dumps({"type": "tool_suggestion", "tool": "designer"}) + "\n"
+
         if not target_alloys and intent != "DESIGN":
-             yield json.dumps({"type": "chunk", "content": "No matching alloys found in the knowledge graph."}) + "\n"
-             return
+            yield json.dumps({
+                "type": "chunk",
+                "content": "No matching alloys found in the knowledge graph.",
+            }) + "\n"
+            return
 
-        # Stream LLM Response
-        groq_key = os.getenv("GROQ_API_KEY")
-        if groq_key:
-            client = Groq(api_key=groq_key)
-            
-            system_prompt = Prompts.CHAT_RESPONSE
-            if intent == "ANALYTICS":
-                system_prompt = Prompts.ANALYTICS_RESPONSE
-            elif intent == "TARGET":
-                system_prompt = Prompts.TARGET_RESPONSE
-            
-            messages = [{"role": "system", "content": system_prompt}]
-            for msg in history[-HistoryConfig.MAX_CONTEXT_MESSAGES:]:
-                messages.append({
-                    "role": msg.get("role", "user"),
-                    "content": msg.get("content", "")
-                })
-            
-            user_message = f"Context:\n{final_context}\n\nUser Query: {prompt}"
-            messages.append({"role": "user", "content": user_message})
+        # ── 4. Stream LLM response ──────────────────────────────────
+        client = LLMConfig.get_client()
+        if not client:
+            return
 
-            stream = client.chat.completions.create(
-                model=LLMConfig.MODEL,
-                messages=messages,
-                max_tokens=LLMConfig.RESPONSE_MAX_TOKENS,
-                temperature=LLMConfig.RESPONSE_TEMPERATURE,
-                stream=True
-            )
+        system_prompt = Prompts.CHAT_RESPONSE
+        if intent == "ANALYTICS":
+            system_prompt = Prompts.ANALYTICS_RESPONSE
+        elif intent == "TARGET":
+            system_prompt = Prompts.TARGET_RESPONSE
 
-            full_response = ""
-            for chunk in stream:
-                content = chunk.choices[0].delta.content
-                if content:
-                    full_response += content
-                    yield json.dumps({"type": "chunk", "content": content}) + "\n"
-            
-            # Save to history
-            if session_id not in chat_sessions:
-                chat_sessions[session_id] = []
-            
-            chat_sessions[session_id].append({
-                "prompt": prompt,
-                "response": full_response,
-                "alloys": [a.name for a in target_alloys]
+        messages = [{"role": "system", "content": system_prompt}]
+        for msg in history[-HistoryConfig.MAX_CONTEXT_MESSAGES:]:
+            messages.append({
+                "role": msg.get("role", "user"),
+                "content": msg.get("content", ""),
             })
+        messages.append({"role": "user", "content": f"Context:\n{final_context}\n\nUser Query: {prompt}"})
+
+        stream = client.chat.completions.create(
+            model=LLMConfig.MODEL,
+            messages=messages,
+            max_tokens=LLMConfig.RESPONSE_MAX_TOKENS,
+            temperature=LLMConfig.RESPONSE_TEMPERATURE,
+            stream=True,
+        )
+
+        for chunk in stream:
+            content = chunk.choices[0].delta.content
+            if content:
+                yield json.dumps({"type": "chunk", "content": content}) + "\n"

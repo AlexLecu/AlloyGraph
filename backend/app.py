@@ -6,7 +6,6 @@ import traceback
 
 from alloy_crew.alloy_evaluator import AlloyEvaluationCrew
 from alloy_crew.alloy_designer import IterativeDesignCrew
-from services.config import LLMConfig
 from services.chat_service import stream_chat_response
 
 import logging

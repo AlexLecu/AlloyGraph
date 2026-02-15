@@ -22,6 +22,10 @@ const emit = defineEmits(['design'])
 // Track which alloys have been shown (to show card only on first mention)
 const shownAlloys = ref(new Set())
 
+// Active request controller — allows cancellation
+let abortController = null
+let requestGeneration = 0  // guards finally block against stale cleanup
+
 // UI State
 const isExpanded = ref(false)
 const toggleExpand = () => {
@@ -60,21 +64,62 @@ const getNewAlloys = (alloys) => {
   return newAlloys
 }
 
-// Simple markdown-like formatting
+// ── Markdown formatting ─────────────────────────────────────────────────
+const escapeHtml = (str) =>
+  str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
 const formatText = (text) => {
   if (!text) return ''
-  return text
-    // Bold: **text** or __text__
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/__(.*?)__/g, '<strong>$1</strong>')
-    // Lists: - item or * item
-    .replace(/^[\-\*]\s+(.*)$/gm, '<li>$1</li>')
-    // Line breaks
-    .replace(/\n/g, '<br>')
+
+  // Split out fenced code blocks first so we don't mangle them
+  const parts = text.split(/(```[\s\S]*?```)/g)
+
+  const rendered = parts.map(part => {
+    // Fenced code block
+    if (part.startsWith('```') && part.endsWith('```')) {
+      const inner = part.slice(3, -3).replace(/^\w*\n/, '') // strip optional lang tag
+      return `<pre><code>${escapeHtml(inner)}</code></pre>`
+    }
+
+    // Escape HTML first to prevent XSS, then apply markdown transforms
+    let safe = escapeHtml(part)
+
+    return safe
+      // Inline code (uses escaped backticks)
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      // Headers: ### h3, ## h2
+      .replace(/^###\s+(.*)$/gm, '<h4>$1</h4>')
+      .replace(/^##\s+(.*)$/gm, '<h3>$1</h3>')
+      // Bold
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/__(.*?)__/g, '<strong>$1</strong>')
+      // Italic
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+      // Numbered lists: "1. item" → "<li class='ol'>item</li>"
+      .replace(/^\d+\.\s+(.*)$/gm, '<li class="ol">$1</li>')
+      // Unordered lists: "- item" or "* item"
+      .replace(/^[-*]\s+(.*)$/gm, '<li>$1</li>')
+      // Line breaks
+      .replace(/\n/g, '<br>')
+  }).join('')
+
+  return rendered
+}
+
+// ── Send / Cancel ───────────────────────────────────────────────────────
+
+const cancelRequest = () => {
+  if (abortController) {
+    abortController.abort()
+    abortController = null
+  }
 }
 
 const sendMessage = async () => {
   if (!input.value.trim()) return
+
+  // Cancel any in-flight request
+  cancelRequest()
 
   const prompt = input.value
   messages.value.push({ role: 'user', text: prompt })
@@ -82,21 +127,26 @@ const sendMessage = async () => {
   loading.value = true
 
   let assistantMsg = null
-  let pendingAlloys = []  // Store alloys until streaming completes
-  scrollToBottom(true)  // Force scroll after user message
+  let pendingAlloys = []
+  scrollToBottom(true)
+
+  abortController = new AbortController()
+  const thisGeneration = ++requestGeneration
 
   try {
     const history = messages.value
       .slice(0, -1)
+      .filter(m => m.role !== 'system')
       .map(m => ({
-        role: m.role === 'system' ? 'assistant' : m.role,
+        role: m.role,
         content: m.text
       }))
 
     const response = await fetch(`${API_BASE_URL}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, sessionId: sessionId.value, history })
+      body: JSON.stringify({ prompt, sessionId: sessionId.value, history }),
+      signal: abortController.signal
     })
 
     if (!response.ok) throw new Error(response.statusText)
@@ -118,7 +168,7 @@ const sendMessage = async () => {
         try {
           const chunk = JSON.parse(line)
 
-          if (!assistantMsg && (chunk.type === 'data' || chunk.type === 'chunk')) {
+          if (!assistantMsg && (chunk.type === 'data' || chunk.type === 'chunk' || chunk.type === 'error')) {
             assistantMsg = {
               role: 'assistant',
               display: '',
@@ -130,7 +180,6 @@ const sendMessage = async () => {
           }
 
           if (chunk.type === 'data') {
-            // Store alloys for later - don't render during streaming
             pendingAlloys = getNewAlloys(chunk.alloys)
           } else if (chunk.type === 'chunk' || chunk.type === 'text_chunk' || chunk.type === 'string_chunk') {
             assistantMsg.display += chunk.content
@@ -152,17 +201,38 @@ const sendMessage = async () => {
       assistantMsg.alloys = pendingAlloys
     }
 
-    scrollToBottom(true)  // Force scroll at end
+    scrollToBottom(true)
   } catch (error) {
-    if (assistantMsg) assistantMsg.display += `\n[Error: ${error.message}]`
+    if (error.name === 'AbortError') {
+      // User cancelled — mark visually but clear text so partial
+      // responses don't pollute history on the next turn
+      if (assistantMsg) {
+        assistantMsg.display += '\n*(cancelled)*'
+        assistantMsg.text = ''
+      }
+    } else {
+      // If no assistant message exists yet (e.g., network error or HTTP 500
+      // before any NDJSON chunk arrived), create one so the user sees the error
+      if (!assistantMsg) {
+        assistantMsg = { role: 'assistant', display: '', text: '', alloys: [], toolSuggestion: null }
+        messages.value.push(assistantMsg)
+      }
+      assistantMsg.display += `\n[Error: ${error.message}]`
+    }
     scrollToBottom(true)
   } finally {
-    loading.value = false
-    focusInput()
+    // Only reset state if this is still the active request
+    // (prevents a cancelled request's cleanup from stomping a newer request)
+    if (thisGeneration === requestGeneration) {
+      abortController = null
+      loading.value = false
+      focusInput()
+    }
   }
 }
 
 const clearChat = () => {
+  cancelRequest()
   sessionId.value = generateSessionId()
   messages.value = [
     { role: 'system', text: 'New conversation! Ask me anything about alloys.' }
@@ -224,6 +294,15 @@ const useSuggestion = (text) => {
         <div class="content">
           <div class="text" v-if="msg.display || msg.text" v-html="formatText(msg.display || msg.text)"></div>
 
+          <!-- Tool Suggestion (e.g. "Use Designer") -->
+          <button
+            v-if="msg.toolSuggestion && msg.toolSuggestion.tool === 'designer'"
+            class="tool-suggestion-btn"
+            @click="$emit('design', {})"
+          >
+            Open Alloy Designer
+          </button>
+
           <!-- Alloy Cards -->
           <div v-if="msg.alloys && msg.alloys.length" class="cards">
             <AlloyCard
@@ -236,13 +315,14 @@ const useSuggestion = (text) => {
         </div>
       </div>
 
-      <!-- Loading Indicator -->
+      <!-- Loading Indicator (with cancel) -->
       <div v-if="loading" class="msg assistant">
         <div class="avatar"><span>🤖</span></div>
         <div class="content">
           <div class="typing">
             <span></span><span></span><span></span>
           </div>
+          <button class="cancel-btn" @click="cancelRequest" title="Cancel request">Stop</button>
         </div>
       </div>
 
@@ -426,6 +506,7 @@ const useSuggestion = (text) => {
   font-size: 0.9rem;
   line-height: 1.5;
   color: var(--text-primary);
+  counter-reset: ol-counter;
 }
 
 .msg.assistant .text,
@@ -446,6 +527,11 @@ const useSuggestion = (text) => {
   font-weight: 600;
 }
 
+.text :deep(em) {
+  font-style: italic;
+  opacity: 0.85;
+}
+
 .text :deep(li) {
   list-style: none;
   padding-left: 1rem;
@@ -458,6 +544,65 @@ const useSuggestion = (text) => {
   position: absolute;
   left: 0;
   color: var(--primary);
+}
+
+.text :deep(li.ol) {
+  counter-increment: ol-counter;
+}
+
+.text :deep(li.ol)::before {
+  content: counter(ol-counter) '.';
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.text :deep(h3),
+.text :deep(h4) {
+  margin: 0.5rem 0 0.25rem;
+  font-weight: 600;
+  color: var(--primary-light);
+}
+
+.text :deep(h3) { font-size: 1rem; }
+.text :deep(h4) { font-size: 0.95rem; }
+
+.text :deep(pre) {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.75rem;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+
+.text :deep(code) {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.85em;
+}
+
+.text :deep(:not(pre) > code) {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+
+.tool-suggestion-btn {
+  background: linear-gradient(135deg, var(--secondary) 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: fit-content;
+}
+
+.tool-suggestion-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
 }
 
 .cards {
@@ -488,6 +633,24 @@ const useSuggestion = (text) => {
 @keyframes bounce {
   0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
   30% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* Cancel button */
+.cancel-btn {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  width: fit-content;
+  transition: all 0.2s;
+}
+
+.cancel-btn:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.5);
 }
 
 /* Suggestions */

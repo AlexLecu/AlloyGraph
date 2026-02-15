@@ -19,10 +19,12 @@ class PropertyMeasurement:
     def format(self) -> str:
         """Format for display."""
         temp_str = f" @ {self.temperature_c}°C" if self.temperature_c is not None else ""
-        
+
         if self.stress_mpa and self.life_hours:
             return f"Stress: {self.stress_mpa:.0f} MPa, Life: {self.life_hours:.0f}h{temp_str}"
-        
+        if self.stress_mpa:
+            return f"{self.value:.0f} {self.unit} at {self.stress_mpa:.0f} MPa{temp_str}"
+
         return f"{self.value:.0f} {self.unit}{temp_str}"
 
 
@@ -125,10 +127,6 @@ class AlloyRetriever:
             List of AlloyData objects with properties and temperatures
         """
         client = self._get_client()
-
-        if not client.is_live():
-            raise ConnectionError("Weaviate instance is not reachable")
-
         collection = client.collections.get("Variant")
 
         response = collection.query.hybrid(
@@ -272,47 +270,71 @@ class AlloyRetriever:
             
             # Extract composition
             if obj.references and "hasComposition" in obj.references:
-                comp_obj = obj.references["hasComposition"].objects[0]
-                if comp_obj.references and "hasComponent" in comp_obj.references:
-                    for component in comp_obj.references["hasComponent"].objects:
-                        if component.references and "hasElement" in component.references:
-                            element_symbol = component.references["hasElement"].objects[0].properties.get("symbol")
-                            if component.references and "hasMassFraction" in component.references:
-                                mass_frac = component.references["hasMassFraction"].objects[0]
-                                value = mass_frac.properties.get("numericValue") or mass_frac.properties.get("nominal")
-                                if element_symbol and value is not None:
-                                    alloy.composition[element_symbol] = float(value)
+                comp_objects = obj.references["hasComposition"].objects
+                if comp_objects:
+                    comp_obj = comp_objects[0]
+                    if comp_obj.references and "hasComponent" in comp_obj.references:
+                        for component in comp_obj.references["hasComponent"].objects:
+                            if not (component.references and "hasElement" in component.references):
+                                continue
+                            el_objects = component.references["hasElement"].objects
+                            if not el_objects:
+                                continue
+                            element_symbol = el_objects[0].properties.get("symbol")
+                            if not (component.references and "hasMassFraction" in component.references):
+                                continue
+                            mf_objects = component.references["hasMassFraction"].objects
+                            if not mf_objects:
+                                continue
+                            mass_frac = mf_objects[0]
+                            value = mass_frac.properties.get("numericValue")
+                            if value is None:
+                                value = mass_frac.properties.get("nominal")
+                            if element_symbol and value is not None:
+                                alloy.composition[element_symbol] = float(value)
             
             # Extract properties with temperatures
             if obj.references and "hasPropertySet" in obj.references:
                 for pset in obj.references["hasPropertySet"].objects:
                     prop_type = "Unknown"
                     if pset.references and "measuresProperty" in pset.references:
-                        prop_type = pset.references["measuresProperty"].objects[0].properties.get("propertyType", "Unknown")
-                    
+                        mp_objects = pset.references["measuresProperty"].objects
+                        if mp_objects:
+                            prop_type = mp_objects[0].properties.get("propertyType", "Unknown")
+
                     if pset.references and "hasMeasurement" in pset.references:
                         for meas in pset.references["hasMeasurement"].objects:
-                            val = 0.0
+                            val = None
                             unit = ""
                             temp_c = None
                             stress = meas.properties.get("stress")
                             life_hours = meas.properties.get("lifeHours")
-                            
+
                             # Get value and unit
                             if life_hours is not None:
                                 val = life_hours
                                 unit = "h"
                             elif meas.references and "hasQuantity" in meas.references:
-                                quant = meas.references["hasQuantity"].objects[0]
-                                val = quant.properties.get("numericValue", 0.0)
-                                unit = quant.properties.get("unitSymbol", "")
-                            
+                                q_objects = meas.references["hasQuantity"].objects
+                                if q_objects:
+                                    quant = q_objects[0]
+                                    val = quant.properties.get("numericValue")
+                                    unit = quant.properties.get("unitSymbol", "")
+
+                            # Skip measurements where we couldn't extract a value
+                            if val is None:
+                                continue
+
                             # Get temperature
                             if meas.references and "hasTestCondition" in meas.references:
-                                tc = meas.references["hasTestCondition"].objects[0]
-                                if tc.references and "hasTemperature" in tc.references:
-                                    temp_c = tc.references["hasTemperature"].objects[0].properties.get("numericValue")
-                            
+                                tc_objects = meas.references["hasTestCondition"].objects
+                                if tc_objects:
+                                    tc = tc_objects[0]
+                                    if tc.references and "hasTemperature" in tc.references:
+                                        t_objects = tc.references["hasTemperature"].objects
+                                        if t_objects:
+                                            temp_c = t_objects[0].properties.get("numericValue")
+
                             alloy.properties.append(PropertyMeasurement(
                                 property_type=prop_type,
                                 value=val,
@@ -333,143 +355,3 @@ class AlloyRetriever:
         """
         return self.search_alloys(property_name_part, limit=limit)
 
-    @staticmethod
-    def format_for_llm(alloys: list[AlloyData]) -> str:
-        """
-        Format alloy data for LLM consumption.
-
-        Args:
-            alloys: List of AlloyData objects
-
-        Returns:
-            Formatted string with all alloy information
-        """
-        if not alloys:
-            return "No matching alloys found in the knowledge graph."
-        
-        results = []
-        for alloy in alloys:
-            lines = [
-                f"\n{'='*70}",
-                f"Alloy: {alloy.name}",
-                f"Processing: {alloy.processing_method}",
-                f"{'='*70}"
-            ]
-            
-            if alloy.composition:
-                lines.append("\nComposition (wt%):")
-                sorted_comp = sorted(alloy.composition.items(), key=lambda x: x[1], reverse=True)
-                for element, value in sorted_comp:
-                    lines.append(f"  {element}: {value:.2f}%")
-            
-            if alloy.atomic_composition:
-                lines.append("\nAtomic Composition (at%):")
-                sorted_at = sorted(alloy.atomic_composition.items(), key=lambda x: x[1], reverse=True)
-                for element, value in sorted_at:
-                    lines.append(f"  {element}: {value:.2f}%")
-
-            if alloy.gamma_composition:
-                lines.append("\nGamma (Matrix) Phase Composition (at%):")
-                sorted_gamma = sorted(alloy.gamma_composition.items(), key=lambda x: x[1], reverse=True)
-                for element, value in sorted_gamma:
-                    lines.append(f"  {element}: {value:.2f}%")
-
-            if alloy.gamma_prime_composition:
-                lines.append("\nGamma Prime (Precipitate) Phase Composition (at%):")
-                sorted_gp = sorted(alloy.gamma_prime_composition.items(), key=lambda x: x[1], reverse=True)
-                for element, value in sorted_gp:
-                    lines.append(f"  {element}: {value:.2f}%")
-
-            # Physical Properties
-            phys_props = []
-            if alloy.density_gcm3:
-                phys_props.append(f"Density: {alloy.density_gcm3:.2f} g/cm³")
-            if alloy.gamma_prime_vol_pct:
-                phys_props.append(f"γ' Volume Fraction: {alloy.gamma_prime_vol_pct:.1f}%")
-            if phys_props:
-                lines.append("\nPhysical Properties:")
-                for p in phys_props:
-                    lines.append(f"  {p}")
-
-            # Phase Stability Parameters
-            stability_props = []
-            if alloy.md_avg is not None:
-                stability_props.append(f"Md (avg): {alloy.md_avg:.3f}")
-            if alloy.md_gamma is not None:
-                stability_props.append(f"Md (γ matrix): {alloy.md_gamma:.3f}")
-            if alloy.vec_avg is not None:
-                stability_props.append(f"VEC (avg): {alloy.vec_avg:.2f}")
-            if alloy.tcp_risk:
-                stability_props.append(f"TCP Risk: {alloy.tcp_risk}")
-            if alloy.lattice_mismatch_pct is not None:
-                stability_props.append(f"Lattice Mismatch: {alloy.lattice_mismatch_pct:.3f}%")
-            if stability_props:
-                lines.append("\nPhase Stability:")
-                for p in stability_props:
-                    lines.append(f"  {p}")
-
-            # Strengthening Parameters
-            strength_props = []
-            if alloy.sss_wt_pct is not None:
-                strength_props.append(f"SSS Elements: {alloy.sss_wt_pct:.1f} wt%")
-            if alloy.sss_coefficient is not None:
-                strength_props.append(f"SSS Coefficient: {alloy.sss_coefficient:.4f}")
-            if alloy.precipitation_hardening_coeff is not None:
-                strength_props.append(f"Precipitation Hardening: {alloy.precipitation_hardening_coeff:.4f}")
-            if alloy.creep_resistance_param is not None:
-                strength_props.append(f"Creep Resistance Parameter: {alloy.creep_resistance_param:.2f}")
-            if strength_props:
-                lines.append("\nStrengthening Mechanisms:")
-                for p in strength_props:
-                    lines.append(f"  {p}")
-
-            # Composition Metrics
-            comp_metrics = []
-            if alloy.refractory_wt_pct is not None:
-                comp_metrics.append(f"Refractory Elements: {alloy.refractory_wt_pct:.1f} wt%")
-            if alloy.gp_formers_wt_pct is not None:
-                comp_metrics.append(f"γ' Formers: {alloy.gp_formers_wt_pct:.1f} wt%")
-            if alloy.gp_formers_at_pct is not None:
-                comp_metrics.append(f"γ' Formers: {alloy.gp_formers_at_pct:.1f} at%")
-            if alloy.oxidation_resistance is not None:
-                comp_metrics.append(f"Oxidation Resistance Index: {alloy.oxidation_resistance:.2f}")
-            if comp_metrics:
-                lines.append("\nComposition Metrics:")
-                for p in comp_metrics:
-                    lines.append(f"  {p}")
-
-            # Element Ratios
-            ratios = []
-            if alloy.al_ti_ratio is not None:
-                ratios.append(f"Al/Ti (wt): {alloy.al_ti_ratio:.2f}")
-            if alloy.al_ti_at_ratio is not None:
-                ratios.append(f"Al/Ti (at): {alloy.al_ti_at_ratio:.2f}")
-            if alloy.cr_co_ratio is not None:
-                ratios.append(f"Cr/Co: {alloy.cr_co_ratio:.2f}")
-            if alloy.cr_ni_ratio is not None:
-                ratios.append(f"Cr/Ni: {alloy.cr_ni_ratio:.3f}")
-            if alloy.mo_w_ratio is not None:
-                ratios.append(f"Mo/W: {alloy.mo_w_ratio:.2f}")
-            if ratios:
-                lines.append("\nElement Ratios:")
-                for r in ratios:
-                    lines.append(f"  {r}")
-            
-            if alloy.properties:
-                lines.append("\nMechanical Properties:")
-                
-                # Group by property type
-                prop_groups: dict[str, list[PropertyMeasurement]] = {}
-                for prop in alloy.properties:
-                    if prop.property_type not in prop_groups:
-                        prop_groups[prop.property_type] = []
-                    prop_groups[prop.property_type].append(prop)
-                
-                for prop_type, measurements in prop_groups.items():
-                    lines.append(f"  {prop_type}:")
-                    for m in measurements:
-                        lines.append(f"    • {m.format()}")
-            
-            results.append("\n".join(lines))
-        
-        return "\n\n".join(results)
