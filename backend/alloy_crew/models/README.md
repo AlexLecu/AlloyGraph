@@ -24,7 +24,7 @@ This is the "Metallurgical Bridge" that transforms raw input into physical descr
 
 ### 2. Training Pipeline (`train_ml_models.py`)
 Responsible for building and updating the models:
-- **Data Source**: Consumes `train_77alloys.jsonl` (79 alloys for training).
+- **Data Source**: Consumes `train_77alloys.jsonl` (77 alloys for training).
 - **Architecture**: A **Voting Ensemble** combining **XGBoost** and **Random Forest Regressors**.
 - **Cross-Validation**: Uses `GroupKFold` (grouped by Alloy name) to ensure the models generalize to unseen alloys, not just unseen temperature points for known alloys.
 
@@ -40,21 +40,21 @@ Provides a clean API for the rest of the application:
 ## Model Storage
 - **saved_models/**: Contains the serialized `.pkg` files. These files bundle the trained ensemble along with the feature names required for alignment.
 
-### Current Benchmarks (trained on 79 alloys)
+### Current Benchmarks (trained on 77 alloys)
 | Property | Samples | Alloys | CV R² | CV MAE | Holdout R² | Holdout MAE |
 |----------|---------|--------|-------|--------|------------|-------------|
-| Yield Strength | 276 | 51 | 0.710 | 117.5 MPa | **0.889** | 78.6 MPa |
-| Tensile Strength | 308 | 54 | 0.709 | 143.1 MPa | **0.863** | 98.6 MPa |
-| Elongation | 298 | 53 | 0.545 | 8.4% | 0.097 | 6.6% |
-| Elastic Modulus | 351 | 47 | 0.602 | 14.7 GPa | 0.701 | 16.1 GPa |
+| Yield Strength | 264 | 51 | **0.841** | 92.3 MPa | **0.904** | 75.2 MPa |
+| Tensile Strength | 296 | 54 | **0.878** | 97.4 MPa | **0.906** | 81.9 MPa |
+| Elongation | 285 | 53 | 0.422 | 8.4% | 0.029 | 6.7% |
+| Elastic Modulus | 355 | 47 | 0.376 | 15.4 GPa | **0.737** | 14.5 GPa |
 
 ### Tuned Hyperparameters
 
 Tuned parameters are stored in `tuned_params/` folder:
-- `ys.json` - Yield Strength (tuned R²: 0.739)
-- `uts.json` - Ultimate Tensile Strength (tuned R²: 0.739)
-- `el.json` - Elongation (tuned R²: 0.595)
-- `em.json` - Elastic Modulus (tuned R²: 0.589)
+- `ys.json` - Yield Strength (tuned R²: 0.864)
+- `uts.json` - Ultimate Tensile Strength (tuned R²: 0.860)
+- `el.json` - Elongation (tuned R²: 0.541)
+- `em.json` - Elastic Modulus (tuned R²: 0.635)
 
 ## Usage
 
