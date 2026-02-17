@@ -24,7 +24,7 @@ This is the "Metallurgical Bridge" that transforms raw input into physical descr
 
 ### 2. Training Pipeline (`train_ml_models.py`)
 Responsible for building and updating the models:
-- **Data Source**: Consumes `train_79alloys.jsonl` (79 alloys for training).
+- **Data Source**: Consumes `train_77alloys.jsonl` (79 alloys for training).
 - **Architecture**: A **Voting Ensemble** combining **XGBoost** and **Random Forest Regressors**.
 - **Cross-Validation**: Uses `GroupKFold` (grouped by Alloy name) to ensure the models generalize to unseen alloys, not just unseen temperature points for known alloys.
 

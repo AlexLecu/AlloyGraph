@@ -154,7 +154,7 @@ TARGETS = {
 
 if __name__ == "__main__":
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    DATA_FILE = os.path.join(current_dir, "training_data", "train_79alloys.jsonl")
+    DATA_FILE = os.path.join(current_dir, "training_data", "train_77alloys.jsonl")
 
     N_TRIALS = 30  # Increase for better results (50-100 recommended)
 

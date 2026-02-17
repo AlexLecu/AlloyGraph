@@ -330,7 +330,7 @@ def load_tuned_params(model_id: str, models_dir: str) -> Tuple[Dict, Dict]:
 
 if __name__ == "__main__":
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    DATA_FILE = os.path.join(current_dir, "training_data", "train_79alloys.jsonl")
+    DATA_FILE = os.path.join(current_dir, "training_data", "train_77alloys.jsonl")
 
     OUTPUT_DIR = os.path.join(current_dir, "saved_models")
     os.makedirs(OUTPUT_DIR, exist_ok=True)

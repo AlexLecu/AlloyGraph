@@ -19,7 +19,7 @@ WEAVIATE_GRPC_PORT = os.getenv("WEAVIATE_GRPC_PORT", "50051")
 
 # Data paths
 DATA_DIR = "/app/alloy_crew/models/training_data"
-DEFAULT_DATA_FILE = os.path.join(DATA_DIR, "train_79alloys.jsonl")
+DEFAULT_DATA_FILE = os.path.join(DATA_DIR, "train_77alloys.jsonl")
 ONTOLOGY_OUTPUT = "/app/Data/Ontology/alloygraph.owl"
 
 

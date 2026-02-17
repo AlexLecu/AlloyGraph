@@ -1,7 +1,7 @@
 """
 Generate chatbot evaluation dataset from KG ground truth.
 
-Reads train_79alloys.jsonl (the alloys in Weaviate) and produces
+Reads train_77alloys.jsonl (the alloys in Weaviate) and produces
 question/ground_truth pairs across 5 question types:
   1. Property lookup  — specific value for a specific alloy
   2. Composition       — elemental makeup of an alloy
@@ -21,7 +21,7 @@ from pathlib import Path
 
 # ── Paths ───────────────────────────────────────────────────────────────
 ROOT = Path(__file__).resolve().parent.parent.parent
-GROUND_TRUTH = ROOT / "backend" / "alloy_crew" / "models" / "training_data" / "train_79alloys.jsonl"
+GROUND_TRUTH = ROOT / "backend" / "alloy_crew" / "models" / "training_data" / "train_77alloys.jsonl"
 
 random.seed(42)  # reproducibility
 
