@@ -1,0 +1,4457 @@
+{
+  "timestamp": "2026-02-19T17:04:06.083638",
+  "systems": {
+    "chatbot": {
+      "1hop": {
+        "total": 100,
+        "correct": 100,
+        "incorrect": 0,
+        "unparseable": 0,
+        "by_subtype": {
+          "property_at_temp": {
+            "correct": 35,
+            "total": 35,
+            "accuracy": 1.0
+          },
+          "tcp_risk": {
+            "correct": 10,
+            "total": 10,
+            "accuracy": 1.0
+          },
+          "processing_method": {
+            "correct": 10,
+            "total": 10,
+            "accuracy": 1.0
+          },
+          "composition_element": {
+            "correct": 20,
+            "total": 20,
+            "accuracy": 1.0
+          },
+          "gamma_prime": {
+            "correct": 10,
+            "total": 10,
+            "accuracy": 1.0
+          },
+          "density": {
+            "correct": 15,
+            "total": 15,
+            "accuracy": 1.0
+          }
+        },
+        "per_question": [
+          {
+            "id": "mcq_1hop_prop_031",
+            "subtype": "property_at_temp",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_tcp_003",
+            "subtype": "tcp_risk",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_002",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_tcp_005",
+            "subtype": "tcp_risk",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_proc_004",
+            "subtype": "processing_method",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_006",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_025",
+            "subtype": "property_at_temp",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_015",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_027",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_013",
+            "subtype": "composition_element",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_029",
+            "subtype": "property_at_temp",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_014",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_gp_001",
+            "subtype": "gamma_prime",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_010",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_tcp_006",
+            "subtype": "tcp_risk",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_001",
+            "subtype": "density",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_017",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_015",
+            "subtype": "property_at_temp",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_005",
+            "subtype": "density",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_gp_005",
+            "subtype": "gamma_prime",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_003",
+            "subtype": "density",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_proc_005",
+            "subtype": "processing_method",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_011",
+            "subtype": "composition_element",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_009",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_016",
+            "subtype": "property_at_temp",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_002",
+            "subtype": "density",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_006",
+            "subtype": "property_at_temp",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_004",
+            "subtype": "property_at_temp",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_proc_010",
+            "subtype": "processing_method",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_001",
+            "subtype": "composition_element",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_003",
+            "subtype": "property_at_temp",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_tcp_007",
+            "subtype": "tcp_risk",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_028",
+            "subtype": "property_at_temp",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_gp_010",
+            "subtype": "gamma_prime",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_005",
+            "subtype": "composition_element",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_012",
+            "subtype": "composition_element",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_proc_002",
+            "subtype": "processing_method",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_010",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_proc_008",
+            "subtype": "processing_method",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_012",
+            "subtype": "density",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_017",
+            "subtype": "property_at_temp",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_020",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_014",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_011",
+            "subtype": "property_at_temp",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_proc_003",
+            "subtype": "processing_method",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_013",
+            "subtype": "density",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_gp_004",
+            "subtype": "gamma_prime",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_tcp_010",
+            "subtype": "tcp_risk",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_proc_001",
+            "subtype": "processing_method",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_033",
+            "subtype": "property_at_temp",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_009",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_032",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_034",
+            "subtype": "property_at_temp",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_035",
+            "subtype": "property_at_temp",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_015",
+            "subtype": "density",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_010",
+            "subtype": "density",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_019",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_022",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_gp_008",
+            "subtype": "gamma_prime",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_004",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_014",
+            "subtype": "density",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_020",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_tcp_009",
+            "subtype": "tcp_risk",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_011",
+            "subtype": "density",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_003",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_024",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_proc_009",
+            "subtype": "processing_method",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_016",
+            "subtype": "composition_element",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_008",
+            "subtype": "density",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_007",
+            "subtype": "density",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_019",
+            "subtype": "composition_element",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_023",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_005",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_004",
+            "subtype": "density",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_gp_009",
+            "subtype": "gamma_prime",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_009",
+            "subtype": "density",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_012",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_008",
+            "subtype": "property_at_temp",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_tcp_001",
+            "subtype": "tcp_risk",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_007",
+            "subtype": "composition_element",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_002",
+            "subtype": "composition_element",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_026",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_proc_007",
+            "subtype": "processing_method",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_gp_003",
+            "subtype": "gamma_prime",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_tcp_004",
+            "subtype": "tcp_risk",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_gp_006",
+            "subtype": "gamma_prime",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_021",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_006",
+            "subtype": "density",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_001",
+            "subtype": "property_at_temp",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_018",
+            "subtype": "property_at_temp",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_tcp_008",
+            "subtype": "tcp_risk",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_gp_007",
+            "subtype": "gamma_prime",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_proc_006",
+            "subtype": "processing_method",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_gp_002",
+            "subtype": "gamma_prime",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_008",
+            "subtype": "composition_element",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_018",
+            "subtype": "composition_element",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_013",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_007",
+            "subtype": "property_at_temp",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_030",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_tcp_002",
+            "subtype": "tcp_risk",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          }
+        ],
+        "accuracy": 1.0
+      },
+      "2hop": {
+        "total": 100,
+        "correct": 79,
+        "incorrect": 21,
+        "unparseable": 0,
+        "by_subtype": {
+          "pairwise_comparison": {
+            "correct": 19,
+            "total": 23,
+            "accuracy": 0.8260869565217391
+          },
+          "dual_threshold": {
+            "correct": 16,
+            "total": 18,
+            "accuracy": 0.8888888888888888
+          },
+          "temp_retention": {
+            "correct": 13,
+            "total": 20,
+            "accuracy": 0.65
+          },
+          "comp_filter_rank": {
+            "correct": 19,
+            "total": 23,
+            "accuracy": 0.8260869565217391
+          },
+          "filtered_ranking": {
+            "correct": 12,
+            "total": 16,
+            "accuracy": 0.75
+          }
+        },
+        "per_question": [
+          {
+            "id": "mcq_2hop_pair_002",
+            "subtype": "pairwise_comparison",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_009",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_014",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_020",
+            "subtype": "comp_filter_rank",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_007",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_018",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_004",
+            "subtype": "temp_retention",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_001",
+            "subtype": "dual_threshold",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_019",
+            "subtype": "pairwise_comparison",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_019",
+            "subtype": "comp_filter_rank",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_008",
+            "subtype": "pairwise_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_005",
+            "subtype": "filtered_ranking",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_004",
+            "subtype": "comp_filter_rank",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_018",
+            "subtype": "temp_retention",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_014",
+            "subtype": "pairwise_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_006",
+            "subtype": "pairwise_comparison",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_006",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_005",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_010",
+            "subtype": "filtered_ranking",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_011",
+            "subtype": "comp_filter_rank",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_013",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_003",
+            "subtype": "comp_filter_rank",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_004",
+            "subtype": "filtered_ranking",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_016",
+            "subtype": "dual_threshold",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_009",
+            "subtype": "filtered_ranking",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_filt_016",
+            "subtype": "filtered_ranking",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_009",
+            "subtype": "temp_retention",
+            "extracted": "D",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_018",
+            "subtype": "comp_filter_rank",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_001",
+            "subtype": "pairwise_comparison",
+            "extracted": "A",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_filt_001",
+            "subtype": "filtered_ranking",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_017",
+            "subtype": "dual_threshold",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_004",
+            "subtype": "dual_threshold",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_014",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_017",
+            "subtype": "pairwise_comparison",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_015",
+            "subtype": "comp_filter_rank",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_009",
+            "subtype": "pairwise_comparison",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_005",
+            "subtype": "comp_filter_rank",
+            "extracted": "A",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_015",
+            "subtype": "pairwise_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_021",
+            "subtype": "pairwise_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_007",
+            "subtype": "pairwise_comparison",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_003",
+            "subtype": "filtered_ranking",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_002",
+            "subtype": "temp_retention",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_022",
+            "subtype": "pairwise_comparison",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_023",
+            "subtype": "pairwise_comparison",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_007",
+            "subtype": "dual_threshold",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_022",
+            "subtype": "comp_filter_rank",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_016",
+            "subtype": "comp_filter_rank",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_008",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_013",
+            "subtype": "pairwise_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_006",
+            "subtype": "filtered_ranking",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_013",
+            "subtype": "temp_retention",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_015",
+            "subtype": "temp_retention",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_017",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_019",
+            "subtype": "temp_retention",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_008",
+            "subtype": "filtered_ranking",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_006",
+            "subtype": "temp_retention",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_012",
+            "subtype": "dual_threshold",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_016",
+            "subtype": "pairwise_comparison",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_017",
+            "subtype": "comp_filter_rank",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_010",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_010",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_008",
+            "subtype": "comp_filter_rank",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_020",
+            "subtype": "pairwise_comparison",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_003",
+            "subtype": "pairwise_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_015",
+            "subtype": "dual_threshold",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_005",
+            "subtype": "temp_retention",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_010",
+            "subtype": "comp_filter_rank",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_014",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_001",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_012",
+            "subtype": "pairwise_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_023",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_011",
+            "subtype": "dual_threshold",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_015",
+            "subtype": "filtered_ranking",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_007",
+            "subtype": "filtered_ranking",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_018",
+            "subtype": "pairwise_comparison",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_002",
+            "subtype": "dual_threshold",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_006",
+            "subtype": "dual_threshold",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_012",
+            "subtype": "filtered_ranking",
+            "extracted": "B",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_016",
+            "subtype": "temp_retention",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_004",
+            "subtype": "pairwise_comparison",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_011",
+            "subtype": "temp_retention",
+            "extracted": "D",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_008",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_014",
+            "subtype": "dual_threshold",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_007",
+            "subtype": "temp_retention",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_013",
+            "subtype": "filtered_ranking",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_009",
+            "subtype": "comp_filter_rank",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_002",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_003",
+            "subtype": "temp_retention",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_003",
+            "subtype": "dual_threshold",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_012",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_filt_011",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_010",
+            "subtype": "pairwise_comparison",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_002",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_005",
+            "subtype": "pairwise_comparison",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_011",
+            "subtype": "pairwise_comparison",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_013",
+            "subtype": "dual_threshold",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_012",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_021",
+            "subtype": "comp_filter_rank",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_001",
+            "subtype": "comp_filter_rank",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_020",
+            "subtype": "temp_retention",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          }
+        ],
+        "accuracy": 0.79
+      },
+      "overall": {
+        "correct": 179,
+        "total": 200,
+        "accuracy": 0.895
+      }
+    },
+    "llama": {
+      "1hop": {
+        "total": 100,
+        "correct": 35,
+        "incorrect": 65,
+        "unparseable": 0,
+        "by_subtype": {
+          "property_at_temp": {
+            "correct": 11,
+            "total": 35,
+            "accuracy": 0.3142857142857143
+          },
+          "tcp_risk": {
+            "correct": 2,
+            "total": 10,
+            "accuracy": 0.2
+          },
+          "processing_method": {
+            "correct": 2,
+            "total": 10,
+            "accuracy": 0.2
+          },
+          "composition_element": {
+            "correct": 10,
+            "total": 20,
+            "accuracy": 0.5
+          },
+          "gamma_prime": {
+            "correct": 3,
+            "total": 10,
+            "accuracy": 0.3
+          },
+          "density": {
+            "correct": 7,
+            "total": 15,
+            "accuracy": 0.4666666666666667
+          }
+        },
+        "per_question": [
+          {
+            "id": "mcq_1hop_prop_031",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_tcp_003",
+            "subtype": "tcp_risk",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_002",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_tcp_005",
+            "subtype": "tcp_risk",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_proc_004",
+            "subtype": "processing_method",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_006",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_025",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_015",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_027",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_013",
+            "subtype": "composition_element",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_029",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_014",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_gp_001",
+            "subtype": "gamma_prime",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_010",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_tcp_006",
+            "subtype": "tcp_risk",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_dens_001",
+            "subtype": "density",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_017",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_015",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_dens_005",
+            "subtype": "density",
+            "extracted": "A",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_gp_005",
+            "subtype": "gamma_prime",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_003",
+            "subtype": "density",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_proc_005",
+            "subtype": "processing_method",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_011",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_009",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_016",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_dens_002",
+            "subtype": "density",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_006",
+            "subtype": "property_at_temp",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_004",
+            "subtype": "property_at_temp",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_proc_010",
+            "subtype": "processing_method",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_001",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_003",
+            "subtype": "property_at_temp",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_tcp_007",
+            "subtype": "tcp_risk",
+            "extracted": "D",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_028",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_gp_010",
+            "subtype": "gamma_prime",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_005",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_012",
+            "subtype": "composition_element",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_proc_002",
+            "subtype": "processing_method",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_010",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_proc_008",
+            "subtype": "processing_method",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_dens_012",
+            "subtype": "density",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_017",
+            "subtype": "property_at_temp",
+            "extracted": "D",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_020",
+            "subtype": "composition_element",
+            "extracted": "A",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_014",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_011",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_proc_003",
+            "subtype": "processing_method",
+            "extracted": "D",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_dens_013",
+            "subtype": "density",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_gp_004",
+            "subtype": "gamma_prime",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_tcp_010",
+            "subtype": "tcp_risk",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_proc_001",
+            "subtype": "processing_method",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_033",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_009",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_032",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_034",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_035",
+            "subtype": "property_at_temp",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_015",
+            "subtype": "density",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_dens_010",
+            "subtype": "density",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_019",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_022",
+            "subtype": "property_at_temp",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_gp_008",
+            "subtype": "gamma_prime",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_004",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_014",
+            "subtype": "density",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_020",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_tcp_009",
+            "subtype": "tcp_risk",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_dens_011",
+            "subtype": "density",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_003",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_024",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_proc_009",
+            "subtype": "processing_method",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_016",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_dens_008",
+            "subtype": "density",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_dens_007",
+            "subtype": "density",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_019",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_023",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_005",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_004",
+            "subtype": "density",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_gp_009",
+            "subtype": "gamma_prime",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_009",
+            "subtype": "density",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_012",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_008",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_tcp_001",
+            "subtype": "tcp_risk",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_007",
+            "subtype": "composition_element",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_002",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_026",
+            "subtype": "property_at_temp",
+            "extracted": "A",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_proc_007",
+            "subtype": "processing_method",
+            "extracted": "B",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_gp_003",
+            "subtype": "gamma_prime",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_tcp_004",
+            "subtype": "tcp_risk",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_gp_006",
+            "subtype": "gamma_prime",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_021",
+            "subtype": "property_at_temp",
+            "extracted": "A",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_dens_006",
+            "subtype": "density",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_001",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_018",
+            "subtype": "property_at_temp",
+            "extracted": "A",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_tcp_008",
+            "subtype": "tcp_risk",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_gp_007",
+            "subtype": "gamma_prime",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_proc_006",
+            "subtype": "processing_method",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_gp_002",
+            "subtype": "gamma_prime",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_008",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_018",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_013",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_007",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_030",
+            "subtype": "property_at_temp",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_tcp_002",
+            "subtype": "tcp_risk",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          }
+        ],
+        "accuracy": 0.35
+      },
+      "2hop": {
+        "total": 100,
+        "correct": 43,
+        "incorrect": 57,
+        "unparseable": 0,
+        "by_subtype": {
+          "pairwise_comparison": {
+            "correct": 13,
+            "total": 23,
+            "accuracy": 0.5652173913043478
+          },
+          "dual_threshold": {
+            "correct": 8,
+            "total": 18,
+            "accuracy": 0.4444444444444444
+          },
+          "temp_retention": {
+            "correct": 9,
+            "total": 20,
+            "accuracy": 0.45
+          },
+          "comp_filter_rank": {
+            "correct": 7,
+            "total": 23,
+            "accuracy": 0.30434782608695654
+          },
+          "filtered_ranking": {
+            "correct": 6,
+            "total": 16,
+            "accuracy": 0.375
+          }
+        },
+        "per_question": [
+          {
+            "id": "mcq_2hop_pair_002",
+            "subtype": "pairwise_comparison",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_009",
+            "subtype": "dual_threshold",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_014",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_020",
+            "subtype": "comp_filter_rank",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_007",
+            "subtype": "comp_filter_rank",
+            "extracted": "B",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_018",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_004",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_001",
+            "subtype": "dual_threshold",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_019",
+            "subtype": "pairwise_comparison",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_019",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_008",
+            "subtype": "pairwise_comparison",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_filt_005",
+            "subtype": "filtered_ranking",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_004",
+            "subtype": "comp_filter_rank",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_018",
+            "subtype": "temp_retention",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_014",
+            "subtype": "pairwise_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_006",
+            "subtype": "pairwise_comparison",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_006",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_005",
+            "subtype": "dual_threshold",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_filt_010",
+            "subtype": "filtered_ranking",
+            "extracted": "B",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_011",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_013",
+            "subtype": "comp_filter_rank",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_003",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_filt_004",
+            "subtype": "filtered_ranking",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_016",
+            "subtype": "dual_threshold",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_009",
+            "subtype": "filtered_ranking",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_filt_016",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_009",
+            "subtype": "temp_retention",
+            "extracted": "D",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_018",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_001",
+            "subtype": "pairwise_comparison",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_001",
+            "subtype": "filtered_ranking",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_017",
+            "subtype": "dual_threshold",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_004",
+            "subtype": "dual_threshold",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_014",
+            "subtype": "filtered_ranking",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_017",
+            "subtype": "pairwise_comparison",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_015",
+            "subtype": "comp_filter_rank",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_009",
+            "subtype": "pairwise_comparison",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_005",
+            "subtype": "comp_filter_rank",
+            "extracted": "A",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_015",
+            "subtype": "pairwise_comparison",
+            "extracted": "D",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_021",
+            "subtype": "pairwise_comparison",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_007",
+            "subtype": "pairwise_comparison",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_003",
+            "subtype": "filtered_ranking",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_002",
+            "subtype": "temp_retention",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_022",
+            "subtype": "pairwise_comparison",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_023",
+            "subtype": "pairwise_comparison",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_007",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_022",
+            "subtype": "comp_filter_rank",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_016",
+            "subtype": "comp_filter_rank",
+            "extracted": "A",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_008",
+            "subtype": "dual_threshold",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_013",
+            "subtype": "pairwise_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_006",
+            "subtype": "filtered_ranking",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_013",
+            "subtype": "temp_retention",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_015",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_017",
+            "subtype": "temp_retention",
+            "extracted": "D",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_019",
+            "subtype": "temp_retention",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_008",
+            "subtype": "filtered_ranking",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_006",
+            "subtype": "temp_retention",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_012",
+            "subtype": "dual_threshold",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_016",
+            "subtype": "pairwise_comparison",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_017",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_010",
+            "subtype": "dual_threshold",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_010",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_008",
+            "subtype": "comp_filter_rank",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_020",
+            "subtype": "pairwise_comparison",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_003",
+            "subtype": "pairwise_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_015",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_005",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_010",
+            "subtype": "comp_filter_rank",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_014",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_001",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_012",
+            "subtype": "pairwise_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_023",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_011",
+            "subtype": "dual_threshold",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_filt_015",
+            "subtype": "filtered_ranking",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_filt_007",
+            "subtype": "filtered_ranking",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_018",
+            "subtype": "pairwise_comparison",
+            "extracted": "B",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_002",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_006",
+            "subtype": "dual_threshold",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_012",
+            "subtype": "filtered_ranking",
+            "extracted": "B",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_016",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_004",
+            "subtype": "pairwise_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_011",
+            "subtype": "temp_retention",
+            "extracted": "D",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_008",
+            "subtype": "temp_retention",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_014",
+            "subtype": "dual_threshold",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_007",
+            "subtype": "temp_retention",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_013",
+            "subtype": "filtered_ranking",
+            "extracted": "D",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_009",
+            "subtype": "comp_filter_rank",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_002",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_003",
+            "subtype": "temp_retention",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_003",
+            "subtype": "dual_threshold",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_012",
+            "subtype": "temp_retention",
+            "extracted": "A",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_filt_011",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_010",
+            "subtype": "pairwise_comparison",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_002",
+            "subtype": "filtered_ranking",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_005",
+            "subtype": "pairwise_comparison",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_011",
+            "subtype": "pairwise_comparison",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_013",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_012",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_021",
+            "subtype": "comp_filter_rank",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_001",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_020",
+            "subtype": "temp_retention",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          }
+        ],
+        "accuracy": 0.43
+      },
+      "overall": {
+        "correct": 78,
+        "total": 200,
+        "accuracy": 0.39
+      }
+    },
+    "gpt": {
+      "1hop": {
+        "total": 100,
+        "correct": 33,
+        "incorrect": 67,
+        "unparseable": 0,
+        "by_subtype": {
+          "property_at_temp": {
+            "correct": 8,
+            "total": 35,
+            "accuracy": 0.22857142857142856
+          },
+          "tcp_risk": {
+            "correct": 3,
+            "total": 10,
+            "accuracy": 0.3
+          },
+          "processing_method": {
+            "correct": 7,
+            "total": 10,
+            "accuracy": 0.7
+          },
+          "composition_element": {
+            "correct": 10,
+            "total": 20,
+            "accuracy": 0.5
+          },
+          "gamma_prime": {
+            "correct": 2,
+            "total": 10,
+            "accuracy": 0.2
+          },
+          "density": {
+            "correct": 3,
+            "total": 15,
+            "accuracy": 0.2
+          }
+        },
+        "per_question": [
+          {
+            "id": "mcq_1hop_prop_031",
+            "subtype": "property_at_temp",
+            "extracted": "A",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_tcp_003",
+            "subtype": "tcp_risk",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_002",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_tcp_005",
+            "subtype": "tcp_risk",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_proc_004",
+            "subtype": "processing_method",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_006",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_025",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_015",
+            "subtype": "composition_element",
+            "extracted": "A",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_027",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_013",
+            "subtype": "composition_element",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_029",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_014",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_gp_001",
+            "subtype": "gamma_prime",
+            "extracted": "D",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_010",
+            "subtype": "property_at_temp",
+            "extracted": "D",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_tcp_006",
+            "subtype": "tcp_risk",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_dens_001",
+            "subtype": "density",
+            "extracted": "A",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_017",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_015",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_dens_005",
+            "subtype": "density",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_gp_005",
+            "subtype": "gamma_prime",
+            "extracted": "D",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_dens_003",
+            "subtype": "density",
+            "extracted": "A",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_proc_005",
+            "subtype": "processing_method",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_011",
+            "subtype": "composition_element",
+            "extracted": "A",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_009",
+            "subtype": "composition_element",
+            "extracted": "D",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_016",
+            "subtype": "property_at_temp",
+            "extracted": "A",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_dens_002",
+            "subtype": "density",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_006",
+            "subtype": "property_at_temp",
+            "extracted": "A",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_004",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_proc_010",
+            "subtype": "processing_method",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_001",
+            "subtype": "composition_element",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_003",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_tcp_007",
+            "subtype": "tcp_risk",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_028",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_gp_010",
+            "subtype": "gamma_prime",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_005",
+            "subtype": "composition_element",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_012",
+            "subtype": "composition_element",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_proc_002",
+            "subtype": "processing_method",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_010",
+            "subtype": "composition_element",
+            "extracted": "D",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_proc_008",
+            "subtype": "processing_method",
+            "extracted": "D",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_dens_012",
+            "subtype": "density",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_017",
+            "subtype": "property_at_temp",
+            "extracted": "D",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_020",
+            "subtype": "composition_element",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_014",
+            "subtype": "composition_element",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_011",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_proc_003",
+            "subtype": "processing_method",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_013",
+            "subtype": "density",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_gp_004",
+            "subtype": "gamma_prime",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_tcp_010",
+            "subtype": "tcp_risk",
+            "extracted": "A",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_proc_001",
+            "subtype": "processing_method",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_033",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_009",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_032",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_034",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_035",
+            "subtype": "property_at_temp",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_015",
+            "subtype": "density",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_dens_010",
+            "subtype": "density",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_019",
+            "subtype": "property_at_temp",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_022",
+            "subtype": "property_at_temp",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_gp_008",
+            "subtype": "gamma_prime",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_004",
+            "subtype": "composition_element",
+            "extracted": "D",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_dens_014",
+            "subtype": "density",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_020",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_tcp_009",
+            "subtype": "tcp_risk",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_dens_011",
+            "subtype": "density",
+            "extracted": "D",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_003",
+            "subtype": "composition_element",
+            "extracted": "D",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_024",
+            "subtype": "property_at_temp",
+            "extracted": "A",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_proc_009",
+            "subtype": "processing_method",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_016",
+            "subtype": "composition_element",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_008",
+            "subtype": "density",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_dens_007",
+            "subtype": "density",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_019",
+            "subtype": "composition_element",
+            "extracted": "A",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_023",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_005",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_dens_004",
+            "subtype": "density",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_gp_009",
+            "subtype": "gamma_prime",
+            "extracted": "D",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_dens_009",
+            "subtype": "density",
+            "extracted": "A",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_012",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_008",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_tcp_001",
+            "subtype": "tcp_risk",
+            "extracted": "D",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_comp_007",
+            "subtype": "composition_element",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_002",
+            "subtype": "composition_element",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_026",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_proc_007",
+            "subtype": "processing_method",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_gp_003",
+            "subtype": "gamma_prime",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_tcp_004",
+            "subtype": "tcp_risk",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_gp_006",
+            "subtype": "gamma_prime",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_021",
+            "subtype": "property_at_temp",
+            "extracted": "A",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_dens_006",
+            "subtype": "density",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_001",
+            "subtype": "property_at_temp",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_018",
+            "subtype": "property_at_temp",
+            "extracted": "B",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_tcp_008",
+            "subtype": "tcp_risk",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_gp_007",
+            "subtype": "gamma_prime",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_proc_006",
+            "subtype": "processing_method",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_gp_002",
+            "subtype": "gamma_prime",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_008",
+            "subtype": "composition_element",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_comp_018",
+            "subtype": "composition_element",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_013",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_1hop_prop_007",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_prop_030",
+            "subtype": "property_at_temp",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_1hop_tcp_002",
+            "subtype": "tcp_risk",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          }
+        ],
+        "accuracy": 0.33
+      },
+      "2hop": {
+        "total": 100,
+        "correct": 42,
+        "incorrect": 58,
+        "unparseable": 0,
+        "by_subtype": {
+          "pairwise_comparison": {
+            "correct": 15,
+            "total": 23,
+            "accuracy": 0.6521739130434783
+          },
+          "dual_threshold": {
+            "correct": 8,
+            "total": 18,
+            "accuracy": 0.4444444444444444
+          },
+          "temp_retention": {
+            "correct": 6,
+            "total": 20,
+            "accuracy": 0.3
+          },
+          "comp_filter_rank": {
+            "correct": 9,
+            "total": 23,
+            "accuracy": 0.391304347826087
+          },
+          "filtered_ranking": {
+            "correct": 4,
+            "total": 16,
+            "accuracy": 0.25
+          }
+        },
+        "per_question": [
+          {
+            "id": "mcq_2hop_pair_002",
+            "subtype": "pairwise_comparison",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_009",
+            "subtype": "dual_threshold",
+            "extracted": "D",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_014",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_020",
+            "subtype": "comp_filter_rank",
+            "extracted": "A",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_007",
+            "subtype": "comp_filter_rank",
+            "extracted": "B",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_018",
+            "subtype": "dual_threshold",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_004",
+            "subtype": "temp_retention",
+            "extracted": "B",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_001",
+            "subtype": "dual_threshold",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_019",
+            "subtype": "pairwise_comparison",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_019",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_008",
+            "subtype": "pairwise_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_005",
+            "subtype": "filtered_ranking",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_004",
+            "subtype": "comp_filter_rank",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_018",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_014",
+            "subtype": "pairwise_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_006",
+            "subtype": "pairwise_comparison",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_006",
+            "subtype": "comp_filter_rank",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_005",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_010",
+            "subtype": "filtered_ranking",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_011",
+            "subtype": "comp_filter_rank",
+            "extracted": "A",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_013",
+            "subtype": "comp_filter_rank",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_003",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_filt_004",
+            "subtype": "filtered_ranking",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_016",
+            "subtype": "dual_threshold",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_009",
+            "subtype": "filtered_ranking",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_filt_016",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_009",
+            "subtype": "temp_retention",
+            "extracted": "D",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_018",
+            "subtype": "comp_filter_rank",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_001",
+            "subtype": "pairwise_comparison",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_001",
+            "subtype": "filtered_ranking",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_017",
+            "subtype": "dual_threshold",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_004",
+            "subtype": "dual_threshold",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_014",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_017",
+            "subtype": "pairwise_comparison",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_015",
+            "subtype": "comp_filter_rank",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_009",
+            "subtype": "pairwise_comparison",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_005",
+            "subtype": "comp_filter_rank",
+            "extracted": "A",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_015",
+            "subtype": "pairwise_comparison",
+            "extracted": "D",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_021",
+            "subtype": "pairwise_comparison",
+            "extracted": "D",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_007",
+            "subtype": "pairwise_comparison",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_003",
+            "subtype": "filtered_ranking",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_002",
+            "subtype": "temp_retention",
+            "extracted": "B",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_022",
+            "subtype": "pairwise_comparison",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_023",
+            "subtype": "pairwise_comparison",
+            "extracted": "D",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_007",
+            "subtype": "dual_threshold",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_022",
+            "subtype": "comp_filter_rank",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_016",
+            "subtype": "comp_filter_rank",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_008",
+            "subtype": "dual_threshold",
+            "extracted": "D",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_013",
+            "subtype": "pairwise_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_006",
+            "subtype": "filtered_ranking",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_013",
+            "subtype": "temp_retention",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_015",
+            "subtype": "temp_retention",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_017",
+            "subtype": "temp_retention",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_019",
+            "subtype": "temp_retention",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_filt_008",
+            "subtype": "filtered_ranking",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_006",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_012",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_016",
+            "subtype": "pairwise_comparison",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_017",
+            "subtype": "comp_filter_rank",
+            "extracted": "A",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_010",
+            "subtype": "dual_threshold",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_010",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_008",
+            "subtype": "comp_filter_rank",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_020",
+            "subtype": "pairwise_comparison",
+            "extracted": "B",
+            "correct_answer": "C",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_003",
+            "subtype": "pairwise_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_015",
+            "subtype": "dual_threshold",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_005",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_010",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_014",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_001",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_012",
+            "subtype": "pairwise_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_023",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_011",
+            "subtype": "dual_threshold",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_015",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_filt_007",
+            "subtype": "filtered_ranking",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_018",
+            "subtype": "pairwise_comparison",
+            "extracted": "B",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_002",
+            "subtype": "dual_threshold",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_dual_006",
+            "subtype": "dual_threshold",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_012",
+            "subtype": "filtered_ranking",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_016",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_004",
+            "subtype": "pairwise_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_011",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_008",
+            "subtype": "temp_retention",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_014",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_007",
+            "subtype": "temp_retention",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_013",
+            "subtype": "filtered_ranking",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_009",
+            "subtype": "comp_filter_rank",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_002",
+            "subtype": "comp_filter_rank",
+            "extracted": "D",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_ret_003",
+            "subtype": "temp_retention",
+            "extracted": "A",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_003",
+            "subtype": "dual_threshold",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_012",
+            "subtype": "temp_retention",
+            "extracted": "A",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_filt_011",
+            "subtype": "filtered_ranking",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_pair_010",
+            "subtype": "pairwise_comparison",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_filt_002",
+            "subtype": "filtered_ranking",
+            "extracted": "D",
+            "correct_answer": "D",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_005",
+            "subtype": "pairwise_comparison",
+            "extracted": "C",
+            "correct_answer": "C",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_pair_011",
+            "subtype": "pairwise_comparison",
+            "extracted": "D",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_dual_013",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "B",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_012",
+            "subtype": "comp_filter_rank",
+            "extracted": "C",
+            "correct_answer": "D",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_2hop_cfr_021",
+            "subtype": "comp_filter_rank",
+            "extracted": "B",
+            "correct_answer": "B",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_cfr_001",
+            "subtype": "comp_filter_rank",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_2hop_ret_020",
+            "subtype": "temp_retention",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          }
+        ],
+        "accuracy": 0.42
+      },
+      "overall": {
+        "correct": 75,
+        "total": 200,
+        "accuracy": 0.375
+      }
+    }
+  }
+}
