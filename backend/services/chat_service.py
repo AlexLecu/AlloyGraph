@@ -134,55 +134,15 @@ def find_best_match(target_name: str, search_results: list[AlloyData]) -> Option
 
 # ── Focused context builder ─────────────────────────────────────────────
 
-def _format_focused_context(alloys: list[AlloyData], query: str) -> str:
-    """Build LLM context trimmed to what the query actually asks about.
+def _format_focused_context(alloys: list[AlloyData]) -> str:
+    """Build LLM context with all available data for each alloy.
 
-    Always includes name and processing method.
-    Other sections are included only when keywords in the query match.
-    General queries default to composition + mechanical properties.
+    Always includes every non-empty section so the LLM never misses
+    relevant information.  The per-alloy overhead is small (~300 tokens)
+    and far outweighs the risk of hiding data behind keyword heuristics.
     """
     if not alloys:
         return "No matching alloys found in the knowledge graph."
-
-    q = query.lower()
-
-    # Detect which sections the query cares about
-    want_composition = any(kw in q for kw in [
-        "composition", "wt%", "at%", "element", "chemistry",
-    ])
-    want_phase = any(kw in q for kw in [
-        "gamma", "γ", "phase", "precipitate", "matrix",
-    ])
-    want_physical = any(kw in q for kw in [
-        "density", "physical", "lattice", "mismatch",
-    ])
-    want_stability = any(kw in q for kw in [
-        "tcp", "md", "stability", "vec", "phase",
-    ])
-    want_strength_params = any(kw in q for kw in [
-        "sss", "solid solution", "precipitation", "hardening", "creep",
-        "strengthening", "mechanism",
-    ])
-    want_ratios = any(kw in q for kw in [
-        "ratio", "al/ti", "cr/co", "cr/ni", "mo/w",
-    ])
-    want_metrics = any(kw in q for kw in [
-        "refractory", "oxidation", "γ' former", "gp former",
-    ])
-    want_mechanical = any(kw in q for kw in [
-        "yield", "tensile", "uts", "ultimate", "strength", "elongation",
-        "ductility", "elastic", "modulus", "young", "creep", "rupture",
-        "hardness", "mechanical", "property", "properties", "mpa",
-    ])
-
-    # For very short / general queries, include composition + mechanical
-    is_general = not any([
-        want_composition, want_phase, want_physical, want_stability,
-        want_strength_params, want_ratios, want_metrics, want_mechanical,
-    ])
-    if is_general:
-        want_composition = True
-        want_mechanical = True
 
     results = []
     for alloy in alloys:
@@ -193,100 +153,102 @@ def _format_focused_context(alloys: list[AlloyData], query: str) -> str:
             f"{'='*50}",
         ]
 
-        if (want_composition or want_phase) and alloy.composition:
+        # ── Composition ──────────────────────────────────────────────
+        if alloy.composition:
             lines.append("\nComposition (wt%):")
-            sorted_comp = sorted(alloy.composition.items(), key=lambda x: x[1], reverse=True)
-            for el, val in sorted_comp:
+            for el, val in sorted(alloy.composition.items(), key=lambda x: x[1], reverse=True):
                 lines.append(f"  {el}: {val:.2f}%")
 
-        if want_phase or want_composition:
-            if alloy.atomic_composition:
-                lines.append("\nAtomic Composition (at%):")
-                for el, val in sorted(alloy.atomic_composition.items(), key=lambda x: x[1], reverse=True):
-                    lines.append(f"  {el}: {val:.2f}%")
-            if alloy.gamma_composition:
-                lines.append("\nGamma (Matrix) Phase (at%):")
-                for el, val in sorted(alloy.gamma_composition.items(), key=lambda x: x[1], reverse=True):
-                    lines.append(f"  {el}: {val:.2f}%")
-            if alloy.gamma_prime_composition:
-                lines.append("\nGamma Prime (Precipitate) Phase (at%):")
-                for el, val in sorted(alloy.gamma_prime_composition.items(), key=lambda x: x[1], reverse=True):
-                    lines.append(f"  {el}: {val:.2f}%")
+        if alloy.atomic_composition:
+            lines.append("\nAtomic Composition (at%):")
+            for el, val in sorted(alloy.atomic_composition.items(), key=lambda x: x[1], reverse=True):
+                lines.append(f"  {el}: {val:.2f}%")
 
-        if want_physical or is_general:
-            phys = []
-            if alloy.density_gcm3:
-                phys.append(f"Density: {alloy.density_gcm3:.2f} g/cm³")
-            if alloy.gamma_prime_vol_pct:
-                phys.append(f"γ' Volume Fraction: {alloy.gamma_prime_vol_pct:.1f}%")
-            if alloy.lattice_mismatch_pct is not None and want_physical:
-                phys.append(f"Lattice Mismatch: {alloy.lattice_mismatch_pct:.3f}%")
-            if phys:
-                lines.append("\nPhysical Properties:")
-                for p in phys:
-                    lines.append(f"  {p}")
+        if alloy.gamma_composition:
+            lines.append("\nGamma (Matrix) Phase (at%):")
+            for el, val in sorted(alloy.gamma_composition.items(), key=lambda x: x[1], reverse=True):
+                lines.append(f"  {el}: {val:.2f}%")
 
-        if want_stability:
-            stab = []
-            if alloy.md_avg is not None:
-                stab.append(f"Md (avg): {alloy.md_avg:.3f}")
-            if alloy.md_gamma is not None:
-                stab.append(f"Md (γ matrix): {alloy.md_gamma:.3f}")
-            if alloy.vec_avg is not None:
-                stab.append(f"VEC (avg): {alloy.vec_avg:.2f}")
-            if alloy.tcp_risk:
-                stab.append(f"TCP Risk: {alloy.tcp_risk}")
-            if stab:
-                lines.append("\nPhase Stability:")
-                for s in stab:
-                    lines.append(f"  {s}")
+        if alloy.gamma_prime_composition:
+            lines.append("\nGamma Prime (Precipitate) Phase (at%):")
+            for el, val in sorted(alloy.gamma_prime_composition.items(), key=lambda x: x[1], reverse=True):
+                lines.append(f"  {el}: {val:.2f}%")
 
-        if want_strength_params:
-            sp = []
-            if alloy.sss_wt_pct is not None:
-                sp.append(f"SSS Elements: {alloy.sss_wt_pct:.1f} wt%")
-            if alloy.sss_coefficient is not None:
-                sp.append(f"SSS Coefficient: {alloy.sss_coefficient:.4f}")
-            if alloy.precipitation_hardening_coeff is not None:
-                sp.append(f"Precipitation Hardening: {alloy.precipitation_hardening_coeff:.4f}")
-            if alloy.creep_resistance_param is not None:
-                sp.append(f"Creep Resistance: {alloy.creep_resistance_param:.2f}")
-            if sp:
-                lines.append("\nStrengthening Mechanisms:")
-                for s in sp:
-                    lines.append(f"  {s}")
+        # ── Physical Properties ──────────────────────────────────────
+        phys = []
+        if alloy.density_gcm3:
+            phys.append(f"Density: {alloy.density_gcm3:.2f} g/cm³")
+        if alloy.gamma_prime_vol_pct:
+            phys.append(f"γ' Volume Fraction: {alloy.gamma_prime_vol_pct:.1f}%")
+        if alloy.lattice_mismatch_pct is not None:
+            phys.append(f"Lattice Mismatch: {alloy.lattice_mismatch_pct:.3f}%")
+        if phys:
+            lines.append("\nPhysical Properties:")
+            for p in phys:
+                lines.append(f"  {p}")
 
-        if want_ratios:
-            rats = []
-            if alloy.al_ti_ratio is not None:
-                rats.append(f"Al/Ti (wt): {alloy.al_ti_ratio:.2f}")
-            if alloy.al_ti_at_ratio is not None:
-                rats.append(f"Al/Ti (at): {alloy.al_ti_at_ratio:.2f}")
-            if alloy.cr_co_ratio is not None:
-                rats.append(f"Cr/Co: {alloy.cr_co_ratio:.2f}")
-            if alloy.cr_ni_ratio is not None:
-                rats.append(f"Cr/Ni: {alloy.cr_ni_ratio:.3f}")
-            if alloy.mo_w_ratio is not None:
-                rats.append(f"Mo/W: {alloy.mo_w_ratio:.2f}")
-            if rats:
-                lines.append("\nElement Ratios:")
-                for r in rats:
-                    lines.append(f"  {r}")
+        # ── Phase Stability ──────────────────────────────────────────
+        stab = []
+        if alloy.md_avg is not None:
+            stab.append(f"Md (avg): {alloy.md_avg:.3f}")
+        if alloy.md_gamma is not None:
+            stab.append(f"Md (γ matrix): {alloy.md_gamma:.3f}")
+        if alloy.vec_avg is not None:
+            stab.append(f"VEC (avg): {alloy.vec_avg:.2f}")
+        if alloy.tcp_risk:
+            stab.append(f"TCP Risk: {alloy.tcp_risk}")
+        if stab:
+            lines.append("\nPhase Stability:")
+            for s in stab:
+                lines.append(f"  {s}")
 
-        if want_metrics:
-            cm = []
-            if alloy.refractory_wt_pct is not None:
-                cm.append(f"Refractory Elements: {alloy.refractory_wt_pct:.1f} wt%")
-            if alloy.gp_formers_wt_pct is not None:
-                cm.append(f"γ' Formers: {alloy.gp_formers_wt_pct:.1f} wt%")
-            if alloy.oxidation_resistance is not None:
-                cm.append(f"Oxidation Resistance Index: {alloy.oxidation_resistance:.2f}")
-            if cm:
-                lines.append("\nComposition Metrics:")
-                for c in cm:
-                    lines.append(f"  {c}")
+        # ── Strengthening Mechanisms ─────────────────────────────────
+        sp = []
+        if alloy.sss_wt_pct is not None:
+            sp.append(f"SSS Elements: {alloy.sss_wt_pct:.1f} wt%")
+        if alloy.sss_coefficient is not None:
+            sp.append(f"SSS Coefficient: {alloy.sss_coefficient:.4f}")
+        if alloy.precipitation_hardening_coeff is not None:
+            sp.append(f"Precipitation Hardening: {alloy.precipitation_hardening_coeff:.4f}")
+        if alloy.creep_resistance_param is not None:
+            sp.append(f"Creep Resistance: {alloy.creep_resistance_param:.2f}")
+        if sp:
+            lines.append("\nStrengthening Mechanisms:")
+            for s in sp:
+                lines.append(f"  {s}")
 
-        if want_mechanical and alloy.properties:
+        # ── Element Ratios ───────────────────────────────────────────
+        rats = []
+        if alloy.al_ti_ratio is not None:
+            rats.append(f"Al/Ti (wt): {alloy.al_ti_ratio:.2f}")
+        if alloy.al_ti_at_ratio is not None:
+            rats.append(f"Al/Ti (at): {alloy.al_ti_at_ratio:.2f}")
+        if alloy.cr_co_ratio is not None:
+            rats.append(f"Cr/Co: {alloy.cr_co_ratio:.2f}")
+        if alloy.cr_ni_ratio is not None:
+            rats.append(f"Cr/Ni: {alloy.cr_ni_ratio:.3f}")
+        if alloy.mo_w_ratio is not None:
+            rats.append(f"Mo/W: {alloy.mo_w_ratio:.2f}")
+        if rats:
+            lines.append("\nElement Ratios:")
+            for r in rats:
+                lines.append(f"  {r}")
+
+        # ── Composition Metrics ──────────────────────────────────────
+        cm = []
+        if alloy.refractory_wt_pct is not None:
+            cm.append(f"Refractory Elements: {alloy.refractory_wt_pct:.1f} wt%")
+        if alloy.gp_formers_wt_pct is not None:
+            cm.append(f"γ' Formers: {alloy.gp_formers_wt_pct:.1f} wt%")
+        if alloy.oxidation_resistance is not None:
+            cm.append(f"Oxidation Resistance Index: {alloy.oxidation_resistance:.2f}")
+        if cm:
+            lines.append("\nComposition Metrics:")
+            for c in cm:
+                lines.append(f"  {c}")
+
+        # ── Mechanical Properties ────────────────────────────────────
+        if alloy.properties:
             lines.append("\nMechanical Properties:")
             prop_groups: dict[str, list] = {}
             for prop in alloy.properties:
@@ -477,11 +439,31 @@ def _stream_chat_inner(prompt: str, session_id: str, history: list):
 
         elif intent == "ANALYTICS":
             print(f"Analytics query: {params}")
-            target_alloys = process_analytics_query(params, retriever)
             prop = params.get("property", "yield strength")
             direction = params.get("direction", "highest")
-            final_context = f"Top results for {prop} ({direction}):\n"
-            final_context += _format_focused_context(target_alloys, prompt)
+
+            if extracted_alloys:
+                # Named alloys + ranking → look up each, then sort
+                for name in extracted_alloys:
+                    matches = retriever.search_alloys(name, limit=5)
+                    best = find_best_match(name, matches)
+                    if best and not any(a.name == best.name for a in target_alloys):
+                        target_alloys.append(best)
+                # Sort by the requested property
+                search_term = _map_property_term(prop)
+                scored = []
+                for a in target_alloys:
+                    val = _extract_property_value(a, search_term)
+                    scored.append((a, val if val is not None else float('-inf')))
+                scored.sort(key=lambda x: x[1], reverse=(direction == "highest"))
+                target_alloys = [a for a, _ in scored]
+                final_context = f"Comparison by {prop} ({direction}):\n"
+            else:
+                # No specific alloys → bulk search
+                target_alloys = process_analytics_query(params, retriever)
+                final_context = f"Top results for {prop} ({direction}):\n"
+
+            final_context += _format_focused_context(target_alloys)
 
         elif intent == "TARGET":
             target_val = params.get("target_value")
@@ -517,14 +499,14 @@ def _stream_chat_inner(prompt: str, session_id: str, history: list):
                     final_context = f"Alloys with {prop_name} similar to {reference_alloy_name} ({display_val}):\n"
                 else:
                     final_context = f"Alloys with {prop_name} closest to {display_val}:\n"
-                final_context += _format_focused_context(target_alloys, prompt)
+                final_context += _format_focused_context(target_alloys)
             else:
                 print(f"TARGET fallback: no target_value, using ANALYTICS for {prop_name}")
                 direction = "lowest" if "density" in prop_name.lower() else "highest"
                 fallback_params = {"property": prop_name, "direction": direction, "limit": 5}
                 target_alloys = process_analytics_query(fallback_params, retriever)
                 final_context = f"Could not determine target value. Top alloys by {prop_name} ({direction}):\n"
-                final_context += _format_focused_context(target_alloys, prompt)
+                final_context += _format_focused_context(target_alloys)
 
         elif intent == "DESIGN":
             final_context = "User wants to design an alloy. Encourage them to use the Designer tool."
@@ -552,7 +534,7 @@ def _stream_chat_inner(prompt: str, session_id: str, history: list):
                 if raw_results:
                     target_alloys = raw_results
 
-            final_context = _format_focused_context(target_alloys, prompt)
+            final_context = _format_focused_context(target_alloys)
 
         # ── 3. Send alloy data chunk ─────────────────────────────────
         serialized = [asdict(a) for a in target_alloys] if target_alloys else []
