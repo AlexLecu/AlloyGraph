@@ -1,0 +1,62 @@
+{
+  "expert_001": {
+    "A": "llama",
+    "B": "chatbot",
+    "C": "gpt"
+  },
+  "expert_002": {
+    "A": "gpt",
+    "B": "llama",
+    "C": "chatbot"
+  },
+  "expert_003": {
+    "A": "llama",
+    "B": "gpt",
+    "C": "chatbot"
+  },
+  "expert_004": {
+    "A": "llama",
+    "B": "gpt",
+    "C": "chatbot"
+  },
+  "expert_005": {
+    "A": "llama",
+    "B": "chatbot",
+    "C": "gpt"
+  },
+  "expert_006": {
+    "A": "chatbot",
+    "B": "llama",
+    "C": "gpt"
+  },
+  "expert_007": {
+    "A": "llama",
+    "B": "gpt",
+    "C": "chatbot"
+  },
+  "expert_008": {
+    "A": "llama",
+    "B": "gpt",
+    "C": "chatbot"
+  },
+  "expert_009": {
+    "A": "llama",
+    "B": "gpt",
+    "C": "chatbot"
+  },
+  "expert_010": {
+    "A": "llama",
+    "B": "chatbot",
+    "C": "gpt"
+  },
+  "expert_011": {
+    "A": "chatbot",
+    "B": "llama",
+    "C": "gpt"
+  },
+  "expert_012": {
+    "A": "gpt",
+    "B": "llama",
+    "C": "chatbot"
+  }
+}

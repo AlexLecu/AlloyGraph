@@ -73,6 +73,14 @@ RAGAS_RESPONSES = ROOT / "output" / "ragas_responses.jsonl"
 RAGAS_SCORES = ROOT / "output" / "ragas_scores.json"
 RAGAS_REPORT = ROOT / "output" / "ragas_report.json"
 
+# Track 3: Expert exam (blind evaluation by materials scientist)
+EXPERT_QUESTIONS = ROOT / "data" / "expert_questions.jsonl"
+EXPERT_RESP = {
+    "chatbot": ROOT / "output" / "expert_responses_chatbot.jsonl",
+    "llama":   ROOT / "output" / "expert_responses_llama.jsonl",
+    "gpt":     ROOT / "output" / "expert_responses_gpt.jsonl",
+}
+
 # Training data (for context reconstruction)
 TRAINING_DATA = ROOT.parent / "backend" / "alloy_crew" / "models" / "training_data" / "train_77alloys.jsonl"
 
@@ -846,12 +854,73 @@ def phase_ragas_score():
     print(f"Chatbot-RAGAS scores saved: {scores['aggregate']}")
 
 
+# ── Track 3: Expert exam ──────────────────────────────────────────────
+
+EXPERT_SYSTEM_PROMPT = (
+    "You are a materials science expert specializing in nickel-based superalloys. "
+    "Answer the following exam question in detail, drawing on your knowledge of "
+    "metallurgy, microstructure, and processing. Be thorough and precise."
+)
+
+
+def call_llama_expert(question: str) -> dict:
+    """Send expert question to Llama with expert system prompt."""
+    client = _get_groq_client()
+    try:
+        completion = client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[
+                {"role": "system", "content": EXPERT_SYSTEM_PROMPT},
+                {"role": "user", "content": question},
+            ],
+            temperature=0.2,
+            max_tokens=1500,
+        )
+        return {"answer": completion.choices[0].message.content}
+    except Exception as e:
+        return {"answer": f"[ERROR: {e}]"}
+
+
+def call_gpt_expert(question: str) -> dict:
+    """Send expert question to GPT-4o with expert system prompt."""
+    from openai import OpenAI
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    try:
+        completion = client.chat.completions.create(
+            model=GPT_MODEL,
+            messages=[
+                {"role": "system", "content": EXPERT_SYSTEM_PROMPT},
+                {"role": "user", "content": question},
+            ],
+            temperature=0.2,
+            max_tokens=1500,
+        )
+        return {"answer": completion.choices[0].message.content}
+    except Exception as e:
+        return {"answer": f"[ERROR: {e}]"}
+
+
+def phase_expert_collect():
+    """Track 3: Collect expert exam responses from all 3 systems."""
+    questions = load_jsonl(EXPERT_QUESTIONS)
+    print(f"Loaded {len(questions)} expert exam questions")
+
+    systems = [
+        ("Chatbot", call_chatbot, EXPERT_RESP["chatbot"]),
+        ("Llama-Expert", call_llama_expert, EXPERT_RESP["llama"]),
+        ("GPT-Expert", call_gpt_expert, EXPERT_RESP["gpt"]),
+    ]
+    for name, call_fn, out_path in systems:
+        _collect_system(name, call_fn, questions, out_path)
+
+
 # ── Main ────────────────────────────────────────────────────────────────
 
 ALL_PHASES = [
     "collect", "score", "report",
     "mcq-collect", "mcq-score",
     "ragas-collect", "ragas-score",
+    "expert-collect",
     "all",
 ]
 
@@ -886,6 +955,9 @@ def main():
 
     if args.phase in ("ragas-score", "all"):
         phase_ragas_score()
+
+    if args.phase in ("expert-collect", "all"):
+        phase_expert_collect()
 
 
 if __name__ == "__main__":
