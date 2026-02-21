@@ -15,11 +15,11 @@ class AlloySearchInput(BaseModel):
     """Input for Weaviate search — composition-based or text-based."""
     model_config = {"extra": "ignore"}
 
-    composition: Dict[str, float] = Field(
-        default={},
+    composition: str = Field(
+        default="{}",
         description=(
-            "Composition dict of wt% values, e.g. {'Ni': 60.0, 'Al': 5.0}. "
-            "Pass empty dict for text search."
+            "JSON string of composition in wt%, e.g. '{\"Ni\": 60.0, \"Al\": 5.0}'. "
+            "Pass '{}' for text search."
         ),
     )
     query: str = Field(
@@ -34,6 +34,13 @@ class AlloySearchInput(BaseModel):
         description="Target temperature in °C. 0 = ignore. When set, adds a property_summary with closest measurement."
     )
     limit: int = Field(3, description="Number of results to return.")
+    processing: str = Field(
+        "",
+        description=(
+            "Processing route: 'wrought', 'cast', or empty. "
+            "When set, results prefer alloys with matching processing."
+        ),
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -89,22 +96,33 @@ class AlloySearchInput(BaseModel):
             else:
                 normalized.pop("limit", None)
 
+        proc = normalized.get("processing")
+        if isinstance(proc, dict):
+            for key in ("value", "processing", "default"):
+                if key in proc:
+                    normalized["processing"] = proc[key]
+                    break
+            else:
+                normalized.pop("processing", None)
+
         return normalized
 
     @field_validator("composition", mode="before")
     @classmethod
-    def _parse_composition(cls, value: Any) -> Dict[str, float]:
-        if value is None or value == {}:
-            return {}
+    def _parse_composition(cls, value: Any) -> str:
+        if value is None or value == {} or value == "{}":
+            return "{}"
 
         if isinstance(value, dict):
             if "description" in value and isinstance(value["description"], str):
                 value = value["description"]
             else:
-                return {str(k): float(v) for k, v in value.items()}
+                return json.dumps({str(k): float(v) for k, v in value.items()})
 
         if isinstance(value, str):
             text = value.strip()
+            if not text:
+                return "{}"
             try:
                 parsed = json.loads(text.replace("'", '"'))
             except Exception:
@@ -115,7 +133,7 @@ class AlloySearchInput(BaseModel):
 
             if not isinstance(parsed, dict):
                 raise ValueError("Invalid composition format; expected a dict.")
-            return {str(k): float(v) for k, v in parsed.items()}
+            return json.dumps({str(k): float(v) for k, v in parsed.items()})
 
         raise ValueError("Invalid composition format; expected dict or JSON string.")
 
@@ -123,9 +141,10 @@ class AlloySearchInput(BaseModel):
 # ============================================================
 # KG SEARCH CACHING
 # ============================================================
-def _create_cache_key(composition: Dict[str, float], limit: int, target_temperature_c: float = 0.0) -> str:
+def _create_cache_key(composition: Dict[str, float], limit: int,
+                      target_temperature_c: float = 0.0, processing: str = "") -> str:
     """
-    Create stable hash key for composition + limit + temperature.
+    Create stable hash key for composition + limit + temperature + processing.
 
     Normalizes composition to handle rounding variations:
     - {Ni: 60.0, Al: 5.0} and {Ni: 60.01, Al: 4.99} → same key
@@ -133,7 +152,7 @@ def _create_cache_key(composition: Dict[str, float], limit: int, target_temperat
     # Normalize to 2 decimal places and sort for consistent hashing
     normalized = {k: round(v, 2) for k, v in composition.items() if v > 0}
     sorted_comp = json.dumps(normalized, sort_keys=True)
-    cache_str = f"{sorted_comp}|{limit}|{target_temperature_c:.0f}"
+    cache_str = f"{sorted_comp}|{limit}|{target_temperature_c:.0f}|{processing}"
     return hashlib.md5(cache_str.encode()).hexdigest()
 
 _kg_search_cache = {}
@@ -141,13 +160,14 @@ _cache_hits = 0
 _cache_misses = 0
 
 
-def _get_cached_search(composition: Dict[str, float], limit: int, target_temperature_c: float = 0.0) -> tuple:
+def _get_cached_search(composition: Dict[str, float], limit: int,
+                       target_temperature_c: float = 0.0, processing: str = "") -> tuple:
     """
     Get cached KG search result if available.
     """
     global _cache_hits, _cache_misses
 
-    cache_key = _create_cache_key(composition, limit, target_temperature_c)
+    cache_key = _create_cache_key(composition, limit, target_temperature_c, processing)
 
     if cache_key in _kg_search_cache:
         _cache_hits += 1
@@ -159,11 +179,12 @@ def _get_cached_search(composition: Dict[str, float], limit: int, target_tempera
         return None, False
 
 
-def _store_cached_search(composition: Dict[str, float], limit: int, result: str, target_temperature_c: float = 0.0):
+def _store_cached_search(composition: Dict[str, float], limit: int, result: str,
+                         target_temperature_c: float = 0.0, processing: str = ""):
     """Store KG search result in cache."""
     global _kg_search_cache
 
-    cache_key = _create_cache_key(composition, limit, target_temperature_c)
+    cache_key = _create_cache_key(composition, limit, target_temperature_c, processing)
 
     # FIFO eviction: if cache exceeds 128 entries, remove oldest
     if len(_kg_search_cache) >= 128:
@@ -201,18 +222,21 @@ class AlloySearchTool(BaseTool):
 
     def _run(
         self,
-        composition: Optional[Dict[str, float]] = None,
+        composition: Any = None,
         query: str = "",
         target_temperature_c: float = 0.0,
         limit: int = 3,
+        processing: str = "",
         **kwargs: Any,
     ) -> Any:
+        if isinstance(composition, str):
+            composition = json.loads(composition) if composition and composition != "{}" else {}
         if not composition and not query:
             return json.dumps({"error": "Provide either 'composition' or 'query'.", "results": []})
 
         # Composition mode: check cache
         if composition and not query:
-            cached_result, cache_hit = _get_cached_search(composition, limit, target_temperature_c)
+            cached_result, cache_hit = _get_cached_search(composition, limit, target_temperature_c, processing)
             if cache_hit:
                 return cached_result
 
@@ -325,6 +349,23 @@ class AlloySearchTool(BaseTool):
             if composition:
                 candidates.sort(key=lambda x: x["_distance"])
 
+            if processing and composition:
+                proc_lower = processing.lower()
+
+                def _proc_compatible(cand):
+                    cand_proc = (cand.get("processing") or "").lower()
+                    return proc_lower in cand_proc or cand_proc in proc_lower
+
+                compatible = [c for c in candidates if _proc_compatible(c)]
+                incompatible = [c for c in candidates if not _proc_compatible(c)]
+
+                if compatible:
+                    candidates = compatible + incompatible
+                    logger.info(
+                        "KG: Processing filter '%s': %d compatible, %d incompatible of %d total",
+                        processing, len(compatible), len(incompatible), len(compatible) + len(incompatible)
+                    )
+
             top_results = candidates[:limit]
             logger.info("Top %d KG: %s", limit, [(c.get("name"), round(c["_distance"], 2)) for c in top_results])
 
@@ -377,7 +418,7 @@ class AlloySearchTool(BaseTool):
 
             # Cache composition-mode results only
             if composition and not query:
-                _store_cached_search(composition, limit, result_json, target_temperature_c)
+                _store_cached_search(composition, limit, result_json, target_temperature_c, processing)
 
             return result_json
 

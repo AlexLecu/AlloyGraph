@@ -1,8 +1,9 @@
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
-from typing import Type, Dict, Any, Literal, List
+from typing import Type, Dict, Any, Literal
 import json
-from ..models.feature_engineering import compute_alloy_features, calculate_em_rule_of_mixtures
+from ..schemas import CompositionStr
+from ..models.feature_engineering import compute_alloy_features, calculate_em_rule_of_mixtures, estimate_gamma_prime_vol_pct, wt_to_at_percent
 from ..config.alloy_parameters import (
     TCP,
     classify_tcp_risk,
@@ -155,11 +156,11 @@ def validate_property_coherency(
                 f"Large deviation suggests compositional effects beyond linear mixing."
             )
 
-        em_lo = 180 * em_factor
-        em_hi = 230 * em_factor
+        em_lo = max(90, expected_em - 30)
+        em_hi = expected_em + 30
         if not (em_lo <= em <= em_hi) and gp_formers < 10:
             warnings.append(
-                f"⚠️ Coherency Warning: Elastic modulus ({em:.0f} GPa) outside typical Ni-alloy range "
+                f"⚠️ Coherency Warning: Elastic modulus ({em:.0f} GPa) outside expected range "
                 f"({em_lo:.0f}-{em_hi:.0f} GPa) and composition doesn't justify deviation (Al+Ti={gp_formers:.1f}%)."
             )
 
@@ -190,9 +191,10 @@ def validate_property_coherency(
 
     # Rule 6: Gamma Prime Fraction vs Formers (temperature-independent)
     if gp > 0 and gp_formers > 0:
-        expected_gp = (al_wt + ti_wt + 0.7 * ta_wt) * 3.5
+        at_pct = wt_to_at_percent(composition)
+        expected_gp = estimate_gamma_prime_vol_pct(at_pct)
 
-        if abs(gp - expected_gp) > 25 and expected_gp > 20:
+        if abs(gp - expected_gp) > 15:
             warnings.append(
                 f"⚠️ Coherency Warning: γ' volume fraction mismatch. "
                 f"Predicted: {gp:.1f}%, Expected from formers (Al+Ti+Ta={gp_formers:.1f}%): ~{expected_gp:.0f}%. "
@@ -356,7 +358,7 @@ def compute_metallurgy_validation(
 
 class MetallurgyVerifierInput(BaseModel):
     """Input for metallurgy verification."""
-    composition: Dict[str, float] = Field(..., description="Alloy composition dict.")
+    composition: CompositionStr = Field(..., description="JSON string of alloy composition, e.g. '{\"Ni\": 60.0, \"Cr\": 19.5}'.")
     anchored_properties_json: str = Field(..., description="JSON string of predicted properties for verification.")
     temperature_c: float = Field(..., description="Temperature in Celsius.")
     alloy_type: Literal['high_strength', 'high_corrosion', 'standard'] = Field('standard', description="LLM-inferred alloy class based on Cr/Ti/Al levels.")
@@ -421,13 +423,15 @@ class MetallurgyVerifierTool(BaseTool):
     # Main Entry Point
     # =========================================================================
 
-    def _run(self, composition: Dict[str, float], anchored_properties_json: str, temperature_c: float, alloy_type: str = 'standard', **kwargs: Any) -> str:
+    def _run(self, composition: Any = None, anchored_properties_json: str = "", temperature_c: float = 20.0, alloy_type: str = 'standard', **kwargs: Any) -> str:
         """
         Validation-only tool: thin adapter around compute_metallurgy_validation().
 
         Parses LLM JSON input, detects processing, overrides Density/GP with
         computed values, then delegates all validation to the shared function.
         """
+        if isinstance(composition, str):
+            composition = json.loads(composition) if composition else {}
         input_data, props = self._parse_input_json(anchored_properties_json)
 
         composition = {k: float(v) for k, v in composition.items()}

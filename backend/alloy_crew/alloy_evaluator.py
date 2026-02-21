@@ -21,7 +21,7 @@ from .tools.metallurgy_tools import (
 )
 from .tools.calibration_fix import apply_calibration_safe
 from .config.alloy_parameters import (
-    CORRECTION_THRESHOLDS, UTS_YS_RATIO, ELONGATION, AGENT_TRUST,
+    CORRECTION_THRESHOLDS, UTS_YS_RATIO, ELONGATION, AGENT_TRUST, SSS,
     is_sss_alloy, get_em_temp_factor,
 )
 from .models.feature_engineering import compute_alloy_features, calculate_em_rule_of_mixtures
@@ -225,10 +225,13 @@ class AlloyEvaluationCrew:
         analysis_anchors: dict,
     ) -> Dict[str, tuple]:
         """Safety net: overrides agent values only for ignored HIGH proposals."""
-        proposals = {
-            p["property_name"]: p
-            for p in (analysis_anchors or {}).get("proposed_corrections", [])
-        }
+        _conf_rank = {"HIGH": 2, "MEDIUM": 1, "LOW": 0}
+        proposals = {}
+        for p in (analysis_anchors or {}).get("proposed_corrections", []):
+            name = p["property_name"]
+            existing = proposals.get(name)
+            if existing is None or _conf_rank.get(p.get("confidence"), 0) >= _conf_rank.get(existing.get("confidence"), 0):
+                proposals[name] = p
 
         original_errors = set(validate_property_bounds(dict(output.properties)))
 
@@ -303,8 +306,14 @@ class AlloyEvaluationCrew:
                 targets.append(f"YS>={summary_context['min_yield']}")
             if summary_context.get("min_tensile", 0) > 0:
                 targets.append(f"UTS>={summary_context['min_tensile']}")
+            if summary_context.get("min_elongation", 0) > 0:
+                targets.append(f"EL>={summary_context['min_elongation']}%")
+            if summary_context.get("min_elastic_modulus", 0) > 0:
+                targets.append(f"EM>={summary_context['min_elastic_modulus']} GPa")
             if summary_context.get("max_density", 99) < 99:
                 targets.append(f"Density<={summary_context['max_density']}")
+            if summary_context.get("target_gamma_prime", 0) > 0:
+                targets.append(f"γ'≈{summary_context['target_gamma_prime']}%")
             target_str = ", ".join(targets) if targets else "None"
 
             instruction = (
@@ -340,7 +349,7 @@ class AlloyEvaluationCrew:
         # === PRE-AGENT COMPUTATION ===
         try:
             search_tool = AlloySearchTool()
-            kg_raw = search_tool._run(composition=composition, limit=3)
+            kg_raw = search_tool._run(composition=composition, limit=3, processing=processing)
             kg_context_str = _slim_kg_context(kg_raw, target_temp=temperature)
         except Exception as e:
             logger.warning(f"KG lookup failed (non-fatal): {e}. Continuing without KG context.")
@@ -405,7 +414,7 @@ class AlloyEvaluationCrew:
                 f"=== ANCHOR VALUES ===\n{anchor_text}\n====================\n\n"
                 f"=== PRE-COMPUTED KG MATCHES ===\n{kg_summary}\n==============================\n\n"
                 f"WORKFLOW:\n"
-                f"1. ALWAYS call AlloySearchTool(composition=<composition dict>) to find experimental data.\n"
+                f"1. ALWAYS call AlloySearchTool(composition=<composition dict>, processing='{processing}') to find experimental data.\n"
                 f"2. Compare KG experimental values with ML and physics anchors.\n"
                 f"3. Select the best value for each property using the decision rules below.\n\n"
                 f"DECISION RULES:\n"
@@ -441,7 +450,7 @@ class AlloyEvaluationCrew:
                 f"   - Correct the value using proposals, physics, or KG data from the anchors above.\n"
                 f"   - OR justify why the violation is acceptable for this alloy class.\n"
                 f"3. Check if HIGH-confidence proposals in the anchors were ignored — apply or justify rejection.\n"
-                f"4. If you need independent evidence, search KG with AlloySearchTool.\n\n"
+                f"4. If you need independent evidence, search KG with AlloySearchTool(processing='{processing}').\n\n"
                 f"OUTPUT: status='PASS', processing='{processing}', properties={{...}}\n\n"
                 f"FIELD DIRECTIVES:\n"
                 f"- reviewer_assessment: for EACH violation state 'Violation: [property] [issue] — corrected [old]->[new] using [evidence]'.\n"
@@ -503,6 +512,24 @@ class AlloyEvaluationCrew:
 
         except Exception as e:
             return {"status": "FAIL", "stage": "crew_execution", "error": str(e)}
+
+        # === MERGE ANALYST CORRECTIONS ===
+        # The Reviewer LLM sometimes produces a fresh PhysicsAuditWithCorrectionsOutput
+        # that drops the Analyst's corrections_applied list (~40% of runs).
+        # If the Reviewer's list is empty but the Analyst had corrections, merge them
+        # so the reconciliation loop (below) can apply documented adjustments.
+        if not output.corrections_applied:
+            try:
+                analyst_out = task_analysis.output
+                if analyst_out and analyst_out.pydantic:
+                    analyst_corrections = analyst_out.pydantic.corrections_applied or []
+                    if analyst_corrections:
+                        logger.info(
+                            f"[MERGE] Reviewer dropped {len(analyst_corrections)} Analyst corrections — restoring."
+                        )
+                        output.corrections_applied = analyst_corrections
+            except Exception:
+                pass
 
         # === PROPERTY RECOVERY ===
         required_props = ["Yield Strength", "Tensile Strength", "Elongation", "Elastic Modulus", "Density", "Gamma Prime"]
@@ -626,7 +653,7 @@ class AlloyEvaluationCrew:
             ratio = uts_val / ys_val
             gp_val = det_gp
             if is_sss_alloy(composition):
-                max_ratio = 2.4
+                max_ratio = SSS["UTS_YS_RATIO_MAX_WROUGHT"] if processing in ["wrought", "forged"] else SSS["UTS_YS_RATIO_MAX_CAST"]
             elif processing in ["wrought", "forged"] and gp_val > 40:
                 max_ratio = UTS_YS_RATIO["WROUGHT_HIGH_GP_MAX"]
             elif processing in ["wrought", "forged"]:
@@ -674,7 +701,38 @@ class AlloyEvaluationCrew:
 
         # === CALIBRATION (optional, used by design pipeline) ===
         if apply_calibration:
-            output.properties = apply_calibration_safe(output.properties, composition, output)
+            # Track which properties were corrected by agents or safety net
+            corrected_props = set()
+            for c in (output.corrections_applied or []):
+                corrected_props.add(PROPERTY_KEY_MAP.get(c.property_name, c.property_name))
+            for prop_name, (decision, _, _) in trust_decisions.items():
+                if decision == TrustDecision.TRUST_PROPOSAL:
+                    corrected_props.add(prop_name)
+
+            # Extract deterministic KG distance from pre-computed context
+            det_kg_distance = None
+            try:
+                kg_alloys = json.loads(kg_context_str)
+                if isinstance(kg_alloys, list) and kg_alloys:
+                    det_kg_distance = kg_alloys[0].get("_distance", None)
+            except Exception:
+                pass
+
+            # Save agent-corrected values before calibration
+            saved_corrections = {p: output.properties[p] for p in corrected_props
+                                 if p in output.properties and isinstance(output.properties[p], (int, float))}
+
+            output.properties = apply_calibration_safe(
+                output.properties, composition, output,
+                kg_distance_override=det_kg_distance,
+            )
+
+            # Restore agent-corrected values (skip calibration for these)
+            for prop, val in saved_corrections.items():
+                if output.properties.get(prop) != val:
+                    logger.info(f"[CAL_SKIP] {prop}: keeping agent-corrected {val:.1f} "
+                                f"(calibration would have set {output.properties.get(prop)})")
+                    output.properties[prop] = val
 
         # === DETERMINISTIC VALIDATION ===
         validation_result = compute_metallurgy_validation(

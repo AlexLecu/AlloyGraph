@@ -121,6 +121,9 @@ TCP = {
     "MD_DESIGN_SAFE": 0.955,
 }
 
+# Numeric TCP risk ranking (lower = better). Used by designer and optimizer.
+TCP_RANK = {"Low": 0, "Moderate": 1, "Elevated": 2, "Critical": 3}
+
 
 def classify_tcp_risk(md_gamma: float, md_avg: float = 0.0) -> str:
     """Classify TCP risk. Primary: Md_avg (bulk). Secondary: Md_gamma > 0.980 upgrades by one level."""
@@ -153,9 +156,9 @@ UTS_YS_RATIO = {
     "WROUGHT_BASE": 1.40,
     "WROUGHT_MIN": 1.15,
     "WROUGHT_MAX": 1.60,
-    "WROUGHT_HIGH_GP_MAX": 1.35,   # γ' > 40%
-    "WROUGHT_HIGH_GP_MIN": 1.30,
-    "WROUGHT_HIGH_GP_EXPECTED": 1.30,
+    "WROUGHT_HIGH_GP_MAX": 1.45,   # γ' > 40%
+    "WROUGHT_HIGH_GP_MIN": 1.25,
+    "WROUGHT_HIGH_GP_EXPECTED": 1.38,
 
     # Cast GP alloys
     "CAST_BASE": 1.15,
@@ -323,13 +326,17 @@ def is_sss_alloy(composition: dict) -> bool:
     return precipitate_formers < SSS["AL_TI_TA_MAX"]
 
 
-def is_sc_ds_alloy(composition: dict) -> tuple:
+def is_sc_ds_alloy(composition: dict, processing: str = "") -> tuple:
     """
     Detect if alloy is Single Crystal (SC) or Directionally Solidified (DS).
 
     Returns:
         tuple: (is_sc_ds: bool, reason: str)
     """
+    # Wrought/forged alloys cannot be SC/DS regardless of composition
+    if processing in ("wrought", "forged"):
+        return False, ""
+
     re = composition.get("Re", composition.get("re", 0)) or 0
     ru = composition.get("Ru", composition.get("ru", 0)) or 0
     ta = composition.get("Ta", composition.get("ta", 0)) or 0
@@ -351,16 +358,16 @@ def is_sc_ds_alloy(composition: dict) -> tuple:
     return False, ""
 
 
-def get_alloy_class(composition: dict) -> str:
+def get_alloy_class(composition: dict, processing: str = "") -> str:
     """
-    Determine alloy class based on composition.
+    Determine alloy class based on composition and processing route.
 
     Returns:
         One of: 'sss', 'sc_ds', 'gp'
     """
     if is_sss_alloy(composition):
         return "sss"
-    is_sc, _ = is_sc_ds_alloy(composition)
+    is_sc, _ = is_sc_ds_alloy(composition, processing)
     if is_sc:
         return "sc_ds"
     return "gp"
@@ -378,6 +385,20 @@ def get_em_temp_factor(temperature_c: float) -> float:
     """Calculate EM temperature reduction factor (multiply RT value)."""
     delta_t = max(0, temperature_c - EM_TEMP_RT_BASELINE)
     return max(0.50, 1.0 - EM_TEMP_DECAY_RATE * delta_t)
+
+
+def compress_uts_ys_ratio(rt_ratio: float, temperature_c: float) -> float:
+    """Two-stage UTS/YS ratio compression for elevated temperatures"""
+    import math
+    if temperature_c < 650:
+        return rt_ratio
+    if temperature_c <= 800:
+        t_excess = temperature_c - 650
+        return 1.0 + (rt_ratio - 1.0) * max(0.2, 1.0 - 0.003 * t_excess)
+    # >800C: compute ratio at 800 then exponential decay
+    ratio_at_800 = 1.0 + (rt_ratio - 1.0) * max(0.2, 1.0 - 0.003 * 150)
+    t_excess_800 = temperature_c - 800
+    return 1.0 + (ratio_at_800 - 1.0) * math.exp(-t_excess_800 / 50)
 
 
 # =============================================================================

@@ -78,7 +78,8 @@ def design():
     
     # Extract target_props as a dict
     target_props = data.get('target_props', {})
-    
+    target_props = {k: v for k, v in target_props.items() if v and float(v) > 0}
+
     # Fallback to individual params for backward compatibility
     if not target_props:
         target_props = {'Yield Strength': data.get('yield_strength', 1000)}
@@ -88,9 +89,9 @@ def design():
             target_props['Elongation'] = data['elongation']
         if data.get('elastic_modulus') is not None:
             target_props['Elastic Modulus'] = data['elastic_modulus']
-        if data.get('density') is not None:
+        if data.get('density') and float(data['density']) > 0:
             target_props['Density'] = data['density']
-        if data.get('gamma_prime') is not None:
+        if data.get('gamma_prime') and float(data['gamma_prime']) > 0:
             target_props['Gamma Prime'] = data['gamma_prime']
     
     processing = data.get('processing', 'cast')

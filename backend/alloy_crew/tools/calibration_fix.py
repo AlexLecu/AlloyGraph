@@ -7,8 +7,8 @@ logger = logging.getLogger(__name__)
 def get_calibration_factor(composition, kg_distance, processing="cast"):
     """
     Apply processing-dependent calibration to physics predictions."""
-    if kg_distance < 1.5:
-        logger.info(f"Strong KG match (distance={kg_distance:.2f}) - skipping calibration")
+    if kg_distance < 4.5:
+        logger.info(f"KG match within anchoring range (distance={kg_distance:.2f}) - skipping calibration")
         return {"Yield Strength": 1.0, "Tensile Strength": 1.0, "Elastic Modulus": 1.0, "Elongation": 1.0}
 
     params = get_params(processing)
@@ -40,10 +40,8 @@ def get_calibration_factor(composition, kg_distance, processing="cast"):
         blend_weight = 1.0
     elif kg_distance > 5:
         blend_weight = 0.8
-    elif kg_distance > 3:
-        blend_weight = 0.5
     else:
-        blend_weight = 0.3
+        blend_weight = 0.5
 
     return {
         "Yield Strength": 1.0 + blend_weight * (ys_factor - 1.0),
@@ -75,18 +73,25 @@ def apply_calibration(properties, composition, kg_distance, processing="cast"):
     return calibrated
 
 
-def apply_calibration_safe(properties, composition, physics_output_or_confidence):
+def apply_calibration_safe(properties, composition, physics_output_or_confidence, kg_distance_override=None):
     """Safely apply calibration with automatic error handling."""
     try:
         if physics_output_or_confidence is None:
             return properties.copy()
-        if hasattr(physics_output_or_confidence, 'confidence'):
+        if kg_distance_override is not None:
+            kg_distance = kg_distance_override
+        elif hasattr(physics_output_or_confidence, 'confidence'):
             confidence_dict = physics_output_or_confidence.confidence
             kg_distance = confidence_dict.get("similarity_distance", 999) if isinstance(confidence_dict, dict) else 999
-            processing = getattr(physics_output_or_confidence, 'processing', 'cast')
         else:
             kg_distance = physics_output_or_confidence.get("similarity_distance", 999)
+
+        if hasattr(physics_output_or_confidence, 'processing'):
+            processing = physics_output_or_confidence.processing
+        elif isinstance(physics_output_or_confidence, dict):
             processing = physics_output_or_confidence.get("processing", "cast")
+        else:
+            processing = "cast"
 
         return apply_calibration(properties, composition, kg_distance, processing=processing)
 

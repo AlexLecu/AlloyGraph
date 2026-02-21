@@ -47,10 +47,10 @@ def validate_design_inputs(ys, uts, el, em, density, gp, iterations):
         elif el > 100:
             errors.append(f"❌ Elongation ({el}%) cannot exceed 100%)")
     
-    # 5. Elastic Modulus range check (Ni-based superalloys: 150-250 GPa)
+    # 5. Elastic Modulus range check (Ni-based superalloys: 100-250 GPa at temperature)
     if em > 0:
-        if em < 150:
-            errors.append(f"❌ Elastic Modulus ({em} GPa) is too low for superalloys (min: 150 GPa)")
+        if em < 100:
+            errors.append(f"❌ Elastic Modulus ({em} GPa) is too low for superalloys (min: 100 GPa)")
         elif em > 250:
             errors.append(f"❌ Elastic Modulus ({em} GPa) is too high for superalloys (max: 250 GPa)")
     
@@ -86,7 +86,7 @@ def main():
     parser.add_argument("--elongation", type=float, default=0.0, help="Minimum Elongation (%%). 0=no constraint")
     parser.add_argument("--elastic_modulus", type=float, default=0.0, help="Minimum Elastic Modulus (GPa). 0=no constraint")
     parser.add_argument("--density", type=float, default=99.0, help="Maximum Density (g/cm³). 99=no constraint")
-    parser.add_argument("--gamma_prime", type=float, default=0.0, help="Minimum Gamma Prime (vol%%). 0=no constraint")
+    parser.add_argument("--gamma_prime", type=float, default=0.0, help="Target Gamma Prime (vol%%). 0=no constraint")
     parser.add_argument("--temperature", type=float, default=900.0, help="Service temperature (°C). Room=20, High=900-1200")
     parser.add_argument("--processing", type=str, default="cast", choices=["cast", "wrought"],
                         help="Processing route: cast (default) or wrought")
@@ -136,7 +136,7 @@ def main():
     if args.elongation > 0: targets.append(f"El≥{args.elongation}%")
     if args.elastic_modulus > 0: targets.append(f"EM≥{args.elastic_modulus} GPa")
     if args.density < 99.0: targets.append(f"ρ≤{args.density} g/cm³")
-    if args.gamma_prime > 0: targets.append(f"γ'≥{args.gamma_prime}%")
+    if args.gamma_prime > 0: targets.append(f"γ'≈{args.gamma_prime}%")
     
     print(f"🎯 TARGETS: {' | '.join(targets) if targets else 'No constraints (exploratory mode)'}")
     print(f"🌡️  TEMPERATURE: {args.temperature}°C | PROCESSING: {args.processing}")
@@ -193,23 +193,11 @@ def main():
                 for elem, wt in sorted(comp.items(), key=lambda x: x[1], reverse=True):
                     print(f"  {elem}: {wt:.2f} wt%")
         else:
-            # Classify design quality
-            quality, quality_msg = engine._classify_design_quality(result)
-            
-            if quality == "OPTIMAL":
-                print(f"✅ Design Converged Successfully! (Optimal Target Hit)\n")
-            elif quality == "ACCEPTABLE":
-                print(f"✅ Design Converged Successfully! (Slightly Over-Engineered)\n")
-                print(f"   💡 {quality_msg}")
-                print(f"   💡 Consider reducing expensive elements (Re, W, Ta) to lower cost\n")
-            elif quality == "EXCESSIVE":
-                print(f"⚠️ Design Over-Engineered\n")
-                print(f"   {quality_msg}")
-                print(f"   Recommendation: Reduce γ' formers (Al, Ti) or refractory elements (Re, W)\n")
-            elif engine._is_design_successful(result):
-                print(f"✅ Design Converged Successfully! (All Targets Met)\n")
+            design_status = result.get("design_status", "unknown")
+            if design_status == "success":
+                print(f"Design Converged Successfully! (All Targets Met)\n")
             else:
-                print(f"⚠️ Design Optimization Finished (Targets Not Fully Met)\n")
+                print(f"Design Optimization Finished (Targets Not Fully Met)\n")
             
             print(f"📝 Final Composition ({result.get('processing', 'unknown')} processing):")
             comp = result['composition']
@@ -239,15 +227,15 @@ def main():
                 print(f"\n🎯 Confidence: {confidence.get('level', 'UNKNOWN')} ({confidence.get('score', 0):.2f})")
             
             # Add physics explanations when targets not met
-            if not engine._is_design_successful(result):
+            if design_status != "success":
                 print(f"\n💡 Physics Analysis:")
                 tcp_risk = result.get('tcp_risk', 'Unknown')
                 ys_achieved = props.get('Yield Strength', 0)
                 ys_target = args.yield_strength
                 
                 # Analyze why it failed
-                if tcp_risk == "High":
-                    print(f"   • High TCP risk prevents achieving target strength")
+                if tcp_risk in ("Critical", "Elevated"):
+                    print(f"   • {tcp_risk} TCP risk prevents achieving target strength")
                     print(f"   • Trade-off: Higher γ' (strength) → Higher Md (instability)")
                 
                 if ys_achieved < ys_target and ys_achieved > 0:

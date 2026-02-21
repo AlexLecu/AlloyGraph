@@ -1,65 +1,25 @@
-from pydantic import BaseModel, Field
-from typing import Dict, Literal, List, Any, Union
+import json
+
+from pydantic import BaseModel, BeforeValidator, Field
+from typing import Annotated, Dict, Literal, List, Any, Union
 
 
-# =============================================================================
-# Optimizations Tool Schemas
-# =============================================================================
-
-class ElementSuggestion(BaseModel):
-    """Single element adjustment suggestion."""
-    element: str
-    current_wt: float
-    suggested_wt: float
-    delta_wt: float
-    reason: str
-    expected_md_change: float = 0.0
-    expected_gp_change: float = 0.0
-    trade_offs: str = ""
+def normalize_composition_to_str(value: Any) -> str:
+    """Normalize composition input to a JSON string.ead."""
+    if isinstance(value, dict):
+        return json.dumps({str(k): float(v) for k, v in value.items()})
+    if isinstance(value, str):
+        return value
+    return json.dumps(value)
 
 
-class SuggestionGroup(BaseModel):
-    """Group of related suggestions to address a specific issue."""
-    issue: str
-    priority: Literal["CRITICAL", "HIGH", "MEDIUM", "LOW"]
-    suggestions: List[ElementSuggestion]
-    rationale: str
-
-
-class CompositionSensitivityInput(BaseModel):
-    """Input for composition sensitivity analysis."""
-    composition: Dict[str, float] = Field(..., description="Current alloy composition in wt%")
-    target_properties: Dict[str, float] = Field(..., description="Target properties to achieve")
-    current_properties: Dict[str, float] = Field(..., description="Current predicted properties")
-    failure_reasons: List[str] = Field(..., description="List of failure reasons from validation")
-    processing: Literal["cast", "wrought"] = Field("cast", description="Processing route")
-
-
-# =============================================================================
-# Design Output Schemas
-# =============================================================================
-
-
-class DesignOutput(BaseModel):
-    """
-    Output structure for the Alloy Designer agent.
-    """
-    reasoning: str = Field(..., description="Metallurgical reasoning for the proposed composition.")
-    composition: Dict[str, float] = Field(..., description="The proposed alloy composition (elements summing to 100%).")
-    processing: Literal["cast", "wrought"] = Field("cast", description="The processing route (cast or wrought).")
+CompositionStr = Annotated[str, BeforeValidator(normalize_composition_to_str)]
 
 
 class AuditPenalty(BaseModel):
     name: str
     value: Union[float, str]
     reason: str
-
-class OptimizationOutput(BaseModel):
-    """Output from the Optimization Advisor agent."""
-    status: Literal["OK", "ERROR"] = "OK"
-    suggestion_groups: List[Dict[str, Any]] = Field(default_factory=list, description="Groups of optimization suggestions")
-    summary: str = Field("", description="Summary of optimization analysis")
-    recommended_actions: List[str] = Field(default_factory=list, description="Prioritized list of recommended adjustments")
 
 
 class PropertyCorrection(BaseModel):

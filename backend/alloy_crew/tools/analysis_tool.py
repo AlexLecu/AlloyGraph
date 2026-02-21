@@ -9,7 +9,7 @@ from ..config.alloy_parameters import (
     get_params, get_coeff_gp, get_temperature_factor,
     get_alloy_class, get_sss_physics_ys,
     SSS, GP_TEMP, SC_DS, UTS_YS_RATIO, ELONGATION,
-    classify_tcp_risk, get_em_temp_factor,
+    classify_tcp_risk, get_em_temp_factor, compress_uts_ys_ratio,
 )
 from ..models.feature_engineering import (
     compute_alloy_features, calculate_density,
@@ -20,21 +20,9 @@ from ..models.predictor import AlloyPredictor
 logger = logging.getLogger(__name__)
 
 
-def _compress_ratio_for_temp(rt_ratio: float, temperature_c: float) -> float:
-    """Two-stage UTS/YS ratio compression for elevated temperatures.
 
-    Dynamic recovery reduces work hardening → ratio converges toward ~1.0.
-    Linear decay 650-800°C, exponential above 800°C (γ' coarsening).
-    """
-    if temperature_c < 650:
-        return rt_ratio
-    if temperature_c <= 800:
-        t_excess = temperature_c - 650
-        return 1.0 + (rt_ratio - 1.0) * max(0.2, 1.0 - 0.003 * t_excess)
-    # >800°C: compute ratio at 800 then exponential decay
-    ratio_at_800 = 1.0 + (rt_ratio - 1.0) * max(0.2, 1.0 - 0.003 * 150)
-    t_excess_800 = temperature_c - 800
-    return 1.0 + (ratio_at_800 - 1.0) * math.exp(-t_excess_800 / 50)
+# Alias for backward compatibility within this file
+_compress_ratio_for_temp = compress_uts_ys_ratio
 
 
 def _sanitize_for_json(obj):
@@ -111,7 +99,7 @@ class AlloyAnalysisTool(BaseTool):
             tuple: (physics_result dict, alloy_features dict)
         """
         features = compute_alloy_features(composition)
-        alloy_class = get_alloy_class(composition)
+        alloy_class = get_alloy_class(composition, processing)
         params = get_params(processing)
 
         gp = features.get("gamma_prime_estimated_vol_pct", 0)
@@ -173,7 +161,7 @@ class AlloyAnalysisTool(BaseTool):
             base_ni = params["BASE_NI"] + params.get("HALL_PETCH_BOOST", 0)
             sss_contribution = params["SSS_CONTRIBUTION_FACTOR"] * sss_wt
             coeff_gp = get_coeff_gp(processing, "standard")
-            mismatch_boost = abs(delta) * 100.0
+            mismatch_boost = min(abs(delta), 0.5) * 100.0
 
             physics_ys_rt = base_ni + sss_contribution + (coeff_gp * gp) + mismatch_boost
 
@@ -225,7 +213,7 @@ class AlloyAnalysisTool(BaseTool):
 
         return physics_result, features
 
-    def _parse_kg_context(self, kg_context: str, target_temp: float) -> Dict[str, Any]:
+    def _parse_kg_context(self, kg_context: str, target_temp: float, processing: str = "") -> Dict[str, Any]:
         """Parse KG context and extract relevant properties."""
         if not kg_context:
             return {"matched": False}
@@ -236,6 +224,26 @@ class AlloyAnalysisTool(BaseTool):
                 return {"matched": False}
 
             best = candidates[0]
+
+            # Prefer a candidate with matching processing route.
+            if processing:
+                proc_lower = processing.lower()
+                for candidate in candidates:
+                    cand_proc = (candidate.get("processing") or "").lower()
+                    cand_dist = candidate.get("_distance", 999)
+                    if cand_proc and (proc_lower in cand_proc or cand_proc in proc_lower):
+                        if cand_dist < 4.5:
+                            best = candidate
+                            logger.info(
+                                "KG: Preferred processing-compatible '%s' (%s, dist=%.2f) "
+                                "over '%s' (%s, dist=%.2f)",
+                                candidate.get("name"), cand_proc, cand_dist,
+                                candidates[0].get("name"),
+                                (candidates[0].get("processing") or "").lower(),
+                                candidates[0].get("_distance", 999)
+                            )
+                            break
+
             distance = best.get("_distance", 999)
 
             kg_props = {}
@@ -434,11 +442,11 @@ class AlloyAnalysisTool(BaseTool):
         # === PROPOSAL 1B: High-γ' Alloy Empirical Corrections ===
         nb = (composition.get("Nb", 0) or 0)
         al_ti_ta = (composition.get("Al", 0) or 0) + (composition.get("Ti", 0) or 0) + (composition.get("Ta", 0) or 0) + 0.35 * nb
-        is_high_gp_alloy = alloy_class == "gp" and gp > 35 and al_ti_ta > 5.0
+        is_high_gp_alloy = alloy_class == "gp" and gp > 25 and al_ti_ta > 4.0
 
         kg_has_ys = kg_props.get("Yield Strength") is not None
 
-        if is_high_gp_alloy and (kg_distance > 2.0 or not kg_has_ys):
+        if is_high_gp_alloy:
             # Empirical YS correlation for high-γ' alloys: YS ≈ BASE + COEFF × γ'%
             if processing in ["wrought", "forged"]:
                 empirical_ys_rt = 520 + 13 * gp
@@ -469,7 +477,9 @@ class AlloyAnalysisTool(BaseTool):
                 proposed_ys = blend_ml * ml_ys + blend_emp * empirical_ys
                 proposed_ys = min(proposed_ys, empirical_ys_max)
 
-                if kg_distance <= 2.0 and not kg_has_ys:
+                if kg_distance <= 2.0 and kg_has_ys:
+                    kg_note = f"Close KG match (d={kg_distance:.1f}) with YS data — KG anchoring also active."
+                elif kg_distance <= 2.0:
                     kg_note = f"KG match exists (d={kg_distance:.1f}) but lacks YS data at this temperature."
                 else:
                     kg_note = f"No strong KG match (distance={kg_distance:.1f})."
@@ -491,13 +501,27 @@ class AlloyAnalysisTool(BaseTool):
                 })
 
                 if ml_uts > 0:
-                    # Use class-appropriate UTS/YS ratio
+                    # Prefer ML's UTS/YS ratio
+                    ml_ratio = ml_uts / ml_ys if ml_ys > 0 else 0
                     if processing in ["wrought", "forged"] and gp > 40:
-                        uts_ratio = UTS_YS_RATIO["WROUGHT_HIGH_GP_EXPECTED"]
+                        min_r = UTS_YS_RATIO["WROUGHT_HIGH_GP_MIN"]
+                        max_r = UTS_YS_RATIO["WROUGHT_HIGH_GP_MAX"]
+                        default_r = UTS_YS_RATIO["WROUGHT_HIGH_GP_EXPECTED"]
                     elif processing in ["wrought", "forged"]:
-                        uts_ratio = UTS_YS_RATIO["WROUGHT_BASE"]
+                        min_r = UTS_YS_RATIO["WROUGHT_MIN"]
+                        max_r = UTS_YS_RATIO["WROUGHT_MAX"]
+                        default_r = UTS_YS_RATIO["WROUGHT_BASE"]
                     else:
-                        uts_ratio = UTS_YS_RATIO["CAST_BASE"] + (gp / 100) * UTS_YS_RATIO["CAST_GP_FACTOR"]
+                        default_r = UTS_YS_RATIO["CAST_BASE"] + (gp / 100) * UTS_YS_RATIO["CAST_GP_FACTOR"]
+                        min_r = UTS_YS_RATIO["CAST_MIN"]
+                        max_r = default_r + 0.15
+                    # Use ML ratio if within physical bounds, else default
+                    if min_r <= ml_ratio <= max_r:
+                        uts_ratio = ml_ratio
+                        ratio_source = f"ML ratio ({ml_ratio:.2f})"
+                    else:
+                        uts_ratio = default_r
+                        ratio_source = f"default ratio ({default_r:.2f}, ML ratio {ml_ratio:.2f} out of [{min_r:.2f}-{max_r:.2f}])"
                     # Temperature-compress the ratio (converges toward 1.0 at high T)
                     uts_ratio = _compress_ratio_for_temp(uts_ratio, temperature_c)
                     proposed_uts = proposed_ys * uts_ratio
@@ -509,8 +533,8 @@ class AlloyAnalysisTool(BaseTool):
                         "correction_type": "physics",
                         "confidence": "HIGH",
                         "reasoning": (
-                            f"UTS derived from corrected YS using class-appropriate ratio "
-                            f"({uts_ratio:.2f}, temp-adjusted for {temperature_c}°C). "
+                            f"UTS derived from corrected YS using {ratio_source} "
+                            f"(ratio={uts_ratio:.2f}, temp-adjusted for {temperature_c}°C). "
                             f"From {ml_uts:.0f} to {proposed_uts:.0f} MPa."
                         ),
                         "source": "high_GP_empirical_model"
@@ -748,7 +772,13 @@ class AlloyAnalysisTool(BaseTool):
                     })
 
         # === PROPOSAL 4: KG Anchoring (if strong match with SAME alloy class) ===
-        if kg_data.get("matched") and kg_distance < 3.0:
+        kg_proc = (kg_data.get("processing") or "").lower()
+        proc_lower = processing.lower()
+        proc_compatible = (proc_lower and kg_proc and
+                           (proc_lower in kg_proc or kg_proc in proc_lower))
+        max_anchor_dist = 4.5 if proc_compatible else 3.0
+
+        if kg_data.get("matched") and kg_distance < max_anchor_dist:
             kg_name = kg_data.get("name", "Unknown")
 
             # Check for alloy class mismatch before anchoring.
@@ -762,7 +792,7 @@ class AlloyAnalysisTool(BaseTool):
                 query_gp = physics_pred.get("gamma_prime_pct", gp)
                 gp_diff = abs(query_gp - kg_gp)
 
-                if gp_diff > 15:
+                if gp_diff > 10:
                     class_mismatch = True
                     logger.warning(
                         "KG class mismatch (gamma prime): query=%.1f%% vs "
@@ -770,7 +800,15 @@ class AlloyAnalysisTool(BaseTool):
                         query_gp, kg_name, kg_gp, gp_diff
                     )
 
-            if not class_mismatch:
+            processing_mismatch = not proc_compatible if (proc_lower and kg_proc and kg_proc != "unknown") else False
+            if processing_mismatch:
+                logger.warning(
+                    "KG processing mismatch: query='%s' vs KG match '%s' "
+                    "processing='%s'. Skipping KG anchoring.",
+                    processing, kg_name, kg_proc
+                )
+
+            if not class_mismatch and not processing_mismatch:
                 for prop in ["Yield Strength", "Tensile Strength", "Elongation"]:
                     kg_val = kg_props.get(prop)
                     ml_val = ml_pred.get(prop, 0)
@@ -1025,7 +1063,7 @@ class AlloyAnalysisTool(BaseTool):
         try:
             ml_predictions = self._get_ml_predictions(composition, temperature_c, processing)
             physics_predictions, features = self._get_physics_predictions(composition, temperature_c, processing)
-            kg_data = self._parse_kg_context(kg_context, temperature_c)
+            kg_data = self._parse_kg_context(kg_context, temperature_c, processing)
             density = calculate_density(composition)
 
             proposals = self._generate_proposals(
