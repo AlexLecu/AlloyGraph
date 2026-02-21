@@ -1,26 +1,78 @@
+"""Three-phase alloy design pipeline.
+
+Phase 1 — LLM Creative Synthesis:
+    The Designer agent proposes an initial composition using metallurgical
+    knowledge, guided by QuickCheckTool for fast physics validation.
+
+Phase 2 — Deterministic Gradient Optimization:
+    The DeterministicOptimizer refines the composition using finite-difference
+    sensitivities and constrained gradient steps.  No LLM calls.
+
+Phase 3 — LLM Evaluation (once):
+    The full Analyst → Reviewer evaluation pipeline runs on the final
+    optimized composition to produce explainable, calibrated predictions.
+
+API contract is preserved: ``IterativeDesignCrew(target_props).loop(...)``
+returns the same result dict expected by ``app.py`` and ``design.py``.
+"""
+
+import gc
 import json
 import logging
 from typing import Optional, Dict
-from enum import Enum
 
 logger = logging.getLogger(__name__)
+
+
+def _reset_crewai_event_bus():
+    """Reset CrewAI event bus to prevent 'Event stack depth limit (100)' crashes.
+
+    Each design iteration spawns multiple CrewAI crews (Synthesis, Evaluation,
+    Optimization).  Their events accumulate on a global bus and eventually exceed
+    the 100-event depth limit.  This function:
+    1. Disables the depth limit (set max_stack_depth=0)
+    2. Clears the event stack
+    3. Resets legacy event bus attributes
+    """
+    # Disable the event stack depth limit (0 = no limit)
+    try:
+        from crewai.events.event_context import EventContextConfig, _event_context_config, _event_id_stack
+        config = EventContextConfig(max_stack_depth=0)
+        _event_context_config.set(config)
+        _event_id_stack.set(())
+    except ImportError:
+        pass
+
+    # Legacy event bus cleanup (older CrewAI versions)
+    for module_path in [
+        "crewai.utilities.events",
+        "crewai.utilities.event_bus",
+        "crewai.telemetry",
+    ]:
+        try:
+            module = __import__(module_path, fromlist=["crewai_event_bus", "event_bus"])
+            for attr in ["crewai_event_bus", "event_bus", "_event_bus"]:
+                if hasattr(module, attr):
+                    bus = getattr(module, attr)
+                    if hasattr(bus, "_event_stack"):
+                        bus._event_stack.clear()
+                    if hasattr(bus, "reset"):
+                        bus.reset()
+                    if hasattr(bus, "_events"):
+                        bus._events.clear()
+        except (ImportError, AttributeError):
+            pass
+    gc.collect()
 
 from crewai import Crew, Task
 
 from .agents import get_design_agents
 from .tools.rag_tools import AlloySearchTool
-from .schemas import DesignOutput, OptimizationOutput
 from .alloy_evaluator import AlloyEvaluationCrew
-from .config.alloy_parameters import TCP, classify_tcp_risk
-
-class FailureMode(Enum):
-    """Structured classification of design failure reasons."""
-    TCP_RISK = "TCP_RISK"
-    PROPERTY_SHORTFALL = "PROPERTY_SHORTFALL"
-    PHYSICS_VIOLATION = "PHYSICS_VIOLATION"
-    COMPOSITION_INVALID = "COMPOSITION_INVALID"
-    LOW_CONFIDENCE = "LOW_CONFIDENCE"
-    OTHER = "OTHER"
+from .config.alloy_parameters import TCP, TCP_RANK, classify_tcp_risk
+from .deterministic_optimizer import optimize as deterministic_optimize
+from .models.feature_engineering import compute_alloy_features
+from .tools.quick_check_tool import estimate_physics_ys, compute_mismatch_drivers
 
 
 def round_composition(comp: Dict[str, float], decimals: int = 2) -> Dict[str, float]:
@@ -28,25 +80,94 @@ def round_composition(comp: Dict[str, float], decimals: int = 2) -> Dict[str, fl
     return {k: round(v, decimals) for k, v in comp.items()}
 
 
+def _recover_design_json(text: str) -> Optional[dict]:
+    """Try to extract a valid composition dict from malformed LLM output.
+
+    Handles common LLM formatting issues:
+    - Multi-line JSON with trailing newlines
+    - Markdown code fences (```json ... ```)
+    - Extra text after the JSON object
+    """
+    import re
+
+    if not text:
+        return None
+
+    # Strip markdown code fences
+    text = re.sub(r"```(?:json)?\s*", "", text)
+    text = text.strip()
+
+    # Try to find the outermost JSON object with { ... }
+    # Handle nested braces correctly
+    start = text.find("{")
+    if start == -1:
+        return None
+
+    depth = 0
+    end = -1
+    for i in range(start, len(text)):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+
+    if end == -1:
+        return None
+
+    json_str = text[start:end]
+
+    try:
+        data = json.loads(json_str)
+    except json.JSONDecodeError:
+        # Try stripping internal newlines
+        json_str = json_str.replace("\n", " ").replace("\r", "")
+        try:
+            data = json.loads(json_str)
+        except json.JSONDecodeError:
+            return None
+
+    if not isinstance(data, dict):
+        return None
+
+    # Check if this is a composition-wrapper dict (has composition key)
+    if "composition" in data and isinstance(data["composition"], dict):
+        return data
+
+    # Check if this is a raw composition dict (has Ni key)
+    if "Ni" in data and all(isinstance(v, (int, float)) for v in data.values()):
+        return {"composition": data, "reasoning": ""}
+
+    return None
+
+
 class IterativeDesignCrew:
+    """Three-phase alloy design pipeline.
+
+    Phase 1: LLM creative synthesis (with QuickCheckTool)
+    Phase 2: Deterministic gradient optimization (no LLM)
+    Phase 3: Full LLM evaluation on final result (Analyst → Reviewer)
+    """
+
     def __init__(self, target_props):
         self.target_props = target_props
         self.agents = get_design_agents()
 
         self.designer = self.agents["designer"]
-        self.optimization_advisor = self.agents["optimization_advisor"]
         self.analyst = self.agents["analyst"]
         self.reviewer = self.agents["reviewer"]
         self.llm = self.agents.get("llm")
-
 
         self.min_yield = float(target_props.get("Yield Strength", 0))
         self.min_tensile = float(target_props.get("Tensile Strength", 0))
         self.min_elongation = float(target_props.get("Elongation", 0))
         self.min_elastic_modulus = float(target_props.get("Elastic Modulus", 0))
         self.max_density = float(target_props.get("Density", 99.0))
-        self.min_gamma_prime = float(target_props.get("Gamma Prime", 0))
-        self.failure_history = []
+        self.target_gamma_prime = float(target_props.get("Gamma Prime", 0))
+
+        self._search_tool = AlloySearchTool()
 
         # Reuse the evaluation pipeline (shared Analyst + Reviewer agents)
         self.evaluator = AlloyEvaluationCrew(agents={
@@ -56,146 +177,39 @@ class IterativeDesignCrew:
         })
 
         self._setup_tasks()
-        self._setup_crews()
 
-    def _quick_physics_precheck(self, composition: dict) -> tuple[bool, list]:
-        """Fast physics validation before full pipeline."""
-        from .models.feature_engineering import compute_alloy_features
+    # ── Target string builder ───────────────────────────────────────
 
-        try:
-            features = compute_alloy_features(composition)
-            warnings = []
+    def _build_target_string(self) -> str:
+        """Build target property string for task descriptions."""
+        target_parts = []
+        if self.min_yield > 0:
+            target_parts.append(f"- Yield Strength >= {self.min_yield} MPa")
+        if self.min_tensile > 0:
+            target_parts.append(f"- Tensile Strength >= {self.min_tensile} MPa")
+        if self.min_elongation > 0:
+            target_parts.append(f"- Elongation >= {self.min_elongation} %")
+        if self.min_elastic_modulus > 0:
+            target_parts.append(f"- Elastic Modulus >= {self.min_elastic_modulus} GPa")
+        if self.max_density < 99.0:
+            target_parts.append(f"- Density <= {self.max_density} g/cm3")
+        if self.target_gamma_prime > 0:
+            gp_tolerance = max(2.0, self.target_gamma_prime * 0.2)
+            target_parts.append(
+                f"- Gamma Prime ~ {self.target_gamma_prime}% (target range: "
+                f"{self.target_gamma_prime - gp_tolerance:.1f}-"
+                f"{self.target_gamma_prime + gp_tolerance:.1f}%). "
+                f"Do NOT maximize gamma prime - match the target!"
+            )
+        return "\n".join(target_parts) if target_parts else "No specific targets"
 
-            md_gamma = features.get("Md_gamma", 0)
-            md_avg = features.get("Md_avg", 0)
-            tcp_level = classify_tcp_risk(md_gamma, md_avg)
-            if tcp_level in ("Critical", "Elevated"):
-                warnings.append(f"Critical: Md_avg={md_avg:.3f} > {TCP['MD_ELEVATED']} (TCP phase formation risk: {tcp_level})")
-            elif tcp_level == "Moderate":
-                warnings.append(f"Warning: Md_avg={md_avg:.3f} > {TCP['MD_MODERATE']} (approaching TCP danger zone)")
-
-            delta = features.get("lattice_mismatch_pct", 0)
-            if abs(delta) > 0.9:
-                warnings.append(f"Critical: Lattice mismatch={delta:.2f}% > 0.9% (coherency risk)")
-            elif abs(delta) > 0.7:
-                warnings.append(f"Warning: Lattice mismatch={delta:.2f}% > 0.7% (reduced coherency)")
-
-            cr = composition.get("Cr", 0)
-            if cr < 5 or cr > 20:
-                warnings.append(f"Warning: Cr={cr:.1f}% outside optimal range (5-20%)")
-
-            al = composition.get("Al", 0)
-            ti = composition.get("Ti", 0)
-            ta = composition.get("Ta", 0)
-            gp_formers = al + ti + ta
-            if gp_formers < 3:
-                warnings.append(f"Warning: Low γ' formers (Al+Ti+Ta={gp_formers:.1f}% < 3%) may limit strength")
-            elif gp_formers > 12:
-                warnings.append(f"Warning: High γ' formers (Al+Ti+Ta={gp_formers:.1f}% > 12%) may cause instability")
-
-            return (len([w for w in warnings if w.startswith("Critical")]) == 0, warnings)
-
-        except Exception:
-            return (True, [])
-
-    def _get_priority_focus(self, feedback: str, iteration: int) -> str:
-        """Determine what the Designer should focus on this iteration."""
-        if iteration == 0 or not feedback:
-            return "Balanced design meeting all targets with proven composition patterns"
-
-        # Analyze feedback for priorities
-        feedback_lower = feedback.lower()
-
-        if "tcp" in feedback_lower or "md" in feedback_lower or "phase" in feedback_lower:
-            return f"TCP risk reduction (lower Re/W/Mo, increase Cr, optimize Md_gamma < {TCP['MD_DESIGN_TARGET']})"
-
-        if "yield" in feedback_lower and "strength" in feedback_lower:
-            return "Strength improvement (increase γ' formers: Al, Ti, Ta)"
-
-        if "lattice" in feedback_lower or "mismatch" in feedback_lower:
-            return "Coherency optimization (balance Al/Ti ratio, target |δ| < 0.5%)"
-
-        if "confidence" in feedback_lower or "unreliable" in feedback_lower:
-            return "Move closer to known alloy space (reduce exploratory elements)"
-
-        return "Address all feedback points systematically"
-
-    def _setup_tasks(self):
-        """Define tasks once with placeholders {variables} for dynamic execution."""
-
-
-        self.task_design = Task(
-            description=(
-                "🎯 DESIGN OBJECTIVE:\n"
-                "Create a Ni-based superalloy composition meeting the targets below.\n\n"
-
-                "📋 TARGETS (at {temperature}°C, {processing}):\n"
-                "{target_props_str}\n\n"
-
-                "📍 CURRENT STATUS:\n"
-                "{base_comp_str}\n\n"
-
-                "🔄 ITERATION FEEDBACK:\n"
-                "{feedback}\n\n"
-
-                "💡 DESIGN STRATEGY (FOCUS THIS ITERATION):\n"
-                "{priority_focus}\n\n"
-
-                "✅ SUCCESS CRITERIA:\n"
-                "1. All target properties met (within ±10%)\n"
-                "2. TCP risk = Low (Md_gamma < {md_target})\n"
-                "3. Lattice mismatch < 0.8%\n"
-                "4. Cr = 5-20%, γ' formers appropriate for {processing}\n\n"
-
-                "{novelty_msg}\n\n"
-
-                "OUTPUT: JSON with 'reasoning' (2-3 sentences explaining your approach), "
-                "'composition' (dict summing to 100%), 'processing' ('{processing}')."
-            ),
-            expected_output="Structured design with clear reasoning and valid composition.",
-            output_pydantic=DesignOutput,
-            agent=self.designer,
-        )
-
-
-        self.task_optimization = Task(
-            description=(
-                "The Designer's composition has failed validation.\n\n"
-                "Composition: {composition_json}\n"
-                "Target Properties: {target_props_str}\n"
-                "Current Properties: {current_props_json}\n"
-                "Failure Reasons: {failure_reasons}\n"
-                "Processing: {processing}\n\n"
-                "Use AlloyOptimizationAdvisor to calculate physics-based suggestions.\n\n"
-                "Return TOP 3 suggestions ranked by:\n"
-                "1. Impact magnitude (ΔMd, ΔYS, degree of constraint violation)\n"
-                "2. Ease of implementation (single-element adjustments preferred over multi-element)\n"
-                "3. Minimal trade-offs (e.g., fixing TCP without sacrificing strength)\n\n"
-                "Each suggestion must include:\n"
-                "- Specific element adjustment (e.g., 'Reduce Re from 6.0% to 4.5%')\n"
-                "- Quantified impact (e.g., 'lowers Md by 0.04')\n"
-                "- Trade-off warning if applicable (e.g., 'may reduce YS by 50 MPa')"
-            ),
-            expected_output="Structured optimization suggestions with priorities and expected impacts.",
-            output_pydantic=OptimizationOutput,
-            agent=self.optimization_advisor,
-            context=[self.task_design],
-        )
-
-    def _setup_crews(self):
-        """Instantiate Crews once."""
-        self.crew_synthesis = Crew(
-            agents=[self.designer],
-            tasks=[self.task_design],
-            verbose=True,
-        )
+    # ── Novelty check ───────────────────────────────────────────────
 
     def _run_novelty_check(self, composition: Optional[dict]) -> str:
         if not composition:
             return ""
         try:
-            search_tool = AlloySearchTool()
-            rag_result = search_tool._run(composition=composition, limit=1)
+            rag_result = self._search_tool._run(composition=composition, limit=1)
             if rag_result and "Error" not in str(rag_result):
                 rag_data = json.loads(rag_result)
                 if isinstance(rag_data, list) and len(rag_data) > 0:
@@ -206,87 +220,254 @@ class IterativeDesignCrew:
             pass
         return ""
 
-    def run(self, base_composition=None, input_feedback="", temperature=900, processing="cast", iteration_num=0):
-        """Run one iteration of Design (Phase 1) → Validate (Phase 2)."""
+    # ── Task setup ──────────────────────────────────────────────────
 
+    def _setup_tasks(self):
+        """Define the Designer synthesis task template (strings only)."""
+        self._task_description = (
+            "DESIGN OBJECTIVE:\n"
+            "Create a Ni-based superalloy composition meeting the targets below.\n\n"
+
+            "TARGETS (at {temperature}C, {processing}):\n"
+            "{target_props_str}\n\n"
+
+            "CURRENT STATUS:\n"
+            "{base_comp_str}\n\n"
+
+            "ITERATION FEEDBACK:\n"
+            "{feedback}\n\n"
+
+            "INSTRUCTIONS:\n"
+            "1. Use QuickCheckTool to validate your composition BEFORE submitting.\n"
+            "   IMPORTANT: Always set temperature_c={temperature} when calling QuickCheckTool\n"
+            "   so that estimated_ys_mpa reflects the actual service temperature.\n"
+            "2. If QuickCheckTool reports CRITICAL warnings, fix them and re-check.\n"
+            "3. Your composition will be further refined by a deterministic optimizer,\n"
+            "   so focus on getting the right ALLOY CLASS and BALLPARK composition.\n"
+            "4. The optimizer handles fine-tuning of element percentages.\n"
+            "5. IMPORTANT: Match the STRENGTH CLASS to the YS target:\n"
+            "   - YS < 600 MPa: SSS alloys. Low γ' formers, rely on Mo/W/Nb.\n"
+            "   - YS 600-900 MPa: Moderate gamma prime. Al+Ti 3-5%.\n"
+            "   - YS 900-1200 MPa: High gamma prime disc alloys.\n"
+            "     Need Mo 3-5%, W 1-4%, Nb 1-1.5%, Al+Ti 5-7%.\n"
+            "   - YS > 1200 MPa: Cast/SC blade alloys.\n"
+            "     Need significant refractory content.\n"
+            "   Do NOT under-design. The optimizer can refine but cannot change alloy class.\n"
+            "6. PROPERTY-SPECIFIC GUIDANCE:\n"
+            "   - Elongation target: Higher El requires LOWER gamma prime. El>=25% needs\n"
+            "     gamma'<30% (moderate formers). El>=15% is typical for gamma'=35-45%.\n"
+            "   - Density target: Lower density requires avoiding heavy elements (W, Re, Ta, Hf).\n"
+            "     Prefer Mo over W for strengthening. Keep Al/Ti/Cr/Co (lighter elements).\n"
+            "     Typical Ni superalloys: 7.8-8.5 g/cm3. Below 8.0 needs W<2%, no Re/Hf.\n\n"
+
+            "SUCCESS CRITERIA:\n"
+            "1. QuickCheckTool reports valid=true (no CRITICAL warnings)\n"
+            "2. TCP risk = Low (Md_avg < {md_target})\n"
+            "3. Correct alloy class for the target gamma prime\n"
+            "4. Elements sum to 100.0 wt%\n\n"
+
+            "{novelty_msg}\n\n"
+
+            "OUTPUT: JSON with 'reasoning' (2-3 sentences explaining your approach), "
+            "'composition' (dict summing to 100%), 'processing' ('{processing}')."
+        )
+        self._task_expected_output = "Structured design with clear reasoning and valid composition."
+
+    # ── Phase 1: LLM synthesis ──────────────────────────────────────
+
+    def _phase1_synthesis(
+        self,
+        start_composition: Optional[dict],
+        temperature: int,
+        processing: str,
+        feedback: Optional[str] = None,
+    ) -> dict:
+        """Phase 1: LLM designs an initial composition using QuickCheckTool.
+
+        Returns:
+            dict with 'composition' key on success, or 'error' key on failure.
+        """
+        _reset_crewai_event_bus()
 
         base_comp_str = (
-            f"Starting Composition: {json.dumps(base_composition)}"
-            if base_composition
+            f"Starting Composition: {json.dumps(start_composition)}"
+            if start_composition
             else "No starting comp - create from scratch"
         )
 
-        # Build target string with proper semantics for each property
-        target_parts = []
-        if self.min_yield > 0:
-            target_parts.append(f"- Yield Strength ≥ {self.min_yield} MPa")
-        if self.min_tensile > 0:
-            target_parts.append(f"- Tensile Strength ≥ {self.min_tensile} MPa")
-        if self.min_elongation > 0:
-            target_parts.append(f"- Elongation ≥ {self.min_elongation} %")
-        if self.min_elastic_modulus > 0:
-            target_parts.append(f"- Elastic Modulus ≥ {self.min_elastic_modulus} GPa")
-        if self.max_density < 99.0:
-            target_parts.append(f"- Density ≤ {self.max_density} g/cm³")
+        target_str = self._build_target_string()
+        novelty_msg = self._run_novelty_check(start_composition)
 
-        # Gamma Prime is a target to match, not a minimum threshold
-        if self.min_gamma_prime > 0:
-            gp_tolerance = max(2.0, self.min_gamma_prime * 0.2)
-            target_parts.append(
-                f"- Gamma Prime ≈ {self.min_gamma_prime}% (target range: "
-                f"{self.min_gamma_prime - gp_tolerance:.1f}-{self.min_gamma_prime + gp_tolerance:.1f}%). "
-                f"⚠️ Do NOT maximize γ' - match the target!"
-            )
-
-        target_str = "\n".join(target_parts) if target_parts else "No specific targets"
-        novelty_msg = self._run_novelty_check(base_composition)
-        priority_focus = self._get_priority_focus(input_feedback, iteration_num)
-
-        inputs_synthesis = {
+        inputs = {
             "base_comp_str": base_comp_str,
             "target_props_str": target_str,
-            "feedback": input_feedback or "None (Initial Run)",
+            "feedback": feedback or "None (Initial Design)",
             "temperature": temperature,
             "processing": processing,
             "novelty_msg": novelty_msg,
-            "priority_focus": priority_focus,
             "md_target": TCP["MD_DESIGN_TARGET"],
         }
 
-        try:
-            self.crew_synthesis.kickoff(inputs=inputs_synthesis)
-        except Exception as e:
-            return {"error": f"Synthesis Crew Failed: {e}"}
+        # Fresh task each call — NO output_pydantic to avoid CrewAI's strict
+        # JSON validation rejecting multi-line LLM output.  We parse the
+        # raw text ourselves with _recover_design_json (brace-matching).
+        task = Task(
+            description=self._task_description,
+            expected_output=self._task_expected_output,
+            agent=self.designer,
+        )
+
+        crew = Crew(
+            agents=[self.designer],
+            tasks=[task],
+            verbose=True,
+        )
 
         try:
-            d_obj = getattr(self.task_design.output, "pydantic", None)
-            if not d_obj:
-                return {"error": "Designer failed to return structured output."}
-            designer_comp = d_obj.composition
-            processed_route = d_obj.processing
-
-            # Validate composition sum
-            if not isinstance(designer_comp, dict) or not designer_comp:
-                return {"error": "Designer returned invalid composition."}
-
-            total = sum(designer_comp.values())
-            if total < 95.0 or total > 105.0:
-                return {"error": f"Composition sum ({total:.1f}%) is outside acceptable range (95-105%)."}
-
-            designer_comp = round_composition(designer_comp, decimals=2)
-
-            # Enforce user-specified processing
-            if processed_route != processing:
-                processed_route = processing
+            crew.kickoff(inputs=inputs)
         except Exception as e:
-            return {"error": f"Designer output extraction failed: {e}"}
+            return {"error": f"Synthesis failed: {e}"}
 
-        # Phase 2: Evaluate designed composition via shared pipeline
-        novelty_new_design = self._run_novelty_check(designer_comp)
+        # Extract composition from raw text output
+        raw = getattr(getattr(task, "output", None), "raw", "") or ""
+        if not raw:
+            return {"error": "Designer returned empty output."}
+
+        recovered = _recover_design_json(raw)
+        if not recovered or "composition" not in recovered:
+            return {"error": f"Could not extract composition from Designer output: {raw[:200]}"}
+
+        designer_comp = recovered["composition"]
+        if isinstance(designer_comp, str):
+            try:
+                designer_comp = json.loads(designer_comp) if designer_comp else {}
+            except json.JSONDecodeError:
+                return {"error": f"Invalid composition JSON: {designer_comp[:200]}"}
+
+        reasoning = recovered.get("reasoning", "")
+        return self._validate_phase1_composition(designer_comp, processing, reasoning=reasoning)
+
+    def _validate_phase1_composition(
+        self, designer_comp: dict, processing: str, reasoning: str = ""
+    ) -> dict:
+        """Validate and normalise a Phase 1 composition dict.
+
+        Shared by the normal Pydantic extraction path and the JSON recovery
+        fallback.  Returns the same dict contract as ``_phase1_synthesis()``.
+        """
+        if not isinstance(designer_comp, dict) or not designer_comp:
+            return {"error": "Designer returned invalid composition."}
+
+        # Strip zero-valued elements
+        designer_comp = {k: v for k, v in designer_comp.items() if v > 0}
+
+        total = sum(designer_comp.values())
+        if total < 85.0 or total > 110.0:
+            return {
+                "error": f"Composition sum ({total:.1f}%) is wildly off.",
+                "composition": designer_comp,
+            }
+
+        # Auto-balance via Ni
+        if "Ni" in designer_comp and abs(total - 100.0) > 0.1:
+            adjustment = 100.0 - total
+            new_ni = designer_comp["Ni"] + adjustment
+            if new_ni >= 40.0:
+                logger.info(f"Auto-balancing Ni: {designer_comp['Ni']:.2f}% -> {new_ni:.2f}%")
+                designer_comp["Ni"] = new_ni
+            else:
+                return {
+                    "error": f"Cannot auto-balance: Ni would drop to {new_ni:.1f}% (<40%).",
+                    "composition": designer_comp,
+                }
+
+        designer_comp = round_composition(designer_comp, decimals=2)
+
+        # Soft gate: warn about high γ' but let Phase 2 guard handle it.
+        # Pre-compute features here so the loop body can reuse them
+        # instead of calling compute_alloy_features a second time.
+        feats = compute_alloy_features(designer_comp)
+        if processing == "wrought":
+            gp = feats.get("gamma_prime_estimated_vol_pct", 0)
+            if gp > 75:
+                al = designer_comp.get("Al", 0)
+                ti = designer_comp.get("Ti", 0)
+                ta = designer_comp.get("Ta", 0)
+                nb = designer_comp.get("Nb", 0)
+                gp_index = al + ti + ta + 0.35 * nb
+                return {
+                    "error": (
+                        f"WROUGHT VIOLATION: gamma'={gp:.0f}% far exceeds wrought limit (max ~50%). "
+                        f"Formers: Al={al}, Ti={ti}, Ta={ta}, Nb={nb} "
+                        f"(GP index Al+Ti+Ta+0.35*Nb={gp_index:.1f}%). Keep GP index < 7%."
+                    ),
+                    "composition": designer_comp,
+                }
+            elif gp > 50:
+                logger.warning(
+                    f"Phase 1: gamma'={gp:.0f}% > 50% wrought limit — "
+                    f"Phase 2 optimizer will reduce."
+                )
+
+        logger.info(f"Phase 1 complete (recovered): {designer_comp}")
+        return {"composition": designer_comp, "reasoning": reasoning, "features": feats}
+
+    # ── Phase 2: Deterministic optimization ─────────────────────────
+
+    def _phase2_optimize(
+        self,
+        composition: dict,
+        temperature: int,
+        processing: str,
+    ) -> dict:
+        """Phase 2: Light-touch Guard + Tune optimization.
+
+        Returns:
+            dict with optimized composition, predicted properties, features, tcp_risk.
+        """
+        logger.info("Phase 2: Starting light-touch optimization (Guard + Tune)...")
+
+        result = deterministic_optimize(
+            initial_composition=composition,
+            targets=self.target_props,
+            temperature_c=temperature,
+            processing=processing,
+        )
+
+        guard_fixes = result.get("guard_fixes", [])
+        if guard_fixes:
+            logger.info(f"Phase 2 Guard: {len(guard_fixes)} fixes applied")
+
+        logger.info(
+            f"Phase 2 complete: converged={result['converged']}, "
+            f"tune_steps={result['steps_used']}, "
+            f"TCP={result['tcp_risk']}, "
+            f"YS={result['predicted_properties'].get('Yield Strength', 0):.0f}, "
+            f"GP={result['predicted_properties'].get('Gamma Prime', 0):.1f}%"
+        )
+
+        return result
+
+    # ── Phase 3: Full LLM evaluation ────────────────────────────────
+
+    def _phase3_evaluate(
+        self,
+        composition: dict,
+        temperature: int,
+        processing: str,
+    ) -> dict:
+        """Phase 3: Full Analyst -> Reviewer evaluation pipeline.
+
+        Returns the standard result dict expected by app.py.
+        """
+        _reset_crewai_event_bus()
+        logger.info("Phase 3: Running full LLM evaluation pipeline...")
+
+        novelty_msg = self._run_novelty_check(composition)
 
         result = self.evaluator.evaluate_properties(
-            composition=designer_comp,
-            processing=processed_route,
+            composition=composition,
+            processing=processing,
             temperature=temperature,
             apply_calibration=True,
             summary_context={
@@ -295,22 +476,24 @@ class IterativeDesignCrew:
                 "min_tensile": self.min_tensile,
                 "min_elongation": self.min_elongation,
                 "min_elastic_modulus": self.min_elastic_modulus,
-                "min_gamma_prime": self.min_gamma_prime,
+                "target_gamma_prime": self.target_gamma_prime,
             },
             extra_output_fields={
-                "composition": designer_comp,
-                "novelty": novelty_new_design,
+                "composition": composition,
+                "novelty": novelty_msg,
             },
         )
 
         return result
 
-    def _is_design_successful(self, result):
-        """Determine if a design meets all success criteria."""
+    # ── Success checking ────────────────────────────────────────────
+
+    def _is_design_successful(self, result: dict) -> bool:
+        """Check if a result meets all success criteria."""
         if result.get("error"):
             return False
 
-        if result.get("tcp_risk", "Critical") in ("Critical", "Elevated"):
+        if result.get("tcp_risk", "Unknown") in ("Critical", "Elevated"):
             return False
 
         penalties = result.get("audit_penalties", [])
@@ -330,468 +513,401 @@ class IterativeDesignCrew:
         if self.max_density < 99.0 and float(props.get("Density", 1e9) or 1e9) > self.max_density:
             return False
 
-        if self.min_gamma_prime > 0:
+        if self.target_gamma_prime > 0:
             actual_gp = float(props.get("Gamma Prime", 0) or 0)
-            gp_tolerance = max(2.0, self.min_gamma_prime * 0.2)
-            gp_min = self.min_gamma_prime - gp_tolerance
-            gp_max = self.min_gamma_prime + gp_tolerance
-
-            if actual_gp < gp_min:
-                logger.error(f"DESIGN FAILED: Gamma Prime {actual_gp:.1f}% is TOO LOW (target range: {gp_min:.1f}-{gp_max:.1f}%)")
+            gp_tolerance = max(2.0, self.target_gamma_prime * 0.2)
+            if actual_gp < self.target_gamma_prime - gp_tolerance:
                 return False
-            if actual_gp > gp_max:
-                logger.error(f"DESIGN FAILED: Gamma Prime {actual_gp:.1f}% is TOO HIGH (target range: {gp_min:.1f}-{gp_max:.1f}%)")
-                logger.error(f"Designed a HIGH-gamma-prime turbine blade alloy when user requested LOW-gamma-prime structural alloy! MUST reduce Al+Ti+Ta to ~{self.min_gamma_prime / 3:.1f}% total (currently {sum([result.get('composition', {}).get(el, 0) for el in ['Al', 'Ti', 'Ta']]):.1f}%)")
+            if actual_gp > self.target_gamma_prime + gp_tolerance:
                 return False
 
         return True
 
-    def _classify_failures(self, result) -> Dict[FailureMode, list]:
-        """Classify failure reasons into structured categories."""
-        failures_by_mode = {mode: [] for mode in FailureMode}
+    # ── Result enrichment for failed designs ────────────────────────
 
-        tcp = result.get("tcp_risk", "Unknown")
-        if tcp == "Critical":
-            failures_by_mode[FailureMode.TCP_RISK].append("TCP Risk is CRITICAL (topologically close-packed phase formation)")
-        elif tcp == "Elevated":
-            failures_by_mode[FailureMode.TCP_RISK].append("TCP Risk is ELEVATED (approaching danger zone)")
-
+    def _enrich_failure_result(self, result: dict) -> dict:
+        """Add issues/recommendations to a failed design result."""
+        tcp_risk = result.get("tcp_risk", "Unknown")
         penalties = result.get("audit_penalties", [])
-        if penalties:
-            for p in penalties:
-                name = p.get("name", "Unknown")
-                value = p.get("value", "")
-                reason = p.get("reason", "")
-                failures_by_mode[FailureMode.PHYSICS_VIOLATION].append(
-                    f"{name}: {value} - {reason}"
-                )
         props = result.get("properties", {})
-        if self.min_yield > 0 and float(props.get("Yield Strength", 0) or 0) < self.min_yield:
-            failures_by_mode[FailureMode.PROPERTY_SHORTFALL].append(
-                f"Yield Strength too low ({props.get('Yield Strength', 0):.0f} < {self.min_yield} MPa)"
-            )
-        if self.min_tensile > 0 and float(props.get("Tensile Strength", 0) or 0) < self.min_tensile:
-            failures_by_mode[FailureMode.PROPERTY_SHORTFALL].append(
-                f"Tensile Strength too low ({props.get('Tensile Strength', 0):.0f} < {self.min_tensile} MPa)"
-            )
-        if self.min_elongation > 0 and float(props.get("Elongation", 0) or 0) < self.min_elongation:
-            failures_by_mode[FailureMode.PROPERTY_SHORTFALL].append(
-                f"Elongation too low ({props.get('Elongation', 0):.1f} < {self.min_elongation}%)"
-            )
-        if self.min_elastic_modulus > 0 and float(props.get("Elastic Modulus", 0) or 0) < self.min_elastic_modulus:
-            failures_by_mode[FailureMode.PROPERTY_SHORTFALL].append(
-                f"Elastic Modulus too low ({props.get('Elastic Modulus', 0):.0f} < {self.min_elastic_modulus} GPa)"
-            )
-        if self.max_density < 99.0 and float(props.get("Density", 1e9) or 1e9) > self.max_density:
-            failures_by_mode[FailureMode.PROPERTY_SHORTFALL].append(
-                f"Density too high ({props.get('Density', 0):.2f} > {self.max_density} g/cm³)"
-            )
 
-        if self.min_gamma_prime > 0:
+        issues = []
+        recommendations = []
+
+        if tcp_risk == "Critical":
+            md_val = result.get("metallurgy_metrics", {}).get("md_gamma_matrix", "?")
+            issues.append({
+                "type": "TCP Risk",
+                "severity": "High",
+                "description": f"Critical TCP phase formation risk (Md={md_val}, safe limit <{TCP['MD_DESIGN_SAFE']}).",
+                "recommendation": "Reduce refractory elements (Re, W, Mo) or increase Cr/Co."
+            })
+        elif tcp_risk == "Elevated":
+            issues.append({
+                "type": "TCP Risk",
+                "severity": "Medium",
+                "description": "Elevated TCP risk - approaching danger zone.",
+                "recommendation": "Consider reducing refractory element content."
+            })
+
+        if penalties:
+            for penalty in penalties:
+                issues.append({
+                    "type": "Audit Violation",
+                    "severity": "Medium",
+                    "description": f"{penalty.get('name', 'Unknown')}: {penalty.get('reason', '')}",
+                    "recommendation": "Review composition constraints."
+                })
+
+        for prop_name, target, unit in [
+            ("Yield Strength", self.min_yield, "MPa"),
+            ("Tensile Strength", self.min_tensile, "MPa"),
+            ("Elongation", self.min_elongation, "%"),
+            ("Elastic Modulus", self.min_elastic_modulus, "GPa"),
+        ]:
+            if target > 0:
+                actual = float(props.get(prop_name, 0) or 0)
+                if actual < target:
+                    issues.append({
+                        "type": "Target Miss",
+                        "severity": "Low",
+                        "description": f"{prop_name} {actual:.0f} {unit} < target {target} {unit}.",
+                        "recommendation": f"Adjust composition to improve {prop_name}."
+                    })
+
+        if self.max_density < 99.0:
+            actual_d = float(props.get("Density", 0) or 0)
+            if actual_d > self.max_density:
+                issues.append({
+                    "type": "Target Miss",
+                    "severity": "Low",
+                    "description": f"Density {actual_d:.2f} > target {self.max_density} g/cm3.",
+                    "recommendation": "Reduce heavy elements (W, Ta, Re)."
+                })
+
+        if self.target_gamma_prime > 0:
             actual_gp = float(props.get("Gamma Prime", 0) or 0)
-            gp_tolerance = max(2.0, self.min_gamma_prime * 0.2)
-            gp_min = self.min_gamma_prime - gp_tolerance
-            gp_max = self.min_gamma_prime + gp_tolerance
+            gp_tolerance = max(2.0, self.target_gamma_prime * 0.2)
+            gp_min = self.target_gamma_prime - gp_tolerance
+            gp_max = self.target_gamma_prime + gp_tolerance
 
             if actual_gp < gp_min:
-                failures_by_mode[FailureMode.PROPERTY_SHORTFALL].append(
-                    f"Gamma Prime too low ({actual_gp:.1f}% < target {self.min_gamma_prime}% [min {gp_min:.1f}%]). Increase Al+Ti+Ta content."
-                )
+                issues.append({
+                    "type": "Gamma Prime",
+                    "severity": "High",
+                    "description": f"Gamma Prime {actual_gp:.1f}% below range {gp_min:.1f}-{gp_max:.1f}%.",
+                    "recommendation": f"Increase Al, Ti, or Ta to reach ~{self.target_gamma_prime}%."
+                })
             elif actual_gp > gp_max:
-                formers_total = sum([result.get('composition', {}).get(el, 0) for el in ['Al', 'Ti', 'Ta']])
-                failures_by_mode[FailureMode.PROPERTY_SHORTFALL].append(
-                    f"🚨 CRITICAL: Gamma Prime {actual_gp:.1f}% >> target {self.min_gamma_prime}% (max {gp_max:.1f}%). "
-                    f"You designed a HIGH-γ' TURBINE BLADE ALLOY (wrong class!). "
-                    f"Current formers: {formers_total:.1f}% (Al+Ti+Ta). Target: ~{self.min_gamma_prime / 3:.1f}%. "
-                    f"REQUIRED: Drastically cut Al+Ti+Ta by ~{formers_total - self.min_gamma_prime / 3:.1f}%, "
-                    f"then compensate strength with SSS elements (Mo, W, Nb, Co). "
-                    f"Reference alloys: IN718 (18% γ'), Haynes 282 (25% γ'), NIMOCAST 263 (2.7% γ')."
-                )
+                issues.append({
+                    "type": "Gamma Prime",
+                    "severity": "High",
+                    "description": f"Gamma Prime {actual_gp:.1f}% above range {gp_min:.1f}-{gp_max:.1f}%.",
+                    "recommendation": f"Reduce Al, Ti, and Ta to reach ~{self.target_gamma_prime}%."
+                })
 
-        if result.get("error"):
-            error_msg = result["error"]
-            if "Chemistry" in error_msg or "composition" in error_msg.lower():
-                failures_by_mode[FailureMode.COMPOSITION_INVALID].append(error_msg)
-            else:
-                failures_by_mode[FailureMode.OTHER].append(error_msg)
+        if issues:
+            recommendations.append("Consider relaxing conflicting targets")
+            if any(i["type"] == "Gamma Prime" for i in issues):
+                recommendations.append("Review gamma prime target - different alloy classes have vastly different fractions")
 
-        return {mode: msgs for mode, msgs in failures_by_mode.items() if msgs}
+        result["issues"] = issues
+        result["recommendations"] = recommendations
+        result["design_status"] = "incomplete"
 
-    def _classify_design_quality(self, result):
-        """Classify design quality based on how well it hits targets."""
-        if result.get("error") or not self._is_design_successful(result):
-            return "FAILED", ""
+        has_high = any(i["severity"] == "High" for i in issues)
+        if has_high and result.get("status") == "PASS":
+            result["status"] = "REJECT"
 
-        props = result.get("properties", {})
-        ys = float(props.get("Yield Strength", 0) or 0)
+        return result
 
-        if self.min_yield > 0 and ys > 0:
-            target = self.min_yield
-            optimal_max = target * 1.10
-            excessive_threshold = target * 1.30
-            overshoot_pct = ((ys / target) - 1) * 100
+    # ── Main loop ───────────────────────────────────────────────────
 
-            if target <= ys <= optimal_max:
-                return "OPTIMAL", f"Target hit within optimal range ({ys:.0f} MPa, +{overshoot_pct:.1f}%)"
-            elif optimal_max < ys <= excessive_threshold:
-                return "ACCEPTABLE", f"Over-engineered: {ys:.0f} MPa (+{overshoot_pct:.0f}% above {target} MPa target)"
-            elif ys > excessive_threshold:
-                return "EXCESSIVE", f"Significantly over-engineered: {ys:.0f} MPa (+{overshoot_pct:.0f}% above target)"
+    def loop(
+        self,
+        max_iterations: int = 3,
+        start_composition: Optional[dict] = None,
+        temperature: int = 900,
+        processing: str = "cast",
+    ) -> dict:
+        """Run the 3-phase design pipeline.
 
-        return "SUCCESS", ""
+        Args:
+            max_iterations: Max LLM synthesis attempts for Phase 1 (Phase 2+3
+                run once on the best Phase 1 result).
+            start_composition: Optional starting composition hint.
+            temperature: Service temperature in Celsius.
+            processing: "cast" or "wrought".
 
-    def loop(self, max_iterations=3, start_composition=None, temperature=900, processing="cast"):
-        current_comp = start_composition
-        feedback = ""
-        result = {"error": "No iterations executed."}
-        use_direct_application = False
+        Returns:
+            Result dict compatible with app.py (composition, properties,
+            tcp_risk, confidence, issues, recommendations, etc.).
+        """
+        logger.info(
+            f"=== DESIGN PIPELINE START ===\n"
+            f"  Targets: {self.target_props}\n"
+            f"  Processing: {processing}, Temperature: {temperature}C\n"
+            f"  Max Phase 1 attempts: {max_iterations}"
+        )
 
-        target_parts = []
-        if self.min_yield > 0:
-            target_parts.append(f"- Yield Strength ≥ {self.min_yield} MPa")
-        if self.min_tensile > 0:
-            target_parts.append(f"- Tensile Strength ≥ {self.min_tensile} MPa")
-        if self.min_elongation > 0:
-            target_parts.append(f"- Elongation ≥ {self.min_elongation} %")
-        if self.min_elastic_modulus > 0:
-            target_parts.append(f"- Elastic Modulus ≥ {self.min_elastic_modulus} GPa")
-        if self.max_density < 99.0:
-            target_parts.append(f"- Density ≤ {self.max_density} g/cm³")
+        # ── PHASE 1: LLM Creative Synthesis ─────────────────────────
+        best_phase1 = None
+        feedback = None
+        phase1_log = []  # Track each attempt for observability
 
-        # Gamma Prime is a target to match, not a minimum threshold
-        if self.min_gamma_prime > 0:
-            gp_tolerance = max(2.0, self.min_gamma_prime * 0.2)
-            target_parts.append(
-                f"- Gamma Prime ≈ {self.min_gamma_prime}% (target range: "
-                f"{self.min_gamma_prime - gp_tolerance:.1f}-{self.min_gamma_prime + gp_tolerance:.1f}%). "
-                f"⚠️ Do NOT maximize γ' - match the target!"
+        for attempt in range(1, max_iterations + 1):
+            logger.info(f"--- Phase 1 Attempt {attempt}/{max_iterations} ---")
+            _reset_crewai_event_bus()
+
+            phase1_result = self._phase1_synthesis(
+                start_composition=start_composition,
+                temperature=temperature,
+                processing=processing,
+                feedback=feedback,
             )
 
-        target_str = "\n".join(target_parts) if target_parts else "No specific targets"
-
-        for i in range(max_iterations):
-            iteration_num = i + 1
-            logger.info(f"ITERATION {iteration_num}/{max_iterations}")
-
-            if use_direct_application and current_comp:
-                logger.info("DIRECT APPLICATION MODE: Using physics-optimized composition directly (bypassing LLM)")
-                if not isinstance(current_comp, dict) or not current_comp:
-                    logger.warning("Direct mode composition invalid, falling back to LLM")
-                    use_direct_application = False
-                    current_comp = None
-                    continue
-
-                total = sum(current_comp.values())
-                if total < 95.0 or total > 105.0:
-                    logger.warning(f"Direct mode composition sum ({total:.1f}%) out of range (95-105%), falling back to LLM")
-                    use_direct_application = False
-                    current_comp = None
-                    continue
-
-                try:
-                    result = self.evaluator.evaluate_properties(
-                        composition=current_comp,
-                        processing=processing,
-                        temperature=temperature,
-                        apply_calibration=True,
-                    )
-                    result["composition"] = current_comp
-                    result["processing"] = processing
-                    result["reasoning"] = "Direct application of physics-based optimization"
-                except Exception as e:
-                    logger.warning(f"Validation error in direct mode: {e}")
-                    use_direct_application = False  # Fall back to LLM
-            
-            if not use_direct_application or not current_comp:
-
-                result = self.run(
-                    base_composition=current_comp,
-                    input_feedback=feedback,
-                    temperature=temperature,
-                    processing=processing,
-                    iteration_num=iteration_num,
-                )
-
-            if "error" in result:
-                logger.error(f"Aborted: {result['error']}")
-                current_comp = result.get("composition", current_comp)
-                feedback = f"Design Failed: {result['error']}. Fix constraints."
-
-                if "Chemistry" in result["error"]:
-                    continue
-                break
-
-            if result.get("composition") and iteration_num < max_iterations:
-                is_valid, precheck_warnings = self._quick_physics_precheck(result["composition"])
-
-                if not is_valid:
-                    logger.info("FAST PHYSICS PRE-CHECK: Critical violations detected")
-                    for w in precheck_warnings:
-                        if w.startswith("Critical"):
-                            logger.warning(w)
-                        else:
-                            logger.info(w)
-
-                    logger.info("EARLY OPTIMIZATION: Getting physics-based corrections...")
-                    try:
-                        optimization_inputs = {
-                            "composition_json": json.dumps(result["composition"]),
-                            "target_props_str": target_str,
-                            "current_props_json": "{}",
-                            "failure_reasons": json.dumps([w for w in precheck_warnings if w.startswith("Critical")]),
-                            "processing": processing,
-                        }
-
-                        crew_opt = Crew(
-                            agents=[self.optimization_advisor],
-                            tasks=[self.task_optimization],
-                            verbose=False,
-                        )
-                        crew_opt.kickoff(inputs=optimization_inputs)
-
-                        opt_output = getattr(self.task_optimization.output, "pydantic", None)
-                        if opt_output and opt_output.recommended_actions:
-                            logger.info("EARLY OPTIMIZATION SUGGESTIONS:")
-                            for action in opt_output.recommended_actions[:3]:
-                                logger.info(f"  {action}")
-
-                            feedback = (
-                                f"⚠️ PRE-VALIDATION FAILURES DETECTED:\n"
-                                f"{chr(10).join(f'  • {w}' for w in precheck_warnings if w.startswith('Critical'))}\n\n"
-                                f"PHYSICS-BASED CORRECTIONS (Apply immediately):\n"
-                                f"{chr(10).join(f'  • {action}' for action in opt_output.recommended_actions[:3])}\n\n"
-                                f"Apply these corrections and propose a revised composition that fixes the critical issues above."
-                            )
-
-                            logger.info("Skipping full validation, applying corrections in next iteration...")
-                            # Continue to next iteration with corrective feedback (skip validation)
-                            continue
-                    except Exception as e:
-                        logger.warning(f"Early optimization failed: {e}, proceeding with full validation")
-
-            # Track the latest composition so the next iteration builds on it
-            current_comp = result.get("composition", current_comp)
-
-            logger.debug(f"Proposed: {result['composition']}")
-            props = result.get("properties", {})
-            tcp = result.get("tcp_risk", "Unknown")
-            penalties = len(result.get("audit_penalties", []))
-            logger.debug(f"Properties: YS={props.get('Yield Strength', 0)}, TCP={tcp}, Penalties={penalties}")
-
-
-            if self._is_design_successful(result):
-                logger.info("SUCCESS! Design converged.")
-                break
-
-            # 📊 STRUCTURED FAILURE ANALYSIS
-            failures_by_mode = self._classify_failures(result)
-
-            # Print structured failure report
-            logger.debug("FAILURE ANALYSIS:")
-            for mode, messages in failures_by_mode.items():
-                mode_label = mode.value.replace("_", " ")
-                logger.debug(f"  [{mode_label}]")
-                for msg in messages:
-                    logger.debug(f"    {msg}")
-
-            # Build flat failure list for backward compatibility
-            failures = []
-            for mode_messages in failures_by_mode.values():
-                failures.extend(mode_messages)
-
-            # --- PRIORITY ENFORCEMENT LOGIC ---
-            # Once YS target is met, focus EXCLUSIVELY on TCP risk
-            ys_target_met = props.get("Yield Strength", 0) >= self.min_yield if self.min_yield > 0 else True
-            tcp_critical = tcp in ("Critical", "Elevated")
-            
-            if ys_target_met and tcp_critical:
-                # PRIORITY MODE: Only focus on TCP, ignore other property improvements
-                logger.info("PRIORITY MODE: YS target met ({:.0f} >= {:.0f} MPa). Focusing ONLY on TCP risk reduction.".format(props.get("Yield Strength", 0), self.min_yield))
-                
-
-                tcp_failures = [f for f in failures if "TCP" in f or "Md" in f or "Physics" in f]
-                failures_for_advisor = tcp_failures if tcp_failures else ["TCP Risk needs reduction"]
-                
-                priority_note = (
-                    "\n\n⚠️ CRITICAL PRIORITY: YS target already achieved. "
-                    "Do NOT attempt to improve yield strength further. "
-                    "Focus EXCLUSIVELY on reducing TCP risk by lowering Md. "
-                    "Accept slight YS reduction if it eliminates TCP risk."
-                )
-            else:
-                failures_for_advisor = failures
-                priority_note = ""
-            
-
-
-            try:
-                opt_target_str = (
-                    f"- Yield Strength > {self.min_yield} MPa\n"
-                    f"- Tensile Strength > {self.min_tensile} MPa\n"
-                    f"- Elongation > {self.min_elongation} %\n"
-                    f"- Elastic Modulus > {self.min_elastic_modulus} GPa\n"
-                    f"- Density < {self.max_density} g/cm3\n"
-                    f"- Gamma Prime > {self.min_gamma_prime} %"
-                )
-
-                optimization_inputs = {
-                    "composition_json": json.dumps(result["composition"]),
-                    "target_props_str": opt_target_str,
-                    "current_props_json": json.dumps(props),
-                    "failure_reasons": json.dumps(failures_for_advisor),  # Use filtered failures
-                    "processing": processing,
-                }
-                
-
-                crew_opt = Crew(
-                    agents=[self.optimization_advisor],
-                    tasks=[self.task_optimization],
-                    verbose=True,
-                )
-                crew_opt.kickoff(inputs=optimization_inputs)
-                
-
-                opt_output = getattr(self.task_optimization.output, "pydantic", None)
-                if opt_output and opt_output.recommended_actions:
-                    logger.info("OPTIMIZATION SUGGESTIONS:")
-                    for action in opt_output.recommended_actions[:3]:
-                        logger.info(f"  {action}")
-
-                    failure_mode_summary = []
-                    for mode, msgs in failures_by_mode.items():
-                        if mode == FailureMode.TCP_RISK:
-                            failure_mode_summary.append("⚠️ CRITICAL: TCP phase formation risk")
-                        elif mode == FailureMode.PROPERTY_SHORTFALL:
-                            failure_mode_summary.append(f"⚠️ PROPERTY TARGET MISS: {len(msgs)} target(s) not met")
-                        elif mode == FailureMode.PHYSICS_VIOLATION:
-                            failure_mode_summary.append(f"⚠️ PHYSICS VIOLATION: {len(msgs)} constraint(s) violated")
-
-                    failure_list = ', '.join(failures_for_advisor)
-                    mode_context = "\n".join(failure_mode_summary)
-                    suggestions_text = "\n".join(f"  • {action}" for action in opt_output.recommended_actions[:5])
+            if "error" in phase1_result:
+                error_msg = phase1_result["error"]
+                logger.warning(f"Phase 1 attempt {attempt} failed: {error_msg}")
+                phase1_log.append({
+                    "attempt": attempt, "status": "error",
+                    "error": error_msg,
+                    "feedback_given": feedback,
+                })
+                # Use the failed composition as starting point for next attempt
+                start_composition = phase1_result.get("composition", start_composition)
+                # Give error-specific feedback so the LLM can fix the issue
+                if "WROUGHT VIOLATION" in error_msg or "gamma'" in error_msg.lower():
                     feedback = (
-                        f"Design REJECTED:\n{mode_context}\n\n"
-                        f"SPECIFIC FAILURES:\n{failure_list}\n\n"
-                        f"OPTIMIZATION SUGGESTIONS FROM PHYSICS ANALYSIS:\n{suggestions_text}\n\n"
-                        f"Propose a NEW composition addressing these issues.\n"
-                        f"Use your metallurgical expertise to incorporate these suggestions intelligently.{priority_note}"
+                        f"PREVIOUS ATTEMPT REJECTED: {error_msg} "
+                        f"For wrought alloys, keep Al+Ti+Ta+0.35*Nb < 7.0 wt% (γ' former index). "
+                        f"Target: Al≈3.5, Ti≈2.5, Ta≈0.5, Nb≈1.5 (index=3.5+2.5+0.5+0.53=7.03). "
+                        f"This gives γ'≈40-45% which is optimal for wrought."
+                    )
+                elif "sum" in error_msg.lower() or "total" in error_msg.lower():
+                    feedback = (
+                        f"PREVIOUS ATTEMPT REJECTED: {error_msg} "
+                        f"Ensure all elements sum to exactly 100.0 wt%."
                     )
                 else:
-                    # Fallback if optimization advisor fails
-                    mode_context = []
-                    for mode in failures_by_mode.keys():
-                        mode_context.append(f"- {mode.value.replace('_', ' ')}")
-                    mode_str = "\n".join(mode_context) if mode_context else "unspecified issues"
                     feedback = (
-                        f"Design FAILED:\nFailure Categories:\n{mode_str}\n\n"
-                        f"Details: {', '.join(failures)}\n\n"
-                        f"Propose a new composition to fix these issues."
+                        f"PREVIOUS ATTEMPT FAILED: {error_msg} "
+                        f"You MUST return valid JSON with exactly 3 fields: "
+                        f"'reasoning' (string), 'composition' (dict of element:wt%), "
+                        f"'processing' ('wrought' or 'cast'). "
+                        f'Example: {{"reasoning": "...", "composition": '
+                        f'{{"Ni": 55.0, "Cr": 14.0, "Co": 12.0, "Mo": 3.5, '
+                        f'"W": 3.5, "Al": 3.5, "Ti": 2.5, "Nb": 1.5}}, '
+                        f'"processing": "{processing}"}}'
                     )
-            except Exception as e:
-                logger.warning(f"Optimization advisor error: {e}")
-                failure_str = ", ".join(failures) if failures else "unspecified issues"
-                feedback = f"Design FAILED: {failure_str}. Propose a new composition to fix these issues."
+                feedback = f"[Attempt {attempt}/{max_iterations}] {feedback}"
+                continue
 
-        if not self._is_design_successful(result):
-            tcp_risk = result.get("tcp_risk", "Unknown")
-            penalties = result.get("audit_penalties", [])
-            props = result.get("properties", {})
+            # Phase 1 succeeded — quick-validate with physics
+            comp = phase1_result["composition"]
+            features = phase1_result.get("features") or compute_alloy_features(comp)
+            md_gamma = features.get("Md_gamma", 0)
+            md_avg = features.get("Md_avg", 0)
+            tcp_level = classify_tcp_risk(md_gamma, md_avg)
+            gp = features.get("gamma_prime_estimated_vol_pct", 0)
+            delta = features.get("lattice_mismatch_pct", 0)
 
-            issues = []
-            recommendations = []
+            # Physics YS estimate for strength feasibility
+            physics_ys = estimate_physics_ys(comp, processing, temperature)
+            ys_target = self.min_yield
+            ys_ratio = physics_ys / ys_target if ys_target > 0 else 1.0
 
-            if tcp_risk == "Critical":
-                md_val = result.get("metallurgy_metrics", {}).get("md_gamma_matrix", "?")
-                issues.append({
-                    "type": "TCP Risk",
-                    "severity": "High",
-                    "description": f"Critical risk of TCP phase formation (Md={md_val}, safe limit <{TCP['MD_DESIGN_SAFE']}). This can cause brittleness.",
-                    "recommendation": "Reduce refractory elements (Re, W, Mo) or increase Cr/Co to lower Md value."
-                })
-            elif tcp_risk == "Elevated":
-                issues.append({
-                    "type": "TCP Risk",
-                    "severity": "Medium",
-                    "description": "Elevated TCP risk - approaching danger zone for phase formation.",
-                    "recommendation": "Consider reducing refractory element content."
-                })
+            logger.info(
+                f"Phase 1 result: TCP={tcp_level}, "
+                f"Md_avg={md_avg:.3f}, GP={gp:.1f}%, mismatch={delta:.2f}%, "
+                f"est_YS={physics_ys:.0f} ({ys_ratio:.0%} of target), "
+                f"comp={comp}"
+            )
 
-            if penalties:
-                for penalty in penalties:
-                    penalty_name = penalty.get("name", "Unknown")
-                    penalty_desc = penalty.get("reason", "No description")
-                    issues.append({
-                        "type": "Audit Violation",
-                        "severity": "Medium",
-                        "description": f"{penalty_name}: {penalty_desc}",
-                        "recommendation": "Review composition constraints."
-                    })
+            phase1_log.append({
+                "attempt": attempt, "status": "ok",
+                "tcp": tcp_level, "gp": round(gp, 1),
+                "mismatch": round(delta, 2),
+                "physics_ys": round(physics_ys, 0),
+                "ys_ratio": round(ys_ratio, 2),
+                "feedback_given": feedback,
+            })
 
-            if self.min_yield > 0:
-                actual_ys = float(props.get("Yield Strength", 0) or 0)
-                if actual_ys < self.min_yield:
-                    issues.append({
-                        "type": "Target Miss",
-                        "severity": "Low",
-                        "description": f"Yield Strength {actual_ys:.0f} MPa is below target {self.min_yield} MPa.",
-                        "recommendation": "Increase γ' formers (Al, Ti) or add solid solution strengtheners (Mo, W)."
-                    })
+            # Keep the best result (prefer better TCP rank, then higher physics YS)
+            # TCP rank: Low=0 > Moderate=1 > Elevated=2 > Critical=3
+            if best_phase1 is None:
+                best_phase1 = phase1_result
+                best_phase1["_physics_ys"] = physics_ys
+                best_phase1["_tcp_rank"] = TCP_RANK.get(tcp_level, 4)
+            else:
+                prev_rank = best_phase1.get("_tcp_rank", 4)
+                cur_rank = TCP_RANK.get(tcp_level, 4)
+                prev_ys = best_phase1.get("_physics_ys", 0)
+                # Prefer: better TCP rank first, then higher estimated YS
+                if cur_rank < prev_rank:
+                    best_phase1 = phase1_result
+                    best_phase1["_physics_ys"] = physics_ys
+                    best_phase1["_tcp_rank"] = cur_rank
+                elif cur_rank == prev_rank and physics_ys > prev_ys:
+                    best_phase1 = phase1_result
+                    best_phase1["_physics_ys"] = physics_ys
+                    best_phase1["_tcp_rank"] = cur_rank
 
-            if self.min_tensile > 0:
-                actual_uts = float(props.get("Tensile Strength", 0) or 0)
-                if actual_uts < self.min_tensile:
-                    issues.append({
-                        "type": "Target Miss",
-                        "severity": "Low",
-                        "description": f"Tensile Strength {actual_uts:.0f} MPa is below target {self.min_tensile} MPa.",
-                        "recommendation": "Similar to yield strength - increase strengthening phases."
-                    })
+            # Exit condition: Acceptable TCP AND YS within 80% of target
+            # Low or Moderate TCP is acceptable — the guard can reduce Moderate.
+            # Only Critical/Elevated require another Phase 1 attempt.
+            ys_feasible = ys_target <= 0 or physics_ys >= ys_target * 0.80
+            tcp_acceptable = tcp_level in ("Low", "Moderate")
+            if tcp_acceptable and ys_feasible:
+                logger.info(f"Phase 1: Acceptable result (TCP={tcp_level}, YS feasible), proceeding to Phase 2")
+                break
 
-            if self.min_gamma_prime > 0:
-                actual_gp = float(props.get("Gamma Prime", 0) or 0)
-                gp_tolerance = max(2.0, self.min_gamma_prime * 0.2)
-                gp_min = self.min_gamma_prime - gp_tolerance
-                gp_max = self.min_gamma_prime + gp_tolerance
+            # Generate targeted feedback for next attempt
+            if tcp_level in ("Critical", "Elevated"):
+                cr_val = comp.get("Cr", 0)
+                mo_val = comp.get("Mo", 0)
+                w_val = comp.get("W", 0)
+                al_val = comp.get("Al", 0)
+                ti_val = comp.get("Ti", 0)
+                ta_val = comp.get("Ta", 0)
+                nb_val = comp.get("Nb", 0)
+                # Nb-aware feedback: Nb has Md=2.117, each 1% adds ~0.028 to Md_avg.
+                # When Nb>1.5%, it's often the dominant TCP driver — tell LLM to reduce it.
+                nb_advice = ""
+                if nb_val > 1.5:
+                    nb_md_contribution = nb_val * 0.028
+                    nb_advice = (
+                        f"ALSO REDUCE Nb from {nb_val:.1f}% to ≤1.5% "
+                        f"(Nb has Md=2.117, contributing ~{nb_md_contribution:.3f} to Md_avg). "
+                    )
+                    gp_freeze = (
+                        f"Do NOT increase Al/Ti/Ta to compensate — keep them at current levels "
+                        f"(Al={al_val:.1f}, Ti={ti_val:.1f}, Ta={ta_val:.1f}). "
+                    )
+                else:
+                    gp_freeze = (
+                        f"Do NOT increase Al/Ti/Ta/Nb to compensate — keep them at current levels "
+                        f"(Al={al_val:.1f}, Ti={ti_val:.1f}, Ta={ta_val:.1f}, Nb={nb_val:.1f}). "
+                    )
+                feedback = (
+                    f"TCP RISK {tcp_level}: Md_avg={md_avg:.3f} (safe<0.940). "
+                    f"Your Cr={cr_val:.1f}, Mo={mo_val:.1f}, W={w_val:.1f} "
+                    f"(Mo+W={mo_val+w_val:.1f}%), Nb={nb_val:.1f}%. "
+                    f"REDUCE Mo+W total to <6%, keep Cr=12-14%. "
+                    f"{nb_advice}"
+                    f"IMPORTANT: {gp_freeze}"
+                    f"γ'={gp:.0f}% is already adequate. Only adjust Cr/Mo/W/Co{'/Nb' if nb_val > 1.5 else ''}. "
+                    f"Reference low-TCP wrought composition: Cr=12.5, Mo=2.7, W=4.3, Nb=1.5, Co=20.7, Ta=1.6, Md_avg=0.928."
+                )
+            elif ys_target > 0 and not ys_feasible:
+                al = comp.get("Al", 0)
+                ti = comp.get("Ti", 0)
+                nb = comp.get("Nb", 0)
 
-                if actual_gp < gp_min:
-                    issues.append({
-                        "type": "Gamma Prime",
-                        "severity": "High",
-                        "description": f"Gamma Prime {actual_gp:.1f}% is below target range {gp_min:.1f}-{gp_max:.1f}%. Too little γ' for this alloy class.",
-                        "recommendation": f"Increase Al, Ti, or Ta content to reach target ~{self.min_gamma_prime}%."
-                    })
-                elif actual_gp > gp_max:
-                    issues.append({
-                        "type": "Gamma Prime",
-                        "severity": "High",
-                        "description": f"Gamma Prime {actual_gp:.1f}% is above target range {gp_min:.1f}-{gp_max:.1f}%. WRONG ALLOY CLASS - this is a high-γ' turbine blade alloy, not the requested low-γ' structural alloy.",
-                        "recommendation": f"Reduce Al, Ti, and Ta content significantly to reach target ~{self.min_gamma_prime}%. Current composition has {sum([result.get('composition', {}).get(el, 0) for el in ['Al', 'Ti', 'Ta']]):.1f}% formers, need <4% for low-γ' alloys."
-                    })
+                # Check mismatch situation to give targeted advice
+                mismatch_advice = ""
+                if abs(delta) > 0.5:
+                    drivers = compute_mismatch_drivers(comp, features)
+                    ti_driver = next((c for el, c, _ in drivers if el == "Ti"), 0)
+                    if ti_driver > 0.1:
+                        mismatch_advice = (
+                            f" MISMATCH ALERT: Ti({ti:.1f}%) is the primary mismatch driver "
+                            f"({ti_driver:+.2f}%). Al has ~4x less mismatch impact per GP contribution. "
+                            f"REDUCE Ti to ≤2.5%, INCREASE Al to ≥3.5%. "
+                            f"Nb also works (moderate mismatch, strong γ' former)."
+                        )
+                    else:
+                        mismatch_advice = (
+                            f" Mismatch={delta:.2f}%. Top drivers: "
+                            + ", ".join(f"{el}:{c:+.2f}%" for el, c, _ in drivers[:2])
+                            + "."
+                        )
+                elif abs(delta) < 0.3:
+                    # Mismatch is low — can afford more Ti/Nb
+                    mismatch_advice = (
+                        f" Mismatch is low ({delta:.2f}%) — you have room to add more "
+                        f"Ti or Nb for γ' without coherency issues."
+                    )
 
-            if len(issues) > 0:
-                recommendations.append(f"Try increasing iterations to {max_iterations + 5}")
-                recommendations.append("Consider relaxing conflicting targets")
-                if any(issue["type"] == "Gamma Prime" for issue in issues):
-                    recommendations.append("Review gamma prime target - different alloy classes have vastly different γ' fractions")
+                feedback = (
+                    f"STRENGTH INSUFFICIENT: Estimated YS≈{physics_ys:.0f} MPa vs target "
+                    f"{ys_target:.0f} MPa ({ys_ratio:.0%}). γ'={gp:.0f}% — need >35% for "
+                    f"YS>{ys_target:.0f}.{mismatch_advice} "
+                    f"Current: Al={al:.1f}, Ti={ti:.1f}, Nb={nb:.1f}. "
+                    f"Target composition: Al≈3.5, Ti≈2.5, Nb≈1.0-1.5, Mo≈3.5, W≈2-3. "
+                    f"Reference high-γ' wrought composition: Al=3.5, Ti=2.5, Nb=1.5, Mo=3.5, W=3.0, Co=18, Ta=1.5 → γ'≈40%, YS≈1100."
+                )
+            if feedback:
+                feedback = f"[Attempt {attempt}/{max_iterations}] {feedback}"
+            start_composition = comp
 
-            result["issues"] = issues
-            result["recommendations"] = recommendations
-            result["design_status"] = "incomplete"
-            result["iterations_used"] = max_iterations
+        if best_phase1 is None:
+            return {
+                "error": "Phase 1 failed: Designer could not produce a valid composition.",
+                "composition": start_composition or {},
+                "properties": {},
+                "tcp_risk": "Unknown",
+                "confidence": {},
+                "design_status": "failed",
+                "status": "REJECT",
+                "issues": [{"type": "Design Failure", "severity": "High",
+                            "description": "Designer could not produce a valid composition.",
+                            "recommendation": "Try different targets or relax constraints."}],
+                "recommendations": ["Relax conflicting targets", "Try a different alloy class"],
+                "explanation": "",
+                "optimization_log": {
+                    "phase1_attempts": len(phase1_log),
+                    "phase1_log": phase1_log,
+                },
+            }
 
-            has_high_severity = any(issue["severity"] == "High" for issue in issues)
-            if has_high_severity and result.get("status") == "PASS":
-                logger.warning("Overriding status from PASS to REJECT due to HIGH severity design issues")
-                result["status"] = "REJECT"
+        initial_comp = best_phase1["composition"]
+        best_phase1.pop("_physics_ys", None)  # Clean up temp fields
+        best_phase1.pop("_tcp_rank", None)
+        best_phase1.pop("features", None)
+        logger.info(f"Phase 1 best composition: {initial_comp}")
 
-            logger.warning(f"Design completed with {len(issues)} issues after {max_iterations} iterations")
-            for issue in issues:
-                logger.warning(f"  [{issue['severity']}] {issue['type']}: {issue['description']}")
+        # ── PHASE 2: Deterministic Gradient Optimization ─────────────
+        opt_result = self._phase2_optimize(
+            composition=initial_comp,
+            temperature=temperature,
+            processing=processing,
+        )
 
-        else:
+        optimized_comp = opt_result["composition"]
+        optimized_comp = round_composition(optimized_comp, decimals=2)
+        logger.info(f"Phase 2 optimized composition: {optimized_comp}")
+
+        # ── PHASE 3: Full LLM Evaluation ─────────────────────────────
+        result = self._phase3_evaluate(
+            composition=optimized_comp,
+            temperature=temperature,
+            processing=processing,
+        )
+
+        # Merge optimization metadata into result
+        result["optimization_log"] = {
+            "converged": opt_result["converged"],
+            "steps_used": opt_result["steps_used"],
+            "guard_fixes": opt_result.get("guard_fixes", []),
+            "initial_composition": initial_comp,
+            "phase1_reasoning": best_phase1.get("reasoning", ""),
+            "phase1_attempts": len(phase1_log),
+            "phase1_log": phase1_log,
+        }
+        result["iterations_used"] = len(phase1_log)  # Phase 1 LLM attempts before Phase 2+3
+
+        # ── Final success check ──────────────────────────────────────
+        if self._is_design_successful(result):
             result["design_status"] = "success"
             result["issues"] = []
             result["recommendations"] = []
+            logger.info("=== DESIGN PIPELINE: SUCCESS ===")
+        else:
+            result = self._enrich_failure_result(result)
+            logger.warning(
+                f"=== DESIGN PIPELINE: INCOMPLETE ({len(result.get('issues', []))} issues) ==="
+            )
 
         return result
 
