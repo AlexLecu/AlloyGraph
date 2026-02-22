@@ -36,53 +36,53 @@ from dotenv import load_dotenv
 import requests
 from groq import Groq
 
-# Load .env from project root (two levels up from this script)
-load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
+# Load .env from project root (scripts/ → chatbot/ → evaluation/ → project root)
+load_dotenv(Path(__file__).resolve().parent.parent.parent.parent / ".env")
 
 # ── Paths ───────────────────────────────────────────────────────────────
 ROOT = Path(__file__).resolve().parent.parent
 
 # Main questions
 QUESTIONS = ROOT / "data" / "questions.jsonl"
-RESPONSES_CHATBOT = ROOT / "output" / "responses_chatbot.jsonl"
-RESPONSES_LLAMA = ROOT / "output" / "responses_llama.jsonl"
-RESPONSES_GPT = ROOT / "output" / "responses_gpt.jsonl"
-SCORES_CHATBOT = ROOT / "output" / "scores_chatbot.json"
-SCORES_LLAMA = ROOT / "output" / "scores_llama.json"
-SCORES_GPT = ROOT / "output" / "scores_gpt.json"
-REPORT = ROOT / "output" / "report.json"
+RESPONSES_CHATBOT = ROOT / "results" / "responses_chatbot.jsonl"
+RESPONSES_LLAMA = ROOT / "results" / "responses_llama.jsonl"
+RESPONSES_GPT = ROOT / "results" / "responses_gpt.jsonl"
+SCORES_CHATBOT = ROOT / "results" / "scores_chatbot.json"
+SCORES_LLAMA = ROOT / "results" / "scores_llama.json"
+SCORES_GPT = ROOT / "results" / "scores_gpt.json"
+REPORT = ROOT / "results" / "report.json"
 
 # Track 1: MCQ
 MCQ_1HOP = ROOT / "data" / "mcq_1hop_questions.jsonl"
 MCQ_2HOP = ROOT / "data" / "mcq_2hop_questions.jsonl"
 MCQ_1HOP_RESP = {
-    "chatbot": ROOT / "output" / "mcq_1hop_responses_chatbot.jsonl",
-    "llama":   ROOT / "output" / "mcq_1hop_responses_llama.jsonl",
-    "gpt":     ROOT / "output" / "mcq_1hop_responses_gpt.jsonl",
+    "chatbot": ROOT / "results" / "mcq_1hop_responses_chatbot.jsonl",
+    "llama":   ROOT / "results" / "mcq_1hop_responses_llama.jsonl",
+    "gpt":     ROOT / "results" / "mcq_1hop_responses_gpt.jsonl",
 }
 MCQ_2HOP_RESP = {
-    "chatbot": ROOT / "output" / "mcq_2hop_responses_chatbot.jsonl",
-    "llama":   ROOT / "output" / "mcq_2hop_responses_llama.jsonl",
-    "gpt":     ROOT / "output" / "mcq_2hop_responses_gpt.jsonl",
+    "chatbot": ROOT / "results" / "mcq_2hop_responses_chatbot.jsonl",
+    "llama":   ROOT / "results" / "mcq_2hop_responses_llama.jsonl",
+    "gpt":     ROOT / "results" / "mcq_2hop_responses_gpt.jsonl",
 }
-MCQ_REPORT = ROOT / "output" / "mcq_report.json"
+MCQ_REPORT = ROOT / "results" / "mcq_report.json"
 
 # Track 2: RAGAS (chatbot only)
 RAGAS_QUESTIONS = ROOT / "data" / "ragas_questions.jsonl"
-RAGAS_RESPONSES = ROOT / "output" / "ragas_responses.jsonl"
-RAGAS_SCORES = ROOT / "output" / "ragas_scores.json"
-RAGAS_REPORT = ROOT / "output" / "ragas_report.json"
+RAGAS_RESPONSES = ROOT / "results" / "ragas_responses.jsonl"
+RAGAS_SCORES = ROOT / "results" / "ragas_scores.json"
+RAGAS_REPORT = ROOT / "results" / "ragas_report.json"
 
 # Track 3: Expert exam (blind evaluation by materials scientist)
 EXPERT_QUESTIONS = ROOT / "data" / "expert_questions.jsonl"
 EXPERT_RESP = {
-    "chatbot": ROOT / "output" / "expert_responses_chatbot.jsonl",
-    "llama":   ROOT / "output" / "expert_responses_llama.jsonl",
-    "gpt":     ROOT / "output" / "expert_responses_gpt.jsonl",
+    "chatbot": ROOT / "results" / "expert_responses_chatbot.jsonl",
+    "llama":   ROOT / "results" / "expert_responses_llama.jsonl",
+    "gpt":     ROOT / "results" / "expert_responses_gpt.jsonl",
 }
 
 # Training data (for context reconstruction)
-TRAINING_DATA = ROOT.parent / "backend" / "alloy_crew" / "models" / "training_data" / "train_77alloys.jsonl"
+TRAINING_DATA = ROOT.parent.parent / "backend" / "alloy_crew" / "models" / "training_data" / "train_77alloys.jsonl"
 
 # ── Config ──────────────────────────────────────────────────────────────
 CHATBOT_URL = os.getenv("CHATBOT_URL", "http://localhost:5001")
@@ -425,7 +425,7 @@ def phase_report():
       1. Automated accuracy metrics
       2. RAGAS quality metrics (from --phase score)
     """
-    output_dir = ROOT / "output"
+    output_dir = ROOT / "results"
     report = {"timestamp": datetime.now().isoformat(), "sections": {}}
     found_any = False
 

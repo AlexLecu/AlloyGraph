@@ -26,9 +26,9 @@ from utils import load_alloys, get_rt_value, get_value_at_temp, PROPERTIES
 
 random.seed(42)
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent.parent
 GROUND_TRUTH = ROOT / "backend" / "alloy_crew" / "models" / "training_data" / "train_77alloys.jsonl"
-OUTPUT = ROOT / "evaluation_chatbot" / "data" / "ragas_questions.jsonl"
+OUTPUT = ROOT / "evaluation" / "chatbot" / "data" / "ragas_questions.jsonl"
 
 
 # ── Helpers ────────────────────────────────────────────────────────────

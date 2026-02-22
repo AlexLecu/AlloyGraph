@@ -16,7 +16,7 @@ import random
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-OUTPUT = ROOT / "output"
+OUTPUT = ROOT / "results"
 
 EXPERT_QUESTIONS = ROOT / "data" / "expert_questions.jsonl"
 EXPERT_RESP = {

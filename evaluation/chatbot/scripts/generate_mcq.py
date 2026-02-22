@@ -21,10 +21,10 @@ from utils import load_alloys, get_rt_value, get_value_at_temp, PROPERTIES
 
 random.seed(42)
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent.parent
 GROUND_TRUTH = ROOT / "backend" / "alloy_crew" / "models" / "training_data" / "train_77alloys.jsonl"
-OUT_1HOP = ROOT / "evaluation_chatbot" / "data" / "mcq_1hop_questions.jsonl"
-OUT_2HOP = ROOT / "evaluation_chatbot" / "data" / "mcq_2hop_questions.jsonl"
+OUT_1HOP = ROOT / "evaluation" / "chatbot" / "data" / "mcq_1hop_questions.jsonl"
+OUT_2HOP = ROOT / "evaluation" / "chatbot" / "data" / "mcq_2hop_questions.jsonl"
 
 # ── Question templates ─────────────────────────────────────────────────
 
