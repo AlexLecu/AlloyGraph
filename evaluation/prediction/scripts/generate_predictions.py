@@ -47,8 +47,9 @@ import numpy as np
 
 # Add backend and scripts to path
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-BASE_DIR = os.path.dirname(SCRIPT_DIR)
-BACKEND_DIR = os.path.join(BASE_DIR, '..', 'backend')
+BASE_DIR = os.path.dirname(SCRIPT_DIR)  # prediction/
+PROJECT_ROOT = os.path.dirname(os.path.dirname(BASE_DIR))  # AlloyGraph/
+BACKEND_DIR = os.path.join(PROJECT_ROOT, 'backend')
 sys.path.insert(0, BACKEND_DIR)
 sys.path.insert(0, SCRIPT_DIR)
 
