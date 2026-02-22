@@ -6,11 +6,12 @@ Tier 1 — Guard:
     of range, Critical TCP, excessive γ', lattice mismatch.
 
 Tier 2 — Tuner:
-    Makes small (±2 wt%) adjustments to performance-sensitive elements
+    Makes small (±3 wt%) adjustments to performance-sensitive elements
     (Al, Ti, Mo, W, Ta, Nb) to close property deficits against targets.
     Uses ML model predictions for sensitivity analysis — the same models
     that Phase 3 evaluates against — so the tuner sees the same deficits.
-    Max 10 steps.
+    Max 15 steps.  GP formers (Al/Ti/Ta/Nb) can be reduced for EL deficit
+    only when YS+UTS already exceed targets (5% margin).
 
 Philosophy:
     The LLM chooses the alloy architecture (class, element balance,
@@ -69,9 +70,9 @@ WROUGHT_TUNE_CAPS = {
 
 # ── Tuner settings ─────────────────────────────────────────────────
 TUNABLE_ELEMENTS = {"Al", "Ti", "Mo", "W", "Ta", "Nb"}
-MAX_TUNE_DEVIATION = 2.0    # ±2 wt% from LLM's original per element
-MAX_TUNE_STEPS = 10
-TUNE_STEP_SIZE = 0.3        # wt% per gradient step
+MAX_TUNE_DEVIATION = 3.0    # ±3 wt% from LLM's original per element
+MAX_TUNE_STEPS = 15
+TUNE_STEP_SIZE = 0.5        # wt% per gradient step
 SENSITIVITY_DELTA = 0.5     # wt% perturbation for finite differences
 CONVERGENCE_TOL = 0.02      # 2% of target → converged
 
@@ -213,9 +214,77 @@ def _get_ml_predictions(composition: dict, temperature_c: int,
     }
 
 
+def _get_blended_predictions(composition: dict, temperature_c: int,
+                             processing: str) -> dict:
+    """Blended ML + empirical predictions matching the evaluator's proposal system."""
+    ml = _get_ml_predictions(composition, temperature_c, processing)
+    features = compute_alloy_features(composition)
+    gp = features.get("gamma_prime_estimated_vol_pct", 0)
+    alloy_class = get_alloy_class(composition, processing)
+
+    ml_ys = ml["Yield Strength"]
+    ml_uts = ml["Tensile Strength"]
+    ml_el = ml["Elongation"]
+    ml_em = ml["Elastic Modulus"]
+
+    if alloy_class == "sss":
+        # SSS: 30% ML + 70% physics (matches Proposal 1 blend)
+        physics_ys, _ = get_sss_physics_ys(composition, processing)
+        temp_factor = get_temperature_factor(temperature_c, "sss")
+        physics_ys *= temp_factor
+        blended_ys = 0.30 * ml_ys + 0.70 * physics_ys
+
+        ml_ratio = ml_uts / ml_ys if ml_ys > 0 else 1.5
+        ml_ratio = max(1.0, min(ml_ratio, 1.8))
+        ratio = compress_uts_ys_ratio(ml_ratio, temperature_c)
+        blended_uts = blended_ys * ratio
+
+        blended_el = ml_el  # SSS ductility: trust ML
+
+    else:
+        # γ' alloys: use empirical formula (matches Proposal 1B)
+        if processing in ("wrought", "forged"):
+            empirical_ys_rt = 520 + 13 * gp
+        else:
+            empirical_ys_rt = 400 + 10 * gp
+
+        temp_factor = get_temperature_factor(temperature_c, "gp")
+        empirical_ys = empirical_ys_rt * temp_factor
+
+        # 20% ML + 80% empirical (same as evaluator's moderate blend)
+        blended_ys = 0.20 * ml_ys + 0.80 * empirical_ys
+
+        # UTS from blended YS × temperature-compressed ML ratio
+        ml_ratio = ml_uts / ml_ys if ml_ys > 0 else 1.4
+        ml_ratio = max(1.0, min(ml_ratio, 1.8))
+        ratio = compress_uts_ys_ratio(ml_ratio, temperature_c)
+        blended_uts = blended_ys * ratio
+
+        # EL: blend ML with empirical (ML tends to overpredict for high-γ')
+        if processing in ("wrought", "forged"):
+            empirical_el = max(10.0, 28 - 0.28 * gp)
+        else:
+            empirical_el = max(4.0, 18 - 0.25 * gp)
+        blended_el = 0.50 * ml_el + 0.50 * empirical_el
+
+    # EM: always blend with Reuss bound (matches evaluator's EM enforcement)
+    em_reuss = calculate_em_rule_of_mixtures(composition)
+    em_temp_factor = get_em_temp_factor(temperature_c)
+    physics_em = em_reuss * em_temp_factor
+    blended_em = 0.30 * ml_em + 0.70 * physics_em
+
+    return {
+        "Yield Strength": round(blended_ys, 1),
+        "Tensile Strength": round(blended_uts, 1),
+        "Elongation": round(blended_el, 1),
+        "Elastic Modulus": round(blended_em, 1),
+        "Gamma Prime": round(gp, 1),
+    }
+
+
 def _compute_sensitivity(composition: dict, element: str, prop: str,
                          temperature_c: int, processing: str) -> float:
-    """∂prop/∂element via central finite differences (ML model)."""
+    """∂prop/∂element via central finite differences (blended predictions)."""
     delta = SENSITIVITY_DELTA
     current = composition.get(element, 0)
 
@@ -229,8 +298,8 @@ def _compute_sensitivity(composition: dict, element: str, prop: str,
     non_ni = sum(v for k, v in comp_down.items() if k != "Ni")
     comp_down["Ni"] = 100.0 - non_ni
 
-    pred_up = _get_ml_predictions(comp_up, temperature_c, processing)
-    pred_down = _get_ml_predictions(comp_down, temperature_c, processing)
+    pred_up = _get_blended_predictions(comp_up, temperature_c, processing)
+    pred_down = _get_blended_predictions(comp_down, temperature_c, processing)
 
     actual_delta = (current + delta) - max(0.0, current - delta)
     if actual_delta < 0.01:
@@ -442,6 +511,22 @@ def _guard(
             fixes.append(f"GP fix: γ'={gp:.0f}%>50%, scaled formers by {scale:.2f}")
             comp = _normalise(comp)
 
+    # ── 6b. γ' > 60% for cast ────────────────────────────────────
+    elif processing == "cast":
+        for _gp_pass in range(5):
+            features = compute_alloy_features(comp)
+            gp = features.get("gamma_prime_estimated_vol_pct", 0)
+            if gp <= 60:
+                break
+            excess_ratio = (gp - 55.0) / max(gp, 1)
+            scale = max(0.80, 1.0 - excess_ratio)
+            for el in ["Al", "Ti", "Ta", "Nb"]:
+                if comp.get(el, 0) > 0.3:
+                    old = comp[el]
+                    comp[el] = round(old * scale, 2)
+            fixes.append(f"GP fix: γ'={gp:.0f}%>60% cast, scaled formers by {scale:.2f}")
+            comp = _normalise(comp)
+
     # ── 7. Lattice mismatch > 0.8% ──────────────────────────────
     features = compute_alloy_features(comp)
     delta = features.get("lattice_mismatch_pct", 0)
@@ -522,7 +607,7 @@ def _tune(
 
     if not tune_bounds:
         logger.info("Tuner: no tunable elements present, skipping")
-        predicted = _get_ml_predictions(comp, temperature_c, processing)
+        predicted = _get_blended_predictions(comp, temperature_c, processing)
         features = compute_alloy_features(comp)
         return _build_tune_result(comp, predicted, features, 0, log)
 
@@ -536,9 +621,9 @@ def _tune(
     logger.info(f"Tuner starting TCP: {starting_tcp} (rank {starting_tcp_rank})")
 
     for step in range(max_steps):
-        predicted = _get_ml_predictions(comp, temperature_c, processing)
+        predicted = _get_blended_predictions(comp, temperature_c, processing)
 
-        # Compute property deficits (actual targets, no overshoot)
+        # Compute property deficits using blended predictions.
         deficits = []
         for prop in ["Yield Strength", "Tensile Strength", "Elongation", "Elastic Modulus"]:
             target = targets.get(prop, 0)
@@ -597,13 +682,17 @@ def _tune(
                     candidates.append((el, "increase", sens, adjustment))
 
             elif sens < -0.1:
-                # Decreasing this element helps — but NEVER reduce GP formers.
-                # The guard handles all needed GP former reductions (γ'>50%,
-                # mismatch).  The tuner's raw physics sees no YS deficit
-                # (overestimates), only EM deficit, and reduces Al (70 GPa,
-                # lowest modulus) — destroying 10-25% of GP for marginal EM gain.
+                # Decreasing this element helps — but restrict GP formers.
+                # The guard handles catastrophic GP reductions (γ'>50%,
+                # mismatch).  For EM deficit: reducing Al (70 GPa, lowest
+                # modulus) destroys 10-25% of GP for marginal EM gain — block.
                 if el in ("Al", "Ti", "Ta", "Nb"):
-                    continue
+                    if prop_to_fix != "Elongation":
+                        continue
+                    ys_ok = predicted.get("Yield Strength", 0) >= targets.get("Yield Strength", 0) * 1.05
+                    uts_ok = predicted.get("Tensile Strength", 0) >= targets.get("Tensile Strength", 0) * 1.05
+                    if not (ys_ok and uts_ok):
+                        continue
                 reducible = current - lo
                 if reducible > 0.05:
                     adjustment = min(TUNE_STEP_SIZE, reducible)
@@ -667,7 +756,7 @@ def _tune(
 
     # Final state
     comp = {k: round(v, 2) for k, v in comp.items() if v > 0.01}
-    final_pred = _get_ml_predictions(comp, temperature_c, processing)
+    final_pred = _get_blended_predictions(comp, temperature_c, processing)
     features = compute_alloy_features(comp)
 
     return _build_tune_result(comp, final_pred, features, len(log), log)

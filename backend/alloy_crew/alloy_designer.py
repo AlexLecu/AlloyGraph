@@ -180,17 +180,44 @@ class IterativeDesignCrew:
 
     # ── Target string builder ───────────────────────────────────────
 
-    def _build_target_string(self) -> str:
+    def _build_target_string(self, processing: str = "wrought",
+                             temperature: int = 20) -> str:
         """Build target property string for task descriptions."""
+        from .config.alloy_parameters import get_temperature_factor
+
         target_parts = []
+
+        # Compute implied γ' from YS target (empirical: YS = BASE + COEFF × γ')
+        implied_gp = None
         if self.min_yield > 0:
-            target_parts.append(f"- Yield Strength >= {self.min_yield} MPa")
+            temp_factor = get_temperature_factor(temperature, "gp")
+            if processing in ("wrought", "forged"):
+                ys_rt_needed = self.min_yield / temp_factor if temp_factor > 0 else self.min_yield
+                implied_gp = max(0, (ys_rt_needed - 520) / 13)
+            else:
+                ys_rt_needed = self.min_yield / temp_factor if temp_factor > 0 else self.min_yield
+                implied_gp = max(0, (ys_rt_needed - 400) / 10)
+
+            gp_hint = f"  [→ needs γ'≈{implied_gp:.0f}%]" if implied_gp and implied_gp > 5 else ""
+            target_parts.append(f"- Yield Strength >= {self.min_yield} MPa{gp_hint}")
         if self.min_tensile > 0:
-            target_parts.append(f"- Tensile Strength >= {self.min_tensile} MPa")
+            target_parts.append(f"- Tensile Strength >= {self.min_tensile} MPa  [follows from YS × ratio]")
         if self.min_elongation > 0:
-            target_parts.append(f"- Elongation >= {self.min_elongation} %")
+            # Compute max γ' for this EL target
+            if processing in ("wrought", "forged"):
+                max_gp_for_el = (28 - self.min_elongation) / 0.28
+            else:
+                max_gp_for_el = (18 - self.min_elongation) / 0.25
+            max_gp_for_el = max(max_gp_for_el, 10)
+            target_parts.append(
+                f"- Elongation >= {self.min_elongation} %  "
+                f"[→ needs γ'<{max_gp_for_el:.0f}%]"
+            )
         if self.min_elastic_modulus > 0:
-            target_parts.append(f"- Elastic Modulus >= {self.min_elastic_modulus} GPa")
+            target_parts.append(
+                f"- Elastic Modulus >= {self.min_elastic_modulus} GPa  "
+                f"[add W(411GPa) or Mo(329GPa); avoid excess Al(70GPa)]"
+            )
         if self.max_density < 99.0:
             target_parts.append(f"- Density <= {self.max_density} g/cm3")
         if self.target_gamma_prime > 0:
@@ -201,6 +228,15 @@ class IterativeDesignCrew:
                 f"{self.target_gamma_prime + gp_tolerance:.1f}%). "
                 f"Do NOT maximize gamma prime - match the target!"
             )
+
+        # Add γ' balance warning if both YS and EL targets create tension
+        if implied_gp and self.min_elongation > 0 and implied_gp > max_gp_for_el:
+            target_parts.append(
+                f"\nWARNING: YS needs γ'≈{implied_gp:.0f}% but EL needs γ'<{max_gp_for_el:.0f}%. "
+                f"Target γ'≈{(implied_gp + max_gp_for_el) / 2:.0f}% as compromise. "
+                f"Use SSS strengtheners (Mo, W) to boost YS without more γ'."
+            )
+
         return "\n".join(target_parts) if target_parts else "No specific targets"
 
     # ── Novelty check ───────────────────────────────────────────────
@@ -238,32 +274,20 @@ class IterativeDesignCrew:
             "{feedback}\n\n"
 
             "INSTRUCTIONS:\n"
-            "1. Use QuickCheckTool to validate your composition BEFORE submitting.\n"
-            "   IMPORTANT: Always set temperature_c={temperature} when calling QuickCheckTool\n"
-            "   so that estimated_ys_mpa reflects the actual service temperature.\n"
-            "2. If QuickCheckTool reports CRITICAL warnings, fix them and re-check.\n"
-            "3. Your composition will be further refined by a deterministic optimizer,\n"
-            "   so focus on getting the right ALLOY CLASS and BALLPARK composition.\n"
-            "4. The optimizer handles fine-tuning of element percentages.\n"
-            "5. IMPORTANT: Match the STRENGTH CLASS to the YS target:\n"
-            "   - YS < 600 MPa: SSS alloys. Low γ' formers, rely on Mo/W/Nb.\n"
-            "   - YS 600-900 MPa: Moderate gamma prime. Al+Ti 3-5%.\n"
-            "   - YS 900-1200 MPa: High gamma prime disc alloys.\n"
-            "     Need Mo 3-5%, W 1-4%, Nb 1-1.5%, Al+Ti 5-7%.\n"
-            "   - YS > 1200 MPa: Cast/SC blade alloys.\n"
-            "     Need significant refractory content.\n"
-            "   Do NOT under-design. The optimizer can refine but cannot change alloy class.\n"
-            "6. PROPERTY-SPECIFIC GUIDANCE:\n"
-            "   - Elongation target: Higher El requires LOWER gamma prime. El>=25% needs\n"
-            "     gamma'<30% (moderate formers). El>=15% is typical for gamma'=35-45%.\n"
-            "   - Density target: Lower density requires avoiding heavy elements (W, Re, Ta, Hf).\n"
-            "     Prefer Mo over W for strengthening. Keep Al/Ti/Cr/Co (lighter elements).\n"
-            "     Typical Ni superalloys: 7.8-8.5 g/cm3. Below 8.0 needs W<2%, no Re/Hf.\n\n"
+            "1. Use QuickCheckTool (set temperature_c={temperature}) to validate BEFORE submitting.\n"
+            "   Compare ALL estimated properties (YS, UTS, EL, EM) against your targets.\n"
+            "2. If QuickCheckTool reports CRITICAL warnings, fix and re-check.\n"
+            "3. Focus on getting the right ALLOY CLASS — a deterministic optimizer will\n"
+            "   fine-tune ±3% per element afterward, but cannot change alloy class.\n"
+            "4. Follow the [→ needs γ'≈X%] and [→ needs γ'<X%] hints in TARGETS.\n"
+            "   These tell you exactly what γ' fraction to aim for.\n"
+            "5. UTS follows from YS (× ratio). EM: add W/Mo to increase, reduce Al to avoid lowering.\n"
+            "   Density: prefer Mo over W; W/Re/Ta/Hf are heavy.\n\n"
 
             "SUCCESS CRITERIA:\n"
             "1. QuickCheckTool reports valid=true (no CRITICAL warnings)\n"
             "2. TCP risk = Low (Md_avg < {md_target})\n"
-            "3. Correct alloy class for the target gamma prime\n"
+            "3. ALL estimated properties (YS, UTS, EL, EM) within ~10% of targets\n"
             "4. Elements sum to 100.0 wt%\n\n"
 
             "{novelty_msg}\n\n"
@@ -295,7 +319,7 @@ class IterativeDesignCrew:
             else "No starting comp - create from scratch"
         )
 
-        target_str = self._build_target_string()
+        target_str = self._build_target_string(processing, temperature)
         novelty_msg = self._run_novelty_check(start_composition)
 
         inputs = {
@@ -654,6 +678,17 @@ class IterativeDesignCrew:
         best_phase1 = None
         feedback = None
         phase1_log = []  # Track each attempt for observability
+        overshoot_warned = False  # Track if we've given EL overshoot feedback
+
+        # Max γ' compatible with elongation target (empirical heuristic).
+        max_gp_for_el = 0  # 0 means no EL constraint
+        if self.min_elongation > 0:
+            base = 35 if processing != "cast" else 25
+            slope = 0.45 if processing != "cast" else 0.35
+            # Temperature correction: above 650°C, EL increases ~0.18% per °C
+            if temperature > 650:
+                base += 0.18 * (temperature - 650)
+            max_gp_for_el = max(15, (base - self.min_elongation) / slope)
 
         for attempt in range(1, max_iterations + 1):
             logger.info(f"--- Phase 1 Attempt {attempt}/{max_iterations} ---")
@@ -733,34 +768,53 @@ class IterativeDesignCrew:
                 "feedback_given": feedback,
             })
 
-            # Keep the best result (prefer better TCP rank, then higher physics YS)
+            # Keep the best result (prefer better TCP, then EL feasibility, then YS)
             # TCP rank: Low=0 > Moderate=1 > Elevated=2 > Critical=3
+            cur_rank = TCP_RANK.get(tcp_level, 4)
+            cur_el_ok = max_gp_for_el <= 0 or gp <= max_gp_for_el * 1.2
             if best_phase1 is None:
                 best_phase1 = phase1_result
                 best_phase1["_physics_ys"] = physics_ys
-                best_phase1["_tcp_rank"] = TCP_RANK.get(tcp_level, 4)
+                best_phase1["_tcp_rank"] = cur_rank
+                best_phase1["_gp"] = gp
             else:
                 prev_rank = best_phase1.get("_tcp_rank", 4)
-                cur_rank = TCP_RANK.get(tcp_level, 4)
                 prev_ys = best_phase1.get("_physics_ys", 0)
-                # Prefer: better TCP rank first, then higher estimated YS
+                prev_gp = best_phase1.get("_gp", 0)
+                prev_el_ok = max_gp_for_el <= 0 or prev_gp <= max_gp_for_el * 1.2
+
+                replace = False
                 if cur_rank < prev_rank:
+                    replace = True  # Better TCP always wins
+                elif cur_rank == prev_rank:
+                    if cur_el_ok and not prev_el_ok:
+                        replace = True  # EL-feasible beats EL-infeasible
+                    elif cur_el_ok == prev_el_ok and physics_ys > prev_ys:
+                        replace = True  # Same EL status → higher YS wins
+
+                if replace:
                     best_phase1 = phase1_result
                     best_phase1["_physics_ys"] = physics_ys
                     best_phase1["_tcp_rank"] = cur_rank
-                elif cur_rank == prev_rank and physics_ys > prev_ys:
-                    best_phase1 = phase1_result
-                    best_phase1["_physics_ys"] = physics_ys
-                    best_phase1["_tcp_rank"] = cur_rank
+                    best_phase1["_gp"] = gp
 
             # Exit condition: Acceptable TCP AND YS within 80% of target
             # Low or Moderate TCP is acceptable — the guard can reduce Moderate.
             # Only Critical/Elevated require another Phase 1 attempt.
             ys_feasible = ys_target <= 0 or physics_ys >= ys_target * 0.80
             tcp_acceptable = tcp_level in ("Low", "Moderate")
+            el_risk = max_gp_for_el > 0 and gp > max_gp_for_el * 1.15
+
             if tcp_acceptable and ys_feasible:
-                logger.info(f"Phase 1: Acceptable result (TCP={tcp_level}, YS feasible), proceeding to Phase 2")
-                break
+                if el_risk and not overshoot_warned:
+                    overshoot_warned = True
+                    logger.info(
+                        f"Phase 1: YS feasible but γ'={gp:.0f}% > {max_gp_for_el:.0f}% "
+                        f"(max for EL≥{self.min_elongation:.0f}%). Giving EL feedback."
+                    )
+                else:
+                    logger.info(f"Phase 1: Acceptable result (TCP={tcp_level}, YS feasible), proceeding to Phase 2")
+                    break
 
             # Generate targeted feedback for next attempt
             if tcp_level in ("Critical", "Elevated"):
@@ -837,6 +891,18 @@ class IterativeDesignCrew:
                     f"Target composition: Al≈3.5, Ti≈2.5, Nb≈1.0-1.5, Mo≈3.5, W≈2-3. "
                     f"Reference high-γ' wrought composition: Al=3.5, Ti=2.5, Nb=1.5, Mo=3.5, W=3.0, Co=18, Ta=1.5 → γ'≈40%, YS≈1100."
                 )
+            elif el_risk:
+                al = comp.get("Al", 0)
+                ti = comp.get("Ti", 0)
+                nb = comp.get("Nb", 0)
+                suggested_gp = round((gp + max_gp_for_el) / 2)
+                feedback = (
+                    f"ELONGATION RISK: γ'={gp:.0f}% is too high for Elongation≥{self.min_elongation:.0f}%. "
+                    f"Your YS≈{physics_ys:.0f} already exceeds target {ys_target:.0f} — "
+                    f"REDUCE γ' formers slightly to lower γ' toward ~{suggested_gp:.0f}%. "
+                    f"Current: Al={al:.1f}, Ti={ti:.1f}, Nb={nb:.1f}. "
+                    f"Reduce Al by ~0.5-1.0% and Ti by ~0.5%. Do NOT drop below γ'≈{suggested_gp:.0f}%."
+                )
             if feedback:
                 feedback = f"[Attempt {attempt}/{max_iterations}] {feedback}"
             start_composition = comp
@@ -863,6 +929,7 @@ class IterativeDesignCrew:
 
         initial_comp = best_phase1["composition"]
         best_phase1.pop("_physics_ys", None)  # Clean up temp fields
+        best_phase1.pop("_gp", None)
         best_phase1.pop("_tcp_rank", None)
         best_phase1.pop("features", None)
         logger.info(f"Phase 1 best composition: {initial_comp}")

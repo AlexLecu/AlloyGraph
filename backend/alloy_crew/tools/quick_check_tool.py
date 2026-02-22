@@ -8,11 +8,12 @@ from ..schemas import CompositionStr
 
 from ..models.feature_engineering import (
     compute_alloy_features, wt_to_at_percent, estimate_partitioning,
-    LATTICE_COEFFS, calculate_lattice_parameter,
+    LATTICE_COEFFS, calculate_lattice_parameter, calculate_em_rule_of_mixtures,
 )
 from ..config.alloy_parameters import (
     TCP, classify_tcp_risk, is_sss_alloy, get_alloy_class,
     get_params, get_coeff_gp, get_sss_physics_ys, get_temperature_factor,
+    get_em_temp_factor, compress_uts_ys_ratio,
 )
 
 logger = logging.getLogger(__name__)
@@ -133,11 +134,12 @@ class QuickCheckTool(BaseTool):
     name: str = "QuickCheckTool"
     description: str = (
         "Validates an alloy composition against physics constraints BEFORE full evaluation. "
-        "Returns gamma prime %, Md values, TCP risk, lattice mismatch, density, "
-        "estimated yield strength (estimated_ys_mpa), and any warnings. "
-        "IMPORTANT: Set temperature_c to your service temperature for accurate YS estimates. "
-        "Compare estimated_ys_mpa to your YS target — if it's much lower, "
-        "you need more γ' formers (Al, Ti, Nb) or SSS strengtheners (Mo, W)."
+        "Returns gamma prime %, Md values, TCP risk, lattice mismatch, density, and "
+        "estimated properties: estimated_ys_mpa, estimated_uts_mpa, estimated_el_pct, estimated_em_gpa. "
+        "IMPORTANT: Set temperature_c to your service temperature for accurate estimates. "
+        "Compare ALL estimated properties to your targets. "
+        "If YS is low, add γ' formers (Al, Ti) or SSS strengtheners (Mo, W). "
+        "If EL is low, reduce γ' formers. If EM is low, add W or Mo (high-modulus elements)."
     )
     args_schema: Type[BaseModel] = QuickCheckInput
 
@@ -246,6 +248,27 @@ class QuickCheckTool(BaseTool):
         # Estimated yield strength from physics model (at service temperature)
         estimated_ys = estimate_physics_ys(composition, processing, temperature_c)
 
+        # Estimated UTS from YS × ratio (temperature-compressed)
+        if processing in ("wrought", "forged"):
+            base_ratio = 1.15 if gp > 40 else 1.40
+        else:
+            base_ratio = 1.10 + (gp / 100) * 0.15 + 0.10
+        uts_ratio = compress_uts_ys_ratio(base_ratio, temperature_c)
+        estimated_uts = estimated_ys * uts_ratio
+
+        # Estimated Elongation from empirical γ' correlation
+        if is_sss_alloy(composition):
+            estimated_el = 40.0  # SSS alloys have high ductility
+        elif processing in ("wrought", "forged"):
+            estimated_el = max(10.0, 28 - 0.28 * gp)
+        else:
+            estimated_el = max(4.0, 18 - 0.25 * gp)
+
+        # Estimated Elastic Modulus from Reuss bound
+        em_reuss = calculate_em_rule_of_mixtures(composition)
+        em_temp = get_em_temp_factor(temperature_c)
+        estimated_em = em_reuss * em_temp
+
         has_critical = any(w.startswith("CRITICAL") for w in warnings)
 
         # Per-element mismatch breakdown (reuse cached computation)
@@ -256,6 +279,9 @@ class QuickCheckTool(BaseTool):
             "alloy_class": alloy_class,
             "gamma_prime_pct": round(gp, 1),
             "estimated_ys_mpa": round(estimated_ys, 0),
+            "estimated_uts_mpa": round(estimated_uts, 0),
+            "estimated_el_pct": round(estimated_el, 1),
+            "estimated_em_gpa": round(estimated_em, 1),
             "Md_avg": round(md_avg, 3),
             "Md_gamma": round(md_gamma, 3),
             "tcp_risk": tcp_level,
