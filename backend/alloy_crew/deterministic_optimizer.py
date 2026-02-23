@@ -83,7 +83,7 @@ def _normalise(composition: dict) -> dict:
     """Enforce physical element bounds and rebalance via Ni."""
     comp = {}
     for el, val in composition.items():
-        if val <= 0.01 and el != "Ni":
+        if val <= 0.001 and el != "Ni":
             continue
         lo, hi = ELEMENT_BOUNDS.get(el, (0, 20))
         comp[el] = max(lo, min(hi, val))
@@ -98,7 +98,7 @@ def _normalise(composition: dict) -> dict:
         scale = 100.0 / actual_total if actual_total > 0 else 1.0
         comp = {k: v * scale for k, v in comp.items()}
 
-    return {k: round(v, 2) for k, v in comp.items() if v > 0.01}
+    return {k: round(v, 4 if v < 0.1 else 2) for k, v in comp.items() if v > 0.001}
 
 
 def _get_physics_predictions(composition: dict, temperature_c: int,
@@ -755,7 +755,7 @@ def _tune(
             break
 
     # Final state
-    comp = {k: round(v, 2) for k, v in comp.items() if v > 0.01}
+    comp = {k: round(v, 4 if v < 0.1 else 2) for k, v in comp.items() if v > 0.001}
     final_pred = _get_blended_predictions(comp, temperature_c, processing)
     features = compute_alloy_features(comp)
 
