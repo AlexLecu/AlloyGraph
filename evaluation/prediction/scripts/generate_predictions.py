@@ -19,6 +19,8 @@ Usage:
     python generate_predictions.py --dataset precip --ml-only
     python generate_predictions.py --dataset precip --ml-deterministic
     python generate_predictions.py --dataset sss --llm-only
+    python generate_predictions.py --dataset sss --llm-only --model openai
+    python generate_predictions.py --dataset sss --llm-only --model openai/gpt-4.1-mini
     python generate_predictions.py --dataset custom --custom-path /path/to/data.jsonl
 """
 
@@ -281,7 +283,12 @@ def run_ml_deterministic(composition, processing, temperature):
     }
 
 
-LLM_ONLY_MODEL = "groq/llama-3.3-70b-versatile"
+LLM_ONLY_MODELS = {
+    "groq": "groq/llama-3.3-70b-versatile",
+    "openai-mini": "openai/gpt-4.1-mini",
+    "openai-ft": "openai/ft:gpt-4.1-mini-2025-04-14:digital-science-dimensions::CoGgLDPB",
+}
+LLM_ONLY_DEFAULT = "groq"
 
 
 LLM_SYSTEM_PROMPT = (
@@ -291,9 +298,12 @@ LLM_SYSTEM_PROMPT = (
 )
 
 
-def run_llm_only(composition, processing, temperature, max_retries=3):
+def run_llm_only(composition, processing, temperature, model_key=None, max_retries=3):
     """Run LLM-only prediction: prompt an LLM with composition, no ML/KG/agents."""
     from litellm import completion as llm_completion
+
+    model_key = model_key or LLM_ONLY_DEFAULT
+    model_name = LLM_ONLY_MODELS.get(model_key, model_key)  # allow raw litellm model strings too
 
     comp_str = ", ".join(
         f"{elem}: {wt}%" for elem, wt in sorted(composition.items(), key=lambda x: -x[1])
@@ -313,7 +323,7 @@ Predict the following properties. Reason briefly about the alloy class and expec
     for attempt in range(max_retries):
         try:
             response = llm_completion(
-                model=LLM_ONLY_MODEL,
+                model=model_name,
                 messages=[
                     {"role": "system", "content": LLM_SYSTEM_PROMPT},
                     {"role": "user", "content": prompt},
@@ -323,15 +333,33 @@ Predict the following properties. Reason briefly about the alloy class and expec
             )
             content = response.choices[0].message.content.strip()
 
-            # Try JSON first
-            json_match = re.search(r'\{[^}]+\}', content)
+            # Try JSON extraction (handle nested braces, trailing commas)
+            parsed = None
+            json_match = re.search(r'\{[^{}]*\}', content)
             if json_match:
-                parsed = json.loads(json_match.group())
+                json_str = json_match.group()
+                # Clean common LLM JSON issues: trailing commas, single quotes
+                json_str = re.sub(r',\s*}', '}', json_str)
+                json_str = json_str.replace("'", '"')
+                try:
+                    parsed = json.loads(json_str)
+                except json.JSONDecodeError:
+                    pass
+
+            if parsed:
+                # Flexible key matching — models may use different key names
+                def find_val(d, *keys):
+                    for k in keys:
+                        for dk, dv in d.items():
+                            if k in dk.lower().replace(' ', '_'):
+                                return dv
+                    return None
+
                 preds = {
-                    'Yield Strength': parsed.get('yield_strength'),
-                    'Tensile Strength': parsed.get('uts'),
-                    'Elongation': parsed.get('elongation'),
-                    'Elastic Modulus': parsed.get('elastic_modulus'),
+                    'Yield Strength': find_val(parsed, 'yield', 'ys'),
+                    'Tensile Strength': find_val(parsed, 'uts', 'tensile', 'ultimate'),
+                    'Elongation': find_val(parsed, 'elong', 'el'),
+                    'Elastic Modulus': find_val(parsed, 'elastic', 'modulus', 'em'),
                 }
             else:
                 # Fallback: extract numbers in order
@@ -354,7 +382,8 @@ Predict the following properties. Reason briefly about the alloy class and expec
 
         except Exception as e:
             error_str = str(e).lower()
-            if 'rate' in error_str or 'limit' in error_str or '429' in error_str:
+            print(f"  [DEBUG] Error (attempt {attempt+1}): {str(e)[:200]}")
+            if 'rate' in error_str or '429' in error_str or 'too many' in error_str:
                 wait_time = 30 * (attempt + 1)
                 print(f"  Rate limit, waiting {wait_time}s...")
                 time.sleep(wait_time)
@@ -455,6 +484,11 @@ def parse_args():
                         choices=['openai', 'groq', 'auto'],
                         help='LLM provider for full system mode (default: auto)')
 
+    # Model selection (for --llm-only mode)
+    parser.add_argument('--model', type=str, default=None,
+                        help=f'Model for --llm-only mode. Aliases: {", ".join(LLM_ONLY_MODELS.keys())}. '
+                             f'Or pass a raw litellm model string (e.g., openai/gpt-4.1). Default: {LLM_ONLY_DEFAULT}')
+
     # Output
     parser.add_argument('--output', type=str, default=None,
                         help='Output filename')
@@ -539,11 +573,15 @@ def main():
         llm_config = get_llm_config(args.llm)
         llm_name = args.llm
 
+    # Resolve LLM-only model
+    llm_only_model_key = args.model or LLM_ONLY_DEFAULT
+    llm_only_model_name = LLM_ONLY_MODELS.get(llm_only_model_key, llm_only_model_key)
+
     print(f"Mode: {method}")
     if method == 'FULL_SYSTEM':
         print(f"LLM provider: {llm_name}")
     elif method == 'LLM_ONLY':
-        print(f"LLM model: {LLM_ONLY_MODEL}")
+        print(f"LLM model: {llm_only_model_name}")
     print(f"Alloys: {len(alloys)}")
     print(f"Delay: {delay}s")
     print("=" * 70)
@@ -557,6 +595,10 @@ def main():
         output_file = os.path.join(output_dir, args.output)
     else:
         mode_suffix = method.lower()
+        if method == 'LLM_ONLY':
+            # Include model name so different runs are distinguishable
+            model_tag = llm_only_model_key.replace("/", "_").replace(":", "_")
+            mode_suffix = f"llm_only_{model_tag}"
         output_file = os.path.join(output_dir, f'predictions_{mode_suffix}_{timestamp}.csv')
 
     # Run evaluations
@@ -600,7 +642,7 @@ def main():
                 elif method == 'ML_DETERMINISTIC':
                     eval_result = run_ml_deterministic(composition, processing, int(temp))
                 elif method == 'LLM_ONLY':
-                    eval_result = run_llm_only(composition, processing, int(temp))
+                    eval_result = run_llm_only(composition, processing, int(temp), model_key=llm_only_model_key)
                 else:
                     eval_result = run_full_system(
                         composition=composition,
