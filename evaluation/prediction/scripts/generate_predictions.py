@@ -335,7 +335,7 @@ Predict the following properties. Reason briefly about the alloy class and expec
 
             # Try JSON extraction (handle nested braces, trailing commas)
             parsed = None
-            json_match = re.search(r'\{[^{}]*\}', content)
+            json_match = re.search(r'\{(?:[^{}]|\{[^{}]*\})*\}', content, re.DOTALL)
             if json_match:
                 json_str = json_match.group()
                 # Clean common LLM JSON issues: trailing commas, single quotes
