@@ -544,10 +544,38 @@ def _stream_chat_inner(prompt: str, session_id: str, history: list):
             yield json.dumps({"type": "tool_suggestion", "tool": "designer"}) + "\n"
 
         if not target_alloys and intent != "DESIGN":
-            yield json.dumps({
-                "type": "chunk",
-                "content": "No matching alloys found in the knowledge graph.",
-            }) + "\n"
+            # Fallback: answer using general LLM knowledge (discussion questions)
+            client = LLMConfig.get_client()
+            if client:
+                fallback_prompt = (
+                    "You are a materials science expert specialising in nickel-based superalloys. "
+                    "The knowledge graph returned no matching alloys for this query, but it may be a "
+                    "conceptual or discussion question about metallurgy. Answer using your expert knowledge. "
+                    "If the question truly requires specific alloy data you don't have, say so."
+                )
+                messages = [{"role": "system", "content": fallback_prompt}]
+                for msg in history[-HistoryConfig.MAX_CONTEXT_MESSAGES:]:
+                    messages.append({
+                        "role": msg.get("role", "user"),
+                        "content": msg.get("content", ""),
+                    })
+                messages.append({"role": "user", "content": prompt})
+                stream = client.chat.completions.create(
+                    model=LLMConfig.MODEL,
+                    messages=messages,
+                    max_tokens=LLMConfig.RESPONSE_MAX_TOKENS,
+                    temperature=LLMConfig.RESPONSE_TEMPERATURE,
+                    stream=True,
+                )
+                for chunk in stream:
+                    content = chunk.choices[0].delta.content
+                    if content:
+                        yield json.dumps({"type": "chunk", "content": content}) + "\n"
+            else:
+                yield json.dumps({
+                    "type": "chunk",
+                    "content": "No matching alloys found in the knowledge graph.",
+                }) + "\n"
             return
 
         # ── 4. Stream LLM response ──────────────────────────────────

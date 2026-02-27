@@ -65,6 +65,12 @@ MCQ_2HOP_RESP = {
     "llama":   ROOT / "results" / "mcq_2hop_responses_llama.jsonl",
     "gpt":     ROOT / "results" / "mcq_2hop_responses_gpt.jsonl",
 }
+MCQ_GENERAL = ROOT / "data" / "mcq_general.jsonl"
+MCQ_GENERAL_RESP = {
+    "chatbot": ROOT / "results" / "mcq_general_responses_chatbot.jsonl",
+    "llama":   ROOT / "results" / "mcq_general_responses_llama.jsonl",
+    "gpt":     ROOT / "results" / "mcq_general_responses_gpt.jsonl",
+}
 MCQ_REPORT = ROOT / "results" / "mcq_report.json"
 
 # Track 2: RAGAS (chatbot only)
@@ -664,6 +670,7 @@ def phase_mcq_collect():
     for label, questions_path, resp_map in [
         ("1-hop", MCQ_1HOP, MCQ_1HOP_RESP),
         ("2-hop", MCQ_2HOP, MCQ_2HOP_RESP),
+        ("general", MCQ_GENERAL, MCQ_GENERAL_RESP),
     ]:
         questions = load_jsonl(questions_path)
         print(f"\n── MCQ {label}: {len(questions)} questions ──")
@@ -681,6 +688,7 @@ def phase_mcq_score():
     for hop_label, q_path, resp_map in [
         ("1hop", MCQ_1HOP, MCQ_1HOP_RESP),
         ("2hop", MCQ_2HOP, MCQ_2HOP_RESP),
+        ("general", MCQ_GENERAL, MCQ_GENERAL_RESP),
     ]:
         questions = load_jsonl(q_path)
         for sys_key, resp_path in resp_map.items():

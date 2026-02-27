@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-02-19T17:04:06.083638",
+  "timestamp": "2026-02-27T01:36:36.452891",
   "systems": {
     "chatbot": {
       "1hop": {
@@ -1479,10 +1479,416 @@
         ],
         "accuracy": 0.79
       },
+      "general": {
+        "total": 50,
+        "correct": 49,
+        "incorrect": 1,
+        "unparseable": 0,
+        "by_subtype": {
+          "mechanism_property_link": {
+            "correct": 4,
+            "total": 4,
+            "accuracy": 1.0
+          },
+          "filtered_ranking": {
+            "correct": 7,
+            "total": 7,
+            "accuracy": 1.0
+          },
+          "threshold_comparison": {
+            "correct": 3,
+            "total": 4,
+            "accuracy": 0.75
+          },
+          "mechanism_threshold": {
+            "correct": 7,
+            "total": 7,
+            "accuracy": 1.0
+          },
+          "multi_hop_ranking": {
+            "correct": 8,
+            "total": 8,
+            "accuracy": 1.0
+          },
+          "property_intersection": {
+            "correct": 5,
+            "total": 5,
+            "accuracy": 1.0
+          },
+          "dual_threshold": {
+            "correct": 6,
+            "total": 6,
+            "accuracy": 1.0
+          },
+          "retention_comparison": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0
+          },
+          "mechanism_comparison": {
+            "correct": 6,
+            "total": 6,
+            "accuracy": 1.0
+          }
+        },
+        "per_question": [
+          {
+            "id": "mcq_chatbot_001",
+            "subtype": "mechanism_property_link",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_002",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_003",
+            "subtype": "threshold_comparison",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_chatbot_004",
+            "subtype": "mechanism_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_005",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_006",
+            "subtype": "property_intersection",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_007",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_008",
+            "subtype": "retention_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_009",
+            "subtype": "mechanism_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_010",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_011",
+            "subtype": "mechanism_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_012",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_013",
+            "subtype": "property_intersection",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_014",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_015",
+            "subtype": "mechanism_property_link",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_016",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_017",
+            "subtype": "threshold_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_018",
+            "subtype": "mechanism_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_019",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_020",
+            "subtype": "property_intersection",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_021",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_022",
+            "subtype": "mechanism_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_023",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_024",
+            "subtype": "mechanism_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_025",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_026",
+            "subtype": "mechanism_property_link",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_027",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_028",
+            "subtype": "threshold_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_029",
+            "subtype": "mechanism_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_030",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_031",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_032",
+            "subtype": "mechanism_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_033",
+            "subtype": "retention_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_034",
+            "subtype": "mechanism_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_035",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_036",
+            "subtype": "threshold_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_037",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_038",
+            "subtype": "mechanism_property_link",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_039",
+            "subtype": "property_intersection",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_040",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_041",
+            "subtype": "mechanism_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_042",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_043",
+            "subtype": "mechanism_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_044",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_045",
+            "subtype": "retention_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_046",
+            "subtype": "mechanism_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_047",
+            "subtype": "property_intersection",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_048",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_049",
+            "subtype": "mechanism_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_050",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          }
+        ],
+        "accuracy": 0.98
+      },
       "overall": {
-        "correct": 179,
-        "total": 200,
-        "accuracy": 0.895
+        "correct": 228,
+        "total": 250,
+        "accuracy": 0.912
       }
     },
     "llama": {
@@ -2963,10 +3369,416 @@
         ],
         "accuracy": 0.43
       },
+      "general": {
+        "total": 50,
+        "correct": 46,
+        "incorrect": 4,
+        "unparseable": 0,
+        "by_subtype": {
+          "mechanism_property_link": {
+            "correct": 4,
+            "total": 4,
+            "accuracy": 1.0
+          },
+          "filtered_ranking": {
+            "correct": 7,
+            "total": 7,
+            "accuracy": 1.0
+          },
+          "threshold_comparison": {
+            "correct": 2,
+            "total": 4,
+            "accuracy": 0.5
+          },
+          "mechanism_threshold": {
+            "correct": 7,
+            "total": 7,
+            "accuracy": 1.0
+          },
+          "multi_hop_ranking": {
+            "correct": 6,
+            "total": 8,
+            "accuracy": 0.75
+          },
+          "property_intersection": {
+            "correct": 5,
+            "total": 5,
+            "accuracy": 1.0
+          },
+          "dual_threshold": {
+            "correct": 6,
+            "total": 6,
+            "accuracy": 1.0
+          },
+          "retention_comparison": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0
+          },
+          "mechanism_comparison": {
+            "correct": 6,
+            "total": 6,
+            "accuracy": 1.0
+          }
+        },
+        "per_question": [
+          {
+            "id": "mcq_chatbot_001",
+            "subtype": "mechanism_property_link",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_002",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_003",
+            "subtype": "threshold_comparison",
+            "extracted": "C",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_chatbot_004",
+            "subtype": "mechanism_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_005",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_006",
+            "subtype": "property_intersection",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_007",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_008",
+            "subtype": "retention_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_009",
+            "subtype": "mechanism_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_010",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_011",
+            "subtype": "mechanism_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_012",
+            "subtype": "multi_hop_ranking",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_chatbot_013",
+            "subtype": "property_intersection",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_014",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_015",
+            "subtype": "mechanism_property_link",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_016",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_017",
+            "subtype": "threshold_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_018",
+            "subtype": "mechanism_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_019",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_020",
+            "subtype": "property_intersection",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_021",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_022",
+            "subtype": "mechanism_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_023",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_024",
+            "subtype": "mechanism_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_025",
+            "subtype": "multi_hop_ranking",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_chatbot_026",
+            "subtype": "mechanism_property_link",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_027",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_028",
+            "subtype": "threshold_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_029",
+            "subtype": "mechanism_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_030",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_031",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_032",
+            "subtype": "mechanism_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_033",
+            "subtype": "retention_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_034",
+            "subtype": "mechanism_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_035",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_036",
+            "subtype": "threshold_comparison",
+            "extracted": "B",
+            "correct_answer": "A",
+            "is_correct": false
+          },
+          {
+            "id": "mcq_chatbot_037",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_038",
+            "subtype": "mechanism_property_link",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_039",
+            "subtype": "property_intersection",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_040",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_041",
+            "subtype": "mechanism_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_042",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_043",
+            "subtype": "mechanism_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_044",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_045",
+            "subtype": "retention_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_046",
+            "subtype": "mechanism_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_047",
+            "subtype": "property_intersection",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_048",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_049",
+            "subtype": "mechanism_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_050",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          }
+        ],
+        "accuracy": 0.92
+      },
       "overall": {
-        "correct": 78,
-        "total": 200,
-        "accuracy": 0.39
+        "correct": 124,
+        "total": 250,
+        "accuracy": 0.496
       }
     },
     "gpt": {
@@ -4447,10 +5259,416 @@
         ],
         "accuracy": 0.42
       },
+      "general": {
+        "total": 50,
+        "correct": 50,
+        "incorrect": 0,
+        "unparseable": 0,
+        "by_subtype": {
+          "mechanism_property_link": {
+            "correct": 4,
+            "total": 4,
+            "accuracy": 1.0
+          },
+          "filtered_ranking": {
+            "correct": 7,
+            "total": 7,
+            "accuracy": 1.0
+          },
+          "threshold_comparison": {
+            "correct": 4,
+            "total": 4,
+            "accuracy": 1.0
+          },
+          "mechanism_threshold": {
+            "correct": 7,
+            "total": 7,
+            "accuracy": 1.0
+          },
+          "multi_hop_ranking": {
+            "correct": 8,
+            "total": 8,
+            "accuracy": 1.0
+          },
+          "property_intersection": {
+            "correct": 5,
+            "total": 5,
+            "accuracy": 1.0
+          },
+          "dual_threshold": {
+            "correct": 6,
+            "total": 6,
+            "accuracy": 1.0
+          },
+          "retention_comparison": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0
+          },
+          "mechanism_comparison": {
+            "correct": 6,
+            "total": 6,
+            "accuracy": 1.0
+          }
+        },
+        "per_question": [
+          {
+            "id": "mcq_chatbot_001",
+            "subtype": "mechanism_property_link",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_002",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_003",
+            "subtype": "threshold_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_004",
+            "subtype": "mechanism_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_005",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_006",
+            "subtype": "property_intersection",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_007",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_008",
+            "subtype": "retention_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_009",
+            "subtype": "mechanism_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_010",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_011",
+            "subtype": "mechanism_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_012",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_013",
+            "subtype": "property_intersection",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_014",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_015",
+            "subtype": "mechanism_property_link",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_016",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_017",
+            "subtype": "threshold_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_018",
+            "subtype": "mechanism_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_019",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_020",
+            "subtype": "property_intersection",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_021",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_022",
+            "subtype": "mechanism_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_023",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_024",
+            "subtype": "mechanism_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_025",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_026",
+            "subtype": "mechanism_property_link",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_027",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_028",
+            "subtype": "threshold_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_029",
+            "subtype": "mechanism_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_030",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_031",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_032",
+            "subtype": "mechanism_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_033",
+            "subtype": "retention_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_034",
+            "subtype": "mechanism_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_035",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_036",
+            "subtype": "threshold_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_037",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_038",
+            "subtype": "mechanism_property_link",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_039",
+            "subtype": "property_intersection",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_040",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_041",
+            "subtype": "mechanism_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_042",
+            "subtype": "filtered_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_043",
+            "subtype": "mechanism_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_044",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_045",
+            "subtype": "retention_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_046",
+            "subtype": "mechanism_comparison",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_047",
+            "subtype": "property_intersection",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_048",
+            "subtype": "dual_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_049",
+            "subtype": "mechanism_threshold",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          },
+          {
+            "id": "mcq_chatbot_050",
+            "subtype": "multi_hop_ranking",
+            "extracted": "A",
+            "correct_answer": "A",
+            "is_correct": true
+          }
+        ],
+        "accuracy": 1.0
+      },
       "overall": {
-        "correct": 75,
-        "total": 200,
-        "accuracy": 0.375
+        "correct": 125,
+        "total": 250,
+        "accuracy": 0.5
       }
     }
   }
