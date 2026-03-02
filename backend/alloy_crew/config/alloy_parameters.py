@@ -44,8 +44,10 @@ SSS = {
     "CAST_REDUCTION": 0.68,        # ~32% reduction for cast
 
     "TEMP_TRANSITION": 600.0,      # °C — decay accelerates above this
-    "TEMP_DECAY_SLOW": 0.00030,    # Linear decay rate below transition
-    "TEMP_DECAY_TAU": 450.0,       # Exponential decay constant above transition
+    "TEMP_DECAY_SLOW": 0.00055,    # Linear decay rate below transition
+    "TEMP_DECAY_TAU": 450.0,       # Exponential decay constant 600–900°C
+    "TEMP_TRANSITION_2": 900.0,    # °C — second acceleration above this
+    "TEMP_DECAY_TAU2": 150.0,      # Exponential decay constant >900°C
     "TEMP_MIN_FACTOR": 0.12,
     "EL_TEMP_TRANSITION": 500.0,   # °C
     "EL_TEMP_FACTOR": 0.0019,      # Elongation increase rate per °C
@@ -60,15 +62,18 @@ GP_TEMP = {
     "AL_TI_TA_MIN": 2.0,           # wt% threshold for γ' classification
 
     # Three-stage degradation: linear → exp(TAU1) → exp(TAU2)
-    "STAGE1_END": 750.0,           # °C
-    "STAGE2_END": 900.0,           # °C
+    "STAGE1_END": 750.0,           # °C (reference at 25% γ')
+    "STAGE2_END": 900.0,           # °C (reference solvus)
 
-    # Calibrated to wrought γ' bar datasheet:
-    #   538C→0.912, 649C→0.868, 760C→0.849, 871C→0.654, 982C→0.176
     "DECAY_LINEAR": 0.00020,       # per °C (linear stage)
-    "DECAY_TAU1": 450.0,           # γ' coarsening (750–900°C)
-    "DECAY_TAU2": 66.0,            # γ' dissolution (>900°C)
-    "MIN_FACTOR": 0.10,
+    "DECAY_TAU1": 450.0,           # γ' coarsening (stage1→stage2)
+    "DECAY_TAU2": 66.0,            # γ' dissolution (>stage2)
+    "MIN_FACTOR": 0.02,            # floor factor
+
+    # γ' solvus estimation
+    "SOLVUS_BASE": 700.0,          # °C
+    "SOLVUS_GP_COEFF": 8.0,        # °C per vol% γ'
+    "GP_REF": 25.0,                # reference γ' fraction
 
     "EL_TEMP_FACTOR": 0.0018,      # Elongation increase per °C above 650
 }
@@ -175,8 +180,10 @@ UTS_YS_RATIO = {
 # =============================================================================
 
 ELONGATION = {
-    "HIGH_GP_MAX_EL": 18.0,        # Max elongation for γ' > 60%
-    "MOD_GP_MAX_EL": 25.0,         # Max elongation for γ' 40-60%
+    "HIGH_GP_MAX_EL": 18.0,             # γ' > 60% (SC/DS and wrought)
+    "HIGH_GP_MAX_EL_CAST": 10.0,        # γ' > 60% (cast polycrystalline)
+    "MOD_GP_MAX_EL": 25.0,              # γ' 40-60% (SC/DS and wrought)
+    "MOD_GP_MAX_EL_CAST": 15.0,         # γ' 40-60% (cast polycrystalline)
 }
 
 # =============================================================================
@@ -203,7 +210,7 @@ WROUGHT = {
     "CAL_EL_FACTOR": 1.0,
 
     # Ductility
-    "BASE_DUCTILITY": 28.0,        # %
+    "BASE_DUCTILITY": 35.0,        # %
     "MIN_ELONGATION": 10.0,
 }
 
@@ -256,13 +263,15 @@ def get_coeff_gp(processing: str, alloy_type: str = "standard") -> float:
 # Unified approach for SSS, GP, and SC/DS alloys
 # =============================================================================
 
-def get_temperature_factor(temp_c: float, alloy_class: str) -> float:
+def get_temperature_factor(temp_c: float, alloy_class: str, gp_fraction: float = None) -> float:
     """
     Calculate temperature degradation factor for strength properties.
 
     Args:
         temp_c: Temperature in Celsius
         alloy_class: One of 'sss', 'gp', 'sc_ds'
+        gp_fraction: Estimated γ' volume percent (only used for 'gp' class).
+                     If None, defaults to 25% (Waspaloy calibration point).
 
     Returns:
         Factor to multiply room-temperature strength (0.0 to 1.0)
@@ -273,13 +282,20 @@ def get_temperature_factor(temp_c: float, alloy_class: str) -> float:
         return 1.0
 
     if alloy_class == "sss":
-        # SSS alloys: linear then exponential decay
+        # SSS alloys: linear → exp(τ1) → exp(τ2) three-stage decay
         if temp_c <= SSS["TEMP_TRANSITION"]:
             factor = 1.0 - SSS["TEMP_DECAY_SLOW"] * (temp_c - 25)
-        else:
+        elif temp_c <= SSS["TEMP_TRANSITION_2"]:
             factor_at_trans = 1.0 - SSS["TEMP_DECAY_SLOW"] * (SSS["TEMP_TRANSITION"] - 25)
             delta_t = temp_c - SSS["TEMP_TRANSITION"]
             factor = factor_at_trans * math.exp(-delta_t / SSS["TEMP_DECAY_TAU"])
+        else:
+            factor_at_trans = 1.0 - SSS["TEMP_DECAY_SLOW"] * (SSS["TEMP_TRANSITION"] - 25)
+            factor_at_trans2 = factor_at_trans * math.exp(
+                -(SSS["TEMP_TRANSITION_2"] - SSS["TEMP_TRANSITION"]) / SSS["TEMP_DECAY_TAU"]
+            )
+            delta_t = temp_c - SSS["TEMP_TRANSITION_2"]
+            factor = factor_at_trans2 * math.exp(-delta_t / SSS["TEMP_DECAY_TAU2"])
         return max(factor, SSS["TEMP_MIN_FACTOR"])
 
     elif alloy_class == "sc_ds":
@@ -293,19 +309,43 @@ def get_temperature_factor(temp_c: float, alloy_class: str) -> float:
         return max(factor, SC_DS["TEMP_MIN_FACTOR"])
 
     else:  # gp (polycrystalline γ' alloys)
-        # Three-stage degradation model
-        if temp_c <= GP_TEMP["STAGE1_END"]:
+        gp = GP_TEMP["GP_REF"]
+        gp = max(2.0, min(70.0, gp))
+        gp_ref = GP_TEMP["GP_REF"]
+
+        solvus = GP_TEMP["SOLVUS_BASE"] + GP_TEMP["SOLVUS_GP_COEFF"] * gp
+        stage1_end = max(500, min(850, GP_TEMP["STAGE1_END"] * min(1.0, math.sqrt(gp / gp_ref))))
+        stage2_end = solvus
+        tau2 = GP_TEMP["DECAY_TAU2"] * max(0.5, min(3.0, gp / gp_ref))
+
+        if temp_c <= stage1_end:
             factor = 1.0 - GP_TEMP["DECAY_LINEAR"] * (temp_c - 25)
-        elif temp_c <= GP_TEMP["STAGE2_END"]:
-            factor_s1 = 1.0 - GP_TEMP["DECAY_LINEAR"] * (GP_TEMP["STAGE1_END"] - 25)
-            delta_t = temp_c - GP_TEMP["STAGE1_END"]
+        elif temp_c <= stage2_end:
+            factor_s1 = 1.0 - GP_TEMP["DECAY_LINEAR"] * (stage1_end - 25)
+            delta_t = temp_c - stage1_end
             factor = factor_s1 * math.exp(-delta_t / GP_TEMP["DECAY_TAU1"])
         else:
-            factor_s1 = 1.0 - GP_TEMP["DECAY_LINEAR"] * (GP_TEMP["STAGE1_END"] - 25)
-            factor_s2 = factor_s1 * math.exp(-(GP_TEMP["STAGE2_END"] - GP_TEMP["STAGE1_END"]) / GP_TEMP["DECAY_TAU1"])
-            delta_t = temp_c - GP_TEMP["STAGE2_END"]
-            factor = factor_s2 * math.exp(-delta_t / GP_TEMP["DECAY_TAU2"])
-        return max(factor, GP_TEMP["MIN_FACTOR"])
+            factor_s1 = 1.0 - GP_TEMP["DECAY_LINEAR"] * (stage1_end - 25)
+            factor_s2 = factor_s1 * math.exp(-(stage2_end - stage1_end) / GP_TEMP["DECAY_TAU1"])
+            delta_t = temp_c - stage2_end
+            factor = factor_s2 * math.exp(-delta_t / tau2)
+
+        # SSS residual floor above solvus
+        sss_frac = max(0.3, 1.0 - gp / 100.0)
+        if temp_c <= SSS["TEMP_TRANSITION"]:
+            sss_f = 1.0 - SSS["TEMP_DECAY_SLOW"] * (temp_c - 25)
+        elif temp_c <= SSS["TEMP_TRANSITION_2"]:
+            f_trans = 1.0 - SSS["TEMP_DECAY_SLOW"] * (SSS["TEMP_TRANSITION"] - 25)
+            sss_f = f_trans * math.exp(-(temp_c - SSS["TEMP_TRANSITION"]) / SSS["TEMP_DECAY_TAU"])
+        else:
+            f_trans = 1.0 - SSS["TEMP_DECAY_SLOW"] * (SSS["TEMP_TRANSITION"] - 25)
+            f_trans2 = f_trans * math.exp(
+                -(SSS["TEMP_TRANSITION_2"] - SSS["TEMP_TRANSITION"]) / SSS["TEMP_DECAY_TAU"]
+            )
+            sss_f = f_trans2 * math.exp(-(temp_c - SSS["TEMP_TRANSITION_2"]) / SSS["TEMP_DECAY_TAU2"])
+        sss_floor = sss_frac * max(sss_f, SSS["TEMP_MIN_FACTOR"])
+
+        return max(factor, sss_floor, GP_TEMP["MIN_FACTOR"])
 
 
 def is_sss_alloy(composition: dict) -> bool:
@@ -341,6 +381,7 @@ def is_sc_ds_alloy(composition: dict, processing: str = "") -> tuple:
     ru = composition.get("Ru", composition.get("ru", 0)) or 0
     ta = composition.get("Ta", composition.get("ta", 0)) or 0
     w = composition.get("W", composition.get("w", 0)) or 0
+    c = composition.get("C", composition.get("c", 0)) or 0
 
     if re >= SC_DS["RE_MIN"]:
         return True, f"Re={re:.1f}% (2nd+ gen SC indicator)"
@@ -348,6 +389,10 @@ def is_sc_ds_alloy(composition: dict, processing: str = "") -> tuple:
         return True, f"Ru={ru:.1f}%, Re={re:.1f}% (4th gen SC indicator)"
     if (ta + w) >= SC_DS["TA_W_MIN"] and re >= 1.0:
         return True, f"Ta+W={ta+w:.1f}%, Re={re:.1f}% (SC/DS composition)"
+
+    # C >= 0.06% indicates cast polycrystalline (SC/DS alloys have near-zero C)
+    if c >= 0.06:
+        return False, ""
     if (ta + w) >= SC_DS["TA_W_HIGH"] and ta >= 5.0:
         return True, f"Ta+W={ta+w:.1f}%, Ta={ta:.1f}% (1st gen SC composition)"
     if ta >= SC_DS["TA_ALONE_MIN"]:

@@ -74,7 +74,7 @@ def estimate_physics_ys(composition: dict, processing: str = "cast",
 
     alloy_class = get_alloy_class(composition, processing)
     ac = "sc_ds" if alloy_class == "sc_ds" else "gp"
-    temp_factor = get_temperature_factor(temperature_c, ac)
+    temp_factor = get_temperature_factor(temperature_c, ac, gp_fraction=gp if ac == "gp" else None)
 
     return ys_rt * temp_factor
 

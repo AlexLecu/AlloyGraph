@@ -149,7 +149,7 @@ def _get_physics_predictions(composition: dict, temperature_c: int,
         physics_ys_rt = base_ni + sss_contribution + (coeff_gp * gp) + mismatch_boost
 
         ac = "sc_ds" if alloy_class == "sc_ds" else "gp"
-        temp_factor = get_temperature_factor(temperature_c, ac)
+        temp_factor = get_temperature_factor(temperature_c, ac, gp_fraction=gp if ac == "gp" else None)
         physics_ys = physics_ys_rt * temp_factor
 
         if processing in ["wrought", "forged"]:
@@ -248,7 +248,7 @@ def _get_blended_predictions(composition: dict, temperature_c: int,
         else:
             empirical_ys_rt = 400 + 10 * gp
 
-        temp_factor = get_temperature_factor(temperature_c, "gp")
+        temp_factor = get_temperature_factor(temperature_c, "gp", gp_fraction=gp)
         empirical_ys = empirical_ys_rt * temp_factor
 
         # 20% ML + 80% empirical (same as evaluator's moderate blend)

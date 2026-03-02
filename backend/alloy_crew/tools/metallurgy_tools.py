@@ -96,7 +96,7 @@ def validate_property_coherency(
 
     # Temperature scaling factors
     em_factor = get_em_temp_factor(temperature_c)           # EM decay (floor 0.50)
-    strength_factor = get_temperature_factor(temperature_c, "gp")  # YS decay
+    strength_factor = get_temperature_factor(temperature_c, "gp", gp_fraction=gp)  # YS decay
     el_temp_boost = 1.0 + 0.0018 * max(0, temperature_c - 650)    # elongation increases above 650°C
 
     # Rule 1: High Strength Requires Adequate γ' Fraction

@@ -36,11 +36,12 @@ ELEMENTAL_MODULI = {
 
 
 def calculate_em_rule_of_mixtures(composition: Dict[str, float]) -> float:
-    """Calculate Elastic Modulus using Reuss bound (inverse rule of mixtures)"""
+    """Calculate Elastic Modulus using Voigt-Reuss-Hill (VRH) average."""
     total_wt = sum(composition.get(el, 0) for el in ELEMENTAL_MODULI if composition.get(el, 0) > 0)
     if total_wt <= 0:
         return 200.0  # Fallback to pure Ni
 
+    # Reuss bound (harmonic mean — lower bound)
     inv_sum = sum(
         (composition.get(element, 0) / total_wt) / modulus
         for element, modulus in ELEMENTAL_MODULI.items()
@@ -48,7 +49,18 @@ def calculate_em_rule_of_mixtures(composition: Dict[str, float]) -> float:
     )
     if inv_sum <= 0:
         return 200.0
-    return round(1.0 / inv_sum, 1)
+    reuss = 1.0 / inv_sum
+
+    # Voigt bound (arithmetic mean — upper bound)
+    voigt = sum(
+        (composition.get(element, 0) / total_wt) * modulus
+        for element, modulus in ELEMENTAL_MODULI.items()
+        if composition.get(element, 0) > 0
+    )
+
+    # Hill average (midpoint)
+    vrh = (voigt + reuss) / 2.0
+    return round(vrh, 1)
 
 
 def wt_to_at_percent(composition: Dict[str, float]) -> Dict[str, float]:

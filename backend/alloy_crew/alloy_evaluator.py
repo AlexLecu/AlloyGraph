@@ -22,7 +22,7 @@ from .tools.metallurgy_tools import (
 from .tools.calibration_fix import apply_calibration_safe
 from .config.alloy_parameters import (
     CORRECTION_THRESHOLDS, UTS_YS_RATIO, ELONGATION, AGENT_TRUST, SSS,
-    is_sss_alloy, get_em_temp_factor,
+    is_sss_alloy, is_sc_ds_alloy, get_em_temp_factor,
 )
 from .models.feature_engineering import compute_alloy_features, calculate_em_rule_of_mixtures
 
@@ -635,6 +635,39 @@ class AlloyEvaluationCrew:
             logger.info(f"[DET_OVERRIDE] Gamma Prime: {agent_gp} → {det_gp}% (composition-determined)")
         output.properties["Gamma Prime"] = det_gp
 
+        # === UTS DAMPING & EL FLOOR (precip alloys only) ===
+        if (ml_fallback
+                and not is_sss_alloy(composition)
+                and not is_sc_ds_alloy(composition, processing)[0]):
+            ml_ys_val = ml_fallback.get("Yield Strength")
+            ml_uts_val = ml_fallback.get("Tensile Strength")
+            agent_ys_val = output.properties.get("Yield Strength")
+            agent_uts_val = output.properties.get("Tensile Strength")
+
+            if (all(isinstance(v, (int, float)) and v > 0
+                    for v in [ml_ys_val, ml_uts_val, agent_ys_val, agent_uts_val])):
+                ys_change_pct = (agent_ys_val - ml_ys_val) / ml_ys_val
+                damped_uts = ml_uts_val * (1 + 0.5 * ys_change_pct)
+                if abs(damped_uts - agent_uts_val) > 5:
+                    logger.info(
+                        f"[UTS_DAMP] Precip UTS: agent={agent_uts_val:.1f} → "
+                        f"damped={damped_uts:.1f} (ML_UTS={ml_uts_val:.1f}, "
+                        f"YS change={ys_change_pct:+.1%})"
+                    )
+                    output.properties["Tensile Strength"] = round(damped_uts, 1)
+
+            ml_el_val = ml_fallback.get("Elongation")
+            agent_el_val = output.properties.get("Elongation")
+            if (isinstance(ml_el_val, (int, float)) and ml_el_val > 0
+                    and isinstance(agent_el_val, (int, float)) and agent_el_val > 0):
+                el_floor = ml_el_val * 0.80
+                if agent_el_val < el_floor:
+                    logger.info(
+                        f"[EL_DAMP] Precip EL: agent={agent_el_val:.1f}% → "
+                        f"floor={el_floor:.1f}% (ML={ml_el_val:.1f}%, max 20% reduction)"
+                    )
+                    output.properties["Elongation"] = round(el_floor, 1)
+
         # === UTS/YS ENFORCEMENT ===
         ys_val = output.properties.get("Yield Strength")
         uts_val = output.properties.get("Tensile Strength")
@@ -671,20 +704,28 @@ class AlloyEvaluationCrew:
         # === ELONGATION CAP ===
         el_val = output.properties.get("Elongation")
         if isinstance(el_val, (int, float)) and el_val > 0:
-            if det_gp > 60 and el_val > ELONGATION["HIGH_GP_MAX_EL"]:
-                logger.info(
-                    f"[EL_CAP] γ'={det_gp:.0f}% (>60%) — capping EL: "
-                    f"{el_val:.1f}% → {ELONGATION['HIGH_GP_MAX_EL']}%"
-                )
-                output.properties["Elongation"] = ELONGATION["HIGH_GP_MAX_EL"]
-            elif det_gp > 40 and el_val > ELONGATION["MOD_GP_MAX_EL"]:
-                logger.info(
-                    f"[EL_CAP] γ'={det_gp:.0f}% (40-60%) — capping EL: "
-                    f"{el_val:.1f}% → {ELONGATION['MOD_GP_MAX_EL']}%"
-                )
-                output.properties["Elongation"] = ELONGATION["MOD_GP_MAX_EL"]
+            is_cast_poly = (
+                processing not in ["wrought", "forged"]
+                and not is_sc_ds_alloy(composition, processing)[0]
+            )
+            if det_gp > 60:
+                cap = ELONGATION["HIGH_GP_MAX_EL_CAST"] if is_cast_poly else ELONGATION["HIGH_GP_MAX_EL"]
+                if el_val > cap:
+                    logger.info(
+                        f"[EL_CAP] γ'={det_gp:.0f}% (>60%) {'cast-poly' if is_cast_poly else ''} — "
+                        f"capping EL: {el_val:.1f}% → {cap}%"
+                    )
+                    output.properties["Elongation"] = cap
+            elif det_gp > 40:
+                cap = ELONGATION["MOD_GP_MAX_EL_CAST"] if is_cast_poly else ELONGATION["MOD_GP_MAX_EL"]
+                if el_val > cap:
+                    logger.info(
+                        f"[EL_CAP] γ'={det_gp:.0f}% (40-60%) {'cast-poly' if is_cast_poly else ''} — "
+                        f"capping EL: {el_val:.1f}% → {cap}%"
+                    )
+                    output.properties["Elongation"] = cap
 
-        # === EM ENFORCEMENT (override if >20% from Reuss bound) ===
+        # === EM ENFORCEMENT (override if >15% from VRH bound) ===
         em_val = output.properties.get("Elastic Modulus")
         if isinstance(em_val, (int, float)) and em_val > 0:
             em_rt = calculate_em_rule_of_mixtures(composition)
@@ -692,10 +733,10 @@ class AlloyEvaluationCrew:
             em_physics = round(em_rt * em_temp_factor, 1)
             if em_physics > 0:
                 em_deviation = abs(em_val - em_physics) / em_physics
-                if em_deviation > 0.20:
+                if em_deviation > 0.15:
                     logger.info(
                         f"[EM_OVERRIDE] Agent EM={em_val:.1f} GPa deviates {em_deviation:.0%} from "
-                        f"physics Reuss={em_physics:.1f} GPa — overriding"
+                        f"physics VRH={em_physics:.1f} GPa — overriding"
                     )
                     output.properties["Elastic Modulus"] = em_physics
 

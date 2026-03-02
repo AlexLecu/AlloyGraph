@@ -169,7 +169,7 @@ class AlloyAnalysisTool(BaseTool):
             if alloy_class == "sc_ds":
                 temp_factor = get_temperature_factor(temperature_c, "sc_ds")
             else:
-                temp_factor = get_temperature_factor(temperature_c, "gp")
+                temp_factor = get_temperature_factor(temperature_c, "gp", gp_fraction=gp)
 
             physics_ys = physics_ys_rt * temp_factor
 
@@ -194,7 +194,7 @@ class AlloyAnalysisTool(BaseTool):
             if temperature_c >= 650:
                 delta_t = temperature_c - 650
                 el_factor = 1.0 + GP_TEMP["EL_TEMP_FACTOR"] * delta_t
-                physics_el = min(60.0, physics_el * el_factor)
+                physics_el = min(120.0, physics_el * el_factor)
 
             em_rt = calculate_em_rule_of_mixtures(composition)
             em_temp_factor = get_em_temp_factor(temperature_c)
@@ -459,7 +459,7 @@ class AlloyAnalysisTool(BaseTool):
                 empirical_ys_max_rt = 450 + 12 * gp
 
             # Apply temperature degradation to empirical values (they are RT correlations)
-            temp_factor = get_temperature_factor(temperature_c, alloy_class)
+            temp_factor = get_temperature_factor(temperature_c, alloy_class, gp_fraction=gp)
             empirical_ys = empirical_ys_rt * temp_factor
             empirical_ys_min = empirical_ys_min_rt * temp_factor
             empirical_ys_max = empirical_ys_max_rt * temp_factor
@@ -575,15 +575,16 @@ class AlloyAnalysisTool(BaseTool):
             empirical_ys_sc_min = (510 + 5 * gp) * sc_temp_factor  # Lower bound
             empirical_ys_sc_max = (610 + 7 * gp) * sc_temp_factor  # Upper bound
 
-            if ml_ys > 0 and ml_ys < empirical_ys_sc_min:
-                underprediction_severity = (empirical_ys_sc_min - ml_ys) / empirical_ys_sc_min
+            underprediction_severity = (
+                (empirical_ys_sc_min - ml_ys) / empirical_ys_sc_min
+                if ml_ys > 0 and empirical_ys_sc_min > 0 else 0
+            )
 
+            if ml_ys > 0 and underprediction_severity > 0.10:
                 if underprediction_severity > 0.25:
                     blend_ml, blend_emp = 0.02, 0.98
-                elif underprediction_severity > 0.10:
-                    blend_ml, blend_emp = 0.05, 0.95
                 else:
-                    blend_ml, blend_emp = 0.10, 0.90
+                    blend_ml, blend_emp = 0.05, 0.95
 
                 proposed_ys_sc = blend_ml * ml_ys + blend_emp * empirical_ys_sc
                 proposed_ys_sc = min(proposed_ys_sc, empirical_ys_sc_max)
@@ -835,29 +836,35 @@ class AlloyAnalysisTool(BaseTool):
 
         # === PROPOSAL 5: Elongation Bounds ===
         if ml_el > 0:
-            if gp > 60 and ml_el > ELONGATION["HIGH_GP_MAX_EL"]:
+            is_cast_poly = processing not in ["wrought", "forged"] and alloy_class != "sc_ds"
+            high_cap = ELONGATION["HIGH_GP_MAX_EL_CAST"] if is_cast_poly else ELONGATION["HIGH_GP_MAX_EL"]
+            mod_cap = ELONGATION["MOD_GP_MAX_EL_CAST"] if is_cast_poly else ELONGATION["MOD_GP_MAX_EL"]
+
+            if gp > 60 and ml_el > high_cap:
                 proposals.append({
                     "property_name": "Elongation",
                     "current_value": ml_el,
-                    "proposed_value": ELONGATION["HIGH_GP_MAX_EL"],
+                    "proposed_value": high_cap,
                     "correction_type": "bounds",
                     "confidence": "HIGH",
                     "reasoning": (
                         f"High γ' content ({gp:.0f}%) severely limits ductility. "
-                        f"ML predicted {ml_el:.1f}% but empirical max for >60% γ' is {ELONGATION['HIGH_GP_MAX_EL']}%."
+                        f"ML predicted {ml_el:.1f}% but empirical max for >60% γ' "
+                        f"{'cast polycrystalline' if is_cast_poly else 'alloys'} is {high_cap}%."
                     ),
                     "source": "elongation_bounds"
                 })
-            elif gp > 40 and ml_el > ELONGATION["MOD_GP_MAX_EL"]:
+            elif gp > 40 and ml_el > mod_cap:
                 proposals.append({
                     "property_name": "Elongation",
                     "current_value": ml_el,
-                    "proposed_value": ELONGATION["MOD_GP_MAX_EL"],
+                    "proposed_value": mod_cap,
                     "correction_type": "bounds",
                     "confidence": "MEDIUM",
                     "reasoning": (
                         f"Moderate γ' content ({gp:.0f}%) limits ductility. "
-                        f"ML predicted {ml_el:.1f}% but typical max for 40-60% γ' is {ELONGATION['MOD_GP_MAX_EL']}%."
+                        f"ML predicted {ml_el:.1f}% but typical max for 40-60% γ' "
+                        f"{'cast polycrystalline' if is_cast_poly else 'alloys'} is {mod_cap}%."
                     ),
                     "source": "elongation_bounds"
                 })
