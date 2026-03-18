@@ -1,0 +1,1320 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rdf:RDF
+   xmlns:dcterms="http://purl.org/dc/terms/"
+   xmlns:owl="http://www.w3.org/2002/07/owl#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+   xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+   xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasGammaPrimeEstimate">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">estimated gamma prime vol%</rdfs:label>
+    <rdfs:comment xml:lang="en">The estimated gamma prime volume fraction from the solubility-based model, in percent.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#isApproximate">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Quantity"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
+    <rdfs:label xml:lang="en">is approximate</rdfs:label>
+    <rdfs:comment xml:lang="en">Whether the quantity value is approximate.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#ProcessingMethod">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+    <rdfs:label xml:lang="en">Processing Method</rdfs:label>
+    <rdfs:comment xml:lang="en">The manufacturing or processing route applied to an alloy (e.g., wrought, cast).</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#GammaPrimePhase">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="https://w3id.org/alloygraph/ont#Phase"/>
+    <rdfs:label xml:lang="en">Gamma Prime Phase</rdfs:label>
+    <rdfs:comment xml:lang="en">The ordered L1_2 gamma prime precipitate phase (Ni3Al-type).</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#TCPRiskModerate">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <owl:equivalentClass rdf:nodeID="Nad98fdebaa1f47e0a757be7d3e9803c2"/>
+    <owl:equivalentClass rdf:nodeID="N09acb2cc448c4d238dcecaf93d23bf7f"/>
+    <rdfs:label xml:lang="en">TCP Risk Moderate</rdfs:label>
+    <rdfs:comment xml:lang="en">Alloy variant with moderate TCP phase formation risk: Md_avg between 0.940 and 0.960.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N958db8e6ef604e0db31e9ac501eef23c">
+    <rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Datatype"/>
+    <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <owl:withRestrictions rdf:nodeID="N892be94ec66249aaa0a4f496f0dd1fc1"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N66412e634dfe45399455eb4526f7d71a">
+    <rdf:first rdf:nodeID="Nbd5a4c2c019a4f43ad8a4eb9c95a43a9"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N3eb69df75a884a75a003f31ee54d948c">
+    <rdf:first rdf:nodeID="N550d6605b81b4a65a940dcea27ebc5a9"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nf3a512b74c184f21b347a2086620f53d">
+    <rdf:first rdf:resource="https://w3id.org/alloygraph/ont#TCPRiskElevated"/>
+    <rdf:rest rdf:nodeID="Nef489cfa4fe0459abfd92475072d868e"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#PropertySet">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+    <rdfs:subClassOf rdf:nodeID="Nd408b51aafa04ea79d846a3c0c8ff1c5"/>
+    <rdfs:label xml:lang="en">Property Set</rdfs:label>
+    <rdfs:comment xml:lang="en">A collection of measurements for a specific mechanical property type.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N687c8340a84b4ba69e0ad5c557b4fa41">
+    <rdf:first rdf:nodeID="N9aaf0096b3344bfdbd842b35f56fda96"/>
+    <rdf:rest rdf:nodeID="N2fe768fe460d4ad892789cad9b96cbd6"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#SolidSolutionAlloy">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <owl:equivalentClass rdf:nodeID="Nfe43f2dd79aa4a1090d9a7eba56f16a7"/>
+    <owl:equivalentClass rdf:nodeID="Nb77b088f55b145849d84bca2852047ea"/>
+    <owl:disjointWith rdf:resource="https://w3id.org/alloygraph/ont#GammaPrimeAlloy"/>
+    <rdfs:label xml:lang="en">Solid Solution Strengthened Alloy</rdfs:label>
+    <rdfs:comment xml:lang="en">An alloy classified as solid-solution strengthened: gamma-prime former content (Al+Ti+Ta+0.35*Nb) below 2.0 wt%.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#maxInclusive">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Quantity"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">maximum value (inclusive)</rdfs:label>
+    <rdfs:comment xml:lang="en">The maximum bound of a quantity range.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#processingMethod">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <rdfs:label xml:lang="en">processing method (literal)</rdfs:label>
+    <rdfs:comment xml:lang="en">The processing route as a string literal (denormalised convenience property).</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasPrecipitationHardeningCoeff">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">precipitation hardening coefficient</rdfs:label>
+    <rdfs:comment xml:lang="en">The precipitation hardening coefficient proportional to f^0.5 x (Al+Ti).</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#unitSymbol">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Quantity"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <rdfs:label xml:lang="en">unit symbol</rdfs:label>
+    <rdfs:comment xml:lang="en">The symbol of the unit of measurement (e.g., MPa, GPa, %).</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#NickelBasedSuperalloy">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="https://w3id.org/alloygraph/ont#Material"/>
+    <rdfs:label xml:lang="en">Nickel-Based Superalloy</rdfs:label>
+    <rdfs:comment xml:lang="en">A nickel-based superalloy material.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasOxidationResistance">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">oxidation resistance</rdfs:label>
+    <rdfs:comment xml:lang="en">An oxidation resistance metric derived from Cr and Al content.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N6e2f997798c944bdbe8c4b5ff700b239">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasMdAverage"/>
+    <owl:allValuesFrom rdf:nodeID="Nadf1fdb61f9a483abaf0b77c380b10cb"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nb39ef81a9ee34056bafd73c951bd053f">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <owl:intersectionOf rdf:nodeID="N7ea0eafe383d4959a5f0e4021d677b03"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nf8ef3e783c934c619d2290a2933a1e0e">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasMdAverage"/>
+    <owl:someValuesFrom rdf:nodeID="N0b7c0c9b96474d5fbdf66f71dfb2f3b5"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Ontology"/>
+    <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">AlloyGraph Ontology</rdfs:label>
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Ontology for Ni-based superalloys with composition, processing, mechanical properties, computed metallurgical features, and OWL DL classification axioms for alloy type and TCP risk.</rdfs:comment>
+    <owl:versionInfo rdf:datatype="http://www.w3.org/2001/XMLSchema#string">1.2.0</owl:versionInfo>
+    <dcterms:creator>AlloyGraph Project</dcterms:creator>
+    <dcterms:created rdf:datatype="http://www.w3.org/2001/XMLSchema#date">2026-03-18</dcterms:created>
+    <dcterms:license rdf:resource="https://creativecommons.org/licenses/by/4.0/"/>
+    <rdfs:seeAlso rdf:resource="https://github.com/AlexLecu/AlloyGraph"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#qualifier">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Quantity"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <rdfs:label xml:lang="en">qualifier</rdfs:label>
+    <rdfs:comment xml:lang="en">A qualifier for the quantity (e.g., minimum, typical).</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasForm">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="https://w3id.org/alloygraph/ont#Form"/>
+    <rdfs:label xml:lang="en">has form</rdfs:label>
+    <rdfs:comment xml:lang="en">Links a variant to its physical product form.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#heatTreatmentCondition">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Measurement"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <rdfs:label xml:lang="en">heat treatment condition</rdfs:label>
+    <rdfs:comment xml:lang="en">The heat treatment condition under which the measurement was taken.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nc3e3613bccfd4a0aaaca916e96b5ff9b">
+    <rdf:first rdf:nodeID="N9f8443bcee9849adac26216db8fdda62"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#Element">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+    <skos:closeMatch rdf:resource="http://emmo.info/emmo#EMMO_4f40def1_3cd7_4067_9596_541e9a5134cf"/>
+    <skos:closeMatch rdf:resource="http://purl.obolibrary.org/obo/CHEBI_33250"/>
+    <rdfs:label xml:lang="en">Chemical Element</rdfs:label>
+    <rdfs:comment xml:lang="en">A chemical element present in an alloy composition.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nf06fa6443d474639b60f8a8040342d1d">
+    <rdf:first rdf:resource="https://w3id.org/alloygraph/ont#TCPRiskCritical"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#Material">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+    <skos:closeMatch rdf:resource="http://emmo.info/emmo#EMMO_4207e895_8b83_4318_996a_72cfb32acd94"/>
+    <rdfs:label xml:lang="en">Material</rdfs:label>
+    <rdfs:comment xml:lang="en">Base class for all materials.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#MechanicalProperty">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+    <skos:closeMatch rdf:resource="http://emmo.info/emmo#EMMO_b7bcff25_ffc3_474e_9ab5_01b1664bd4ba"/>
+    <rdfs:label xml:lang="en">Mechanical Property</rdfs:label>
+    <rdfs:comment xml:lang="en">Base class for mechanical properties of materials.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasMdGamma">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">Md gamma (matrix)</rdfs:label>
+    <rdfs:comment xml:lang="en">The Morinaga d-electron parameter computed from the estimated gamma matrix composition.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasSSSTotalWtPct">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">SSS total wt%</rdfs:label>
+    <rdfs:comment xml:lang="en">Total weight percent of solid-solution strengthening elements (Mo+W+Nb+Ta+Re).</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#CompositionEntry">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+    <rdfs:subClassOf rdf:nodeID="N57821737420c491688c4b30f5a4bccef"/>
+    <rdfs:subClassOf rdf:nodeID="N1cfb856f2c1c475793f55a1435e3d572"/>
+    <rdfs:label xml:lang="en">Composition Entry</rdfs:label>
+    <rdfs:comment xml:lang="en">A single element entry in a composition, mapping an element to its weight-percent quantity via an n-ary relation pattern.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasUnit">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Quantity"/>
+    <rdfs:range rdf:resource="https://w3id.org/alloygraph/ont#Unit"/>
+    <rdfs:label xml:lang="en">has unit</rdfs:label>
+    <rdfs:comment xml:lang="en">Links a quantity to its unit of measurement.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nfc8a204ef43543c9b9ac7d90ca3c6635">
+    <xsd:maxExclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.96</xsd:maxExclusive>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nd3cf3a1db8394a98ae6f8e678d4c5759">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasMdAverage"/>
+    <owl:someValuesFrom rdf:nodeID="N03f6525225af443da7f8b4f5c8122e27"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasPropertySet">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="https://w3id.org/alloygraph/ont#PropertySet"/>
+    <rdfs:label xml:lang="en">has property set</rdfs:label>
+    <rdfs:comment xml:lang="en">Links a variant to a set of measurements for a property type.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N746aae75a1d34b97ad68ada49d23a27d">
+    <rdf:first rdf:resource="https://w3id.org/alloygraph/ont#TCPRiskElevated"/>
+    <rdf:rest rdf:nodeID="Nf06fa6443d474639b60f8a8040342d1d"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasAlTiRatio">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">Al/Ti ratio (wt%)</rdfs:label>
+    <rdfs:comment xml:lang="en">The aluminium-to-titanium weight percent ratio.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#Measurement">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+    <rdfs:subClassOf rdf:nodeID="N0f1d9b735a824d21be50f898bb2fab92"/>
+    <rdfs:label xml:lang="en">Measurement</rdfs:label>
+    <rdfs:comment xml:lang="en">A single measurement data point recording a property value at a specific test condition.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N6edf666567b7434fa5610761671094a0">
+    <rdf:first rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdf:rest rdf:nodeID="N5bc5b6df4a3f4ece9ff233e26002af7d"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasProcessingMethod">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="https://w3id.org/alloygraph/ont#ProcessingMethod"/>
+    <rdfs:label xml:lang="en">has processing method</rdfs:label>
+    <rdfs:comment xml:lang="en">Links a variant to its manufacturing processing method.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N99e313800dc64f738911dfdbe76a7513">
+    <rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Datatype"/>
+    <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <owl:withRestrictions rdf:nodeID="N2d39e7cab6d749f1a8cecbbc649d1c0b"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N57821737420c491688c4b30f5a4bccef">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#element"/>
+    <owl:onClass rdf:resource="https://w3id.org/alloygraph/ont#Element"/>
+    <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#isBalanceRemainder">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#CompositionEntry"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
+    <rdfs:label xml:lang="en">is balance remainder</rdfs:label>
+    <rdfs:comment xml:lang="en">Whether the composition entry represents the balance element (typically Ni).</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N27c3132e49024d379afe6f208ae9229c">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <owl:intersectionOf rdf:nodeID="N8608925e69af45719b294e9b1481bb42"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasAlTiAtRatio">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">Al/Ti ratio (at%)</rdfs:label>
+    <rdfs:comment xml:lang="en">The aluminium-to-titanium atomic percent ratio.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasLatticeMismatchPct">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">lattice mismatch %</rdfs:label>
+    <rdfs:comment xml:lang="en">The lattice mismatch between gamma and gamma prime phases, in percent.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N93084cc8a3224bf7a127c2b89f6dd25d">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasMdAverage"/>
+    <owl:someValuesFrom rdf:nodeID="N598716bcc2ff4b41b91354140ccf61d8"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N0dc6bfccf0c74394ac7cd35266f75f2b">
+    <rdf:first rdf:nodeID="Nb67813735574461ebd24bfa971453f7a"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Ne167a0f3fd524d7eb7f66e082c80ce75">
+    <xsd:minInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.94</xsd:minInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#temperatureCategory">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Measurement"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <rdfs:label xml:lang="en">temperature category</rdfs:label>
+    <rdfs:comment xml:lang="en">A categorical label for the test temperature range (e.g., room temperature, elevated).</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nd218cc87aa20469eb02cdf841d31ea5e">
+    <rdf:first rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdf:rest rdf:nodeID="N0dc6bfccf0c74394ac7cd35266f75f2b"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasTestTemperature">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Measurement"/>
+    <rdfs:range rdf:resource="https://w3id.org/alloygraph/ont#Quantity"/>
+    <rdfs:label xml:lang="en">has test temperature</rdfs:label>
+    <rdfs:comment xml:lang="en">Links a measurement to the temperature at which it was performed.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N344d1928e7fe4f93bcc94be1c799e966">
+    <rdf:first rdf:nodeID="N6c69db4751f645aa95b52490b08da1ae"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#ReductionOfArea">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="https://w3id.org/alloygraph/ont#MechanicalProperty"/>
+    <rdfs:label xml:lang="en">Reduction of Area</rdfs:label>
+    <rdfs:comment xml:lang="en">The reduction of area at fracture, measured in percent.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#density">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">measured density</rdfs:label>
+    <rdfs:comment xml:lang="en">The experimentally measured density in g/cm3.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#tradeDesignation">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#NickelBasedSuperalloy"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <rdfs:label xml:lang="en">trade designation</rdfs:label>
+    <rdfs:comment xml:lang="en">The commercial trade name of a superalloy.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasMassFraction">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#CompositionEntry"/>
+    <rdfs:range rdf:resource="https://w3id.org/alloygraph/ont#Quantity"/>
+    <rdfs:label xml:lang="en">has mass fraction</rdfs:label>
+    <rdfs:comment xml:lang="en">Links a composition entry to its weight-percent quantity.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nf559c628f5c14e4c9e1b4e0171eb0748">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasMdAverage"/>
+    <owl:someValuesFrom rdf:nodeID="N17a21ff290d34418ac2835ae0414b03d"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasTcpRisk">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <rdfs:label xml:lang="en">TCP risk classification</rdfs:label>
+    <rdfs:comment xml:lang="en">The TCP phase formation risk level (Low, Moderate, Elevated, or Critical).</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#Quantity">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+    <skos:closeMatch rdf:resource="http://qudt.org/schema/qudt/QuantityValue"/>
+    <rdfs:label xml:lang="en">Quantity</rdfs:label>
+    <rdfs:comment xml:lang="en">A numeric quantity with an optional unit, range, and qualifier.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#GammaPrimeAlloy">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <owl:equivalentClass rdf:nodeID="N99ca0485495540e49ce2e26feaae2b59"/>
+    <owl:equivalentClass rdf:nodeID="Nb8bdebf2df464772a69833d3e5403bdd"/>
+    <rdfs:label xml:lang="en">Gamma Prime Precipitation Hardened Alloy</rdfs:label>
+    <rdfs:comment xml:lang="en">An alloy classified as gamma-prime precipitation hardened: gamma-prime former content (Al+Ti+Ta+0.35*Nb) at or above 2.0 wt%.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N8a30aeddba584e758f55f4cdbe5537ea">
+    <rdf:first rdf:nodeID="Nfc71bd7df2284d6abd47e5060ac1ded3"/>
+    <rdf:rest rdf:nodeID="N23e9964aecb047cbb8169a253e91921f"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nf2b98f96d12d4c05b20669b1e9138bf2">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AllDisjointClasses"/>
+    <owl:members rdf:nodeID="N3cb81511c69a42ba8c247e2e500f7187"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N335bb8f99cef4cc59a9be4f909d83af1">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <owl:intersectionOf rdf:nodeID="N8ef64247b1df4bfea19bc26d6f594a31"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nd408b51aafa04ea79d846a3c0c8ff1c5">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#measuresProperty"/>
+    <owl:onClass rdf:resource="https://w3id.org/alloygraph/ont#MechanicalProperty"/>
+    <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N098f0b7d259e4b27b3a89664942532db">
+    <rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Datatype"/>
+    <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <owl:withRestrictions rdf:nodeID="N9e1d6c9d1220430187e66b2ea1e21f60"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N9aaf0096b3344bfdbd842b35f56fda96">
+    <xsd:maxInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">85.0</xsd:maxInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#YieldStrength">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="https://w3id.org/alloygraph/ont#MechanicalProperty"/>
+    <rdfs:label xml:lang="en">Yield Strength</rdfs:label>
+    <rdfs:comment xml:lang="en">The 0.2% offset yield strength, measured in MPa.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nc6222815cc334be0935bcb0aa84310c7">
+    <rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Datatype"/>
+    <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <owl:withRestrictions rdf:nodeID="N78b858c3614f4211b023107389dc6f61"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Ndffeed6935f04093aa326304636761db">
+    <rdf:first rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdf:rest rdf:nodeID="Nc3e3613bccfd4a0aaaca916e96b5ff9b"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#TCPRiskCritical">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <owl:equivalentClass rdf:nodeID="N6c32d15807d44fce840f09a3b06d5264"/>
+    <owl:equivalentClass rdf:nodeID="N335bb8f99cef4cc59a9be4f909d83af1"/>
+    <rdfs:label xml:lang="en">TCP Risk Critical</rdfs:label>
+    <rdfs:comment xml:lang="en">Alloy variant with critical TCP phase formation risk: Md_avg at or above 0.985.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasPhase">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="https://w3id.org/alloygraph/ont#Phase"/>
+    <rdfs:label xml:lang="en">has phase</rdfs:label>
+    <rdfs:comment xml:lang="en">Links a variant to a phase present in its microstructure.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N1294f318ff6f4f2987fd5e1d9b67ee2c">
+    <xsd:maxExclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.985</xsd:maxExclusive>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#typicalHeatTreatment">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <rdfs:label xml:lang="en">typical heat treatment</rdfs:label>
+    <rdfs:comment xml:lang="en">Description of the typical heat treatment applied.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#Density">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="https://w3id.org/alloygraph/ont#MechanicalProperty"/>
+    <rdfs:label xml:lang="en">Density</rdfs:label>
+    <rdfs:comment xml:lang="en">The material density, measured in g/cm3.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#isComponentOf">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#CompositionEntry"/>
+    <rdfs:range rdf:resource="https://w3id.org/alloygraph/ont#Composition"/>
+    <owl:inverseOf rdf:resource="https://w3id.org/alloygraph/ont#hasComponent"/>
+    <rdfs:label xml:lang="en">is component of</rdfs:label>
+    <rdfs:comment xml:lang="en">Inverse of hasComponent; links an element entry back to its composition.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N2d39e7cab6d749f1a8cecbbc649d1c0b">
+    <rdf:first rdf:nodeID="N08f268016e5e4087a2d98520d25eef73"/>
+    <rdf:rest rdf:nodeID="N4f0083013ab84b49b4d448eb78851652"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasMeasurement">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#PropertySet"/>
+    <rdfs:range rdf:resource="https://w3id.org/alloygraph/ont#Measurement"/>
+    <rdfs:label xml:lang="en">has measurement</rdfs:label>
+    <rdfs:comment xml:lang="en">Links a property set to an individual measurement data point.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasVECAvg">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">VEC average</rdfs:label>
+    <rdfs:comment xml:lang="en">The valence electron concentration averaged over the alloy composition.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#Variant">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+    <rdfs:subClassOf rdf:nodeID="Nb577d1e697b44009befd5c1935613fc8"/>
+    <rdfs:subClassOf rdf:nodeID="N929c1e16eede4c268c921b414953e5d6"/>
+    <rdfs:subClassOf rdf:nodeID="Na070088d10214a14864fc9d139109fd8"/>
+    <rdfs:subClassOf rdf:nodeID="Nb4affe2821e9449f989ad7a100f79b92"/>
+    <rdfs:subClassOf rdf:nodeID="N9f5c757aefbd43b38e99fb27da4dee72"/>
+    <rdfs:subClassOf rdf:nodeID="Nc3c641e4a98f460fab9bf6557dd05736"/>
+    <rdfs:subClassOf rdf:nodeID="N6e2f997798c944bdbe8c4b5ff700b239"/>
+    <rdfs:subClassOf rdf:nodeID="N201b5b3a6ef54371906668a95154f5f6"/>
+    <rdfs:label xml:lang="en">Variant</rdfs:label>
+    <rdfs:comment xml:lang="en">A specific variant of an alloy defined by its processing route and product form.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nb577d1e697b44009befd5c1935613fc8">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasDensityCalculated"/>
+    <owl:allValuesFrom rdf:nodeID="Ne08147e9302b4f55b92b402f702fb29b"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N6c69db4751f645aa95b52490b08da1ae">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasMdAverage"/>
+    <owl:someValuesFrom rdf:nodeID="Ncde28fc473ed4d40a1bf3e01be265c8c"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nef489cfa4fe0459abfd92475072d868e">
+    <rdf:first rdf:resource="https://w3id.org/alloygraph/ont#TCPRiskCritical"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasVariant">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#NickelBasedSuperalloy"/>
+    <rdfs:range rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <owl:inverseOf rdf:resource="https://w3id.org/alloygraph/ont#isVariantOf"/>
+    <rdfs:label xml:lang="en">has variant</rdfs:label>
+    <rdfs:comment xml:lang="en">Links a superalloy to one of its processing/form variants.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#TCPRiskElevated">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <owl:equivalentClass rdf:nodeID="Nb39ef81a9ee34056bafd73c951bd053f"/>
+    <owl:equivalentClass rdf:nodeID="Nc3a500cdcab84e0db1a91785460f6db1"/>
+    <rdfs:label xml:lang="en">TCP Risk Elevated</rdfs:label>
+    <rdfs:comment xml:lang="en">Alloy variant with elevated TCP phase formation risk: Md_avg between 0.960 and 0.985.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#isVariantOf">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="https://w3id.org/alloygraph/ont#NickelBasedSuperalloy"/>
+    <owl:inverseOf rdf:resource="https://w3id.org/alloygraph/ont#hasVariant"/>
+    <rdfs:label xml:lang="en">is variant of</rdfs:label>
+    <rdfs:comment xml:lang="en">Inverse of hasVariant; links a variant back to its parent superalloy.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#form">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Form"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <rdfs:label xml:lang="en">product form (literal)</rdfs:label>
+    <rdfs:comment xml:lang="en">The product form as a string literal.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N5bc5b6df4a3f4ece9ff233e26002af7d">
+    <rdf:first rdf:nodeID="Nd3cf3a1db8394a98ae6f8e678d4c5759"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N25ec721bcce34b719c73a6d3b9a7e7fb">
+    <rdf:first rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdf:rest rdf:nodeID="N5e81c40cd2804e04b1ea5414167cc142"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasCrCoRatio">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">Cr/Co ratio</rdfs:label>
+    <rdfs:comment xml:lang="en">The chromium-to-cobalt weight percent ratio.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N8608925e69af45719b294e9b1481bb42">
+    <rdf:first rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdf:rest rdf:nodeID="Nabde0d5560f348efab66db7ae76e2faf"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#TCPRiskLow">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <owl:equivalentClass rdf:nodeID="N27c3132e49024d379afe6f208ae9229c"/>
+    <owl:equivalentClass rdf:nodeID="N1e2bd6f43c2e42008f92361f320f4ad4"/>
+    <rdfs:label xml:lang="en">TCP Risk Low</rdfs:label>
+    <rdfs:comment xml:lang="en">Alloy variant with low TCP phase formation risk: Md_avg below 0.940.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N81ba96d921864ccba7edb75aeb19e453">
+    <rdf:first rdf:nodeID="Nc40e236662e344b5910945936d6c54af"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nd536fac448a8455c9acaa87c6784fb77">
+    <rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Datatype"/>
+    <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <owl:withRestrictions rdf:nodeID="Nd45ef6f584d6423db0641bd44ef03603"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N0ad25667151e4d93976035a606fadad1">
+    <rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Datatype"/>
+    <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <owl:withRestrictions rdf:nodeID="N929be7489a664886ba294bbab623aafb"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Ne08147e9302b4f55b92b402f702fb29b">
+    <rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Datatype"/>
+    <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <owl:withRestrictions rdf:nodeID="N823c1c19c40b49778e58faafb236fd72"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N17a21ff290d34418ac2835ae0414b03d">
+    <rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Datatype"/>
+    <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <owl:withRestrictions rdf:nodeID="N8a4663901c6340d29860b7e2714aa583"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N897c43c843b640f2a2f4b9ff27dab2fe">
+    <rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Datatype"/>
+    <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <owl:withRestrictions rdf:nodeID="N3e9bb03dbbc24936838ae1495da149af"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nb8bdebf2df464772a69833d3e5403bdd">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <owl:intersectionOf rdf:nodeID="Ndffeed6935f04093aa326304636761db"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#TCPPhase">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="https://w3id.org/alloygraph/ont#Phase"/>
+    <rdfs:label xml:lang="en">TCP Phase</rdfs:label>
+    <rdfs:comment xml:lang="en">A topologically close-packed phase detrimental to mechanical properties (e.g., sigma, mu, Laves).</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#GammaPhase">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="https://w3id.org/alloygraph/ont#Phase"/>
+    <rdfs:label xml:lang="en">Gamma Phase</rdfs:label>
+    <rdfs:comment xml:lang="en">The face-centred cubic (FCC) gamma matrix phase.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasGammaPrimeCompositionJson">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <rdfs:label xml:lang="en">gamma prime composition (JSON)</rdfs:label>
+    <rdfs:comment xml:lang="en">The estimated gamma prime composition in atomic percent, serialised as a JSON string.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N78b07fddc27340d7a32a6999b8b236b7">
+    <rdf:first rdf:nodeID="Nc0dfb02ee27346c1b37dfc8905c0db59"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasHeatTreatment">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="https://w3id.org/alloygraph/ont#HeatTreatment"/>
+    <rdfs:label xml:lang="en">has heat treatment</rdfs:label>
+    <rdfs:comment xml:lang="en">Links a variant to its heat treatment.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N0221c50a244e43598b778961483d82d4">
+    <rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Datatype"/>
+    <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <owl:withRestrictions rdf:nodeID="Ne152afde24d240b8bf4e6473477aeed2"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N259c8964aa044de4bd929203621b3fcb">
+    <rdf:first rdf:resource="https://w3id.org/alloygraph/ont#TCPRiskLow"/>
+    <rdf:rest rdf:nodeID="Nd3267b0b895547ef9fbce7c37549565f"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasGPFormersAtPct">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">GP formers at%</rdfs:label>
+    <rdfs:comment xml:lang="en">Total atomic percent of gamma-prime forming elements (Al+Ti+Ta+Nb).</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N7dbaaf996c9d4043804b3b24515518cb">
+    <rdf:first rdf:nodeID="N4731b7633d1342f0abc204d1e6f64352"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Ne95528d6f8b54e65b751c5d44c596cdc">
+    <rdf:first rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdf:rest rdf:nodeID="N75013bba20884404be2957a72b941cac"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N550d6605b81b4a65a940dcea27ebc5a9">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasMdAverage"/>
+    <owl:someValuesFrom rdf:nodeID="N878c98cd0cb3401aaece6dacb587fea8"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nc3a500cdcab84e0db1a91785460f6db1">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <owl:intersectionOf rdf:nodeID="N6edf666567b7434fa5610761671094a0"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nfc0bffa227cc4acd9abf32321ac4e289">
+    <rdf:first rdf:nodeID="Nfc8a204ef43543c9b9ac7d90ca3c6635"/>
+    <rdf:rest rdf:nodeID="N66412e634dfe45399455eb4526f7d71a"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasCrAlInteraction">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">Cr x Al interaction</rdfs:label>
+    <rdfs:comment xml:lang="en">The Cr-Al interaction term (product of weight percentages).</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N4fb088d4e0dd466597653d810e8926cc">
+    <rdf:first rdf:nodeID="N866e4fbf43a346e2b4b540064509a461"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nd3267b0b895547ef9fbce7c37549565f">
+    <rdf:first rdf:resource="https://w3id.org/alloygraph/ont#TCPRiskModerate"/>
+    <rdf:rest rdf:nodeID="N746aae75a1d34b97ad68ada49d23a27d"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#stress">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Measurement"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">stress</rdfs:label>
+    <rdfs:comment xml:lang="en">The applied stress for creep rupture tests, in MPa.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N0f1d9b735a824d21be50f898bb2fab92">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasQuantity"/>
+    <owl:onClass rdf:resource="https://w3id.org/alloygraph/ont#Quantity"/>
+    <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N823c1c19c40b49778e58faafb236fd72">
+    <rdf:first rdf:nodeID="N6f1fdf863f87424da101e5f7d72cec59"/>
+    <rdf:rest rdf:nodeID="N581e3f263e1e466d8600b83ba820378b"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N02d69b16604b4859b87d5d97465ba28a">
+    <xsd:minInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.0</xsd:minInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#Composition">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+    <rdfs:label xml:lang="en">Composition</rdfs:label>
+    <rdfs:comment xml:lang="en">The chemical composition of an alloy expressed as a set of element entries.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N7bd9f55d38a1427faed00cb92d7e8acf">
+    <xsd:minInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">7.0</xsd:minInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#Form">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+    <rdfs:label xml:lang="en">Product Form</rdfs:label>
+    <rdfs:comment xml:lang="en">The physical product form of an alloy variant (e.g., bar, sheet, forged).</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N0b7c0c9b96474d5fbdf66f71dfb2f3b5">
+    <rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Datatype"/>
+    <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <owl:withRestrictions rdf:nodeID="N90edad55c9c74dee9890e10695db7609"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Na070088d10214a14864fc9d139109fd8">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasMdAverage"/>
+    <owl:allValuesFrom rdf:nodeID="N26647f5adefa4d82aa37679d7d046c3e"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N7e376392414e4727a6a83d205b9202bf">
+    <rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Datatype"/>
+    <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <owl:withRestrictions rdf:nodeID="N9604325a37164ac5b672c8088fe9e0c6"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nd312c207bf034b64abe9b92e17359272">
+    <rdf:first rdf:nodeID="N0bb1078f6e654b3dafb1a9f348c4661a"/>
+    <rdf:rest rdf:nodeID="Neae8b06fd88841ecb50dea6c115bc39a"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N8a4663901c6340d29860b7e2714aa583">
+    <rdf:first rdf:nodeID="Nbe5e5769aa39445c83fe41581533fc53"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N173803736cf94ea2802052fae384414a">
+    <rdf:first rdf:nodeID="Ne167a0f3fd524d7eb7f66e082c80ce75"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#rawString">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Quantity"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <rdfs:label xml:lang="en">raw string</rdfs:label>
+    <rdfs:comment xml:lang="en">The original string representation of the quantity as parsed from the source data.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasMdAverage">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">Md average (bulk)</rdfs:label>
+    <rdfs:comment xml:lang="en">The Morinaga d-electron parameter averaged over the bulk alloy composition.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#Elongation">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="https://w3id.org/alloygraph/ont#MechanicalProperty"/>
+    <rdfs:label xml:lang="en">Elongation</rdfs:label>
+    <rdfs:comment xml:lang="en">The elongation at break, measured in percent.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N6c7ab5a1e56f4ffe903551b8a7a516b6">
+    <rdf:first rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdf:rest rdf:nodeID="Nf5d7bf1f8efe412f86d63b563cd300d1"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasComponent">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Composition"/>
+    <rdfs:range rdf:resource="https://w3id.org/alloygraph/ont#CompositionEntry"/>
+    <owl:inverseOf rdf:resource="https://w3id.org/alloygraph/ont#isComponentOf"/>
+    <rdfs:label xml:lang="en">has component</rdfs:label>
+    <rdfs:comment xml:lang="en">Links a composition to one of its element entries.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N23e9964aecb047cbb8169a253e91921f">
+    <rdf:first rdf:nodeID="N02d69b16604b4859b87d5d97465ba28a"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasGPFormersWtPct">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">GP formers wt%</rdfs:label>
+    <rdfs:comment xml:lang="en">Total weight percent of gamma-prime forming elements (Al+Ti+Ta+Nb).</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasAtomicCompositionJson">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <rdfs:label xml:lang="en">atomic composition (JSON)</rdfs:label>
+    <rdfs:comment xml:lang="en">The full alloy composition in atomic percent, serialised as a JSON string.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nad98fdebaa1f47e0a757be7d3e9803c2">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <owl:intersectionOf rdf:nodeID="Ne95528d6f8b54e65b751c5d44c596cdc"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasCrNiRatio">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">Cr/Ni ratio</rdfs:label>
+    <rdfs:comment xml:lang="en">The chromium-to-nickel weight percent ratio.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N929c1e16eede4c268c921b414953e5d6">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasGammaPrimeEstimate"/>
+    <owl:allValuesFrom rdf:nodeID="N5bdf3d9cc56f4b7ca9ffc84dedc00e96"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N892be94ec66249aaa0a4f496f0dd1fc1">
+    <rdf:first rdf:nodeID="N1294f318ff6f4f2987fd5e1d9b67ee2c"/>
+    <rdf:rest rdf:nodeID="N63918c978b4d49f4bfa13d08a4f4f6fe"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasDensityCalculated">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">calculated density</rdfs:label>
+    <rdfs:comment xml:lang="en">The alloy density calculated from the inverse rule of mixtures, in g/cm3.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nc3c641e4a98f460fab9bf6557dd05736">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasGammaPrimeEstimate"/>
+    <owl:allValuesFrom rdf:nodeID="N9ae2a3b8ac8148adb22c01744216c7ea"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nede505f38f7e4e15a731c8d7fcc21f5b">
+    <rdf:first rdf:nodeID="N9b517fe42a784b02b2710da28a3a9c98"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#Unit">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+    <skos:closeMatch rdf:resource="http://qudt.org/schema/qudt/Unit"/>
+    <rdfs:label xml:lang="en">Unit</rdfs:label>
+    <rdfs:comment xml:lang="en">A unit of measurement.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N68887a0f51b549cb864581cadd89ef7e">
+    <rdf:first rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdf:rest rdf:nodeID="N78b07fddc27340d7a32a6999b8b236b7"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N8e3b8e7abe244c1fa20cd3ad44a44f63">
+    <xsd:maxExclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.985</xsd:maxExclusive>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#Phase">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+    <rdfs:label xml:lang="en">Phase</rdfs:label>
+    <rdfs:comment xml:lang="en">A thermodynamic phase in the alloy microstructure.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nbe5e5769aa39445c83fe41581533fc53">
+    <xsd:maxExclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.94</xsd:maxExclusive>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#numericValue">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Quantity"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">numeric value</rdfs:label>
+    <rdfs:comment xml:lang="en">The numeric value of a quantity.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N8d99ca2f3cef43808b1d948041527289">
+    <xsd:maxInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">1.05</xsd:maxInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#measuresProperty">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#PropertySet"/>
+    <rdfs:range rdf:resource="https://w3id.org/alloygraph/ont#MechanicalProperty"/>
+    <rdfs:label xml:lang="en">measures property</rdfs:label>
+    <rdfs:comment xml:lang="en">Links a property set to the type of mechanical property it measures.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N598716bcc2ff4b41b91354140ccf61d8">
+    <rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Datatype"/>
+    <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <owl:withRestrictions rdf:nodeID="Nfc0bffa227cc4acd9abf32321ac4e289"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nadf1fdb61f9a483abaf0b77c380b10cb">
+    <rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Datatype"/>
+    <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <owl:withRestrictions rdf:nodeID="N3490e96e3cc046b9829c0c6581c493c9"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#minInclusive">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Quantity"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">minimum value (inclusive)</rdfs:label>
+    <rdfs:comment xml:lang="en">The minimum bound of a quantity range.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N866e4fbf43a346e2b4b540064509a461">
+    <xsd:minInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">-2.0</xsd:minInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N3075959e818142cb980b6077f1bf4911">
+    <rdf:first rdf:nodeID="N8e3b8e7abe244c1fa20cd3ad44a44f63"/>
+    <rdf:rest rdf:nodeID="N7dbaaf996c9d4043804b3b24515518cb"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Ne26f7c9368a0404da78bc350e5c288e0">
+    <xsd:minInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">2.0</xsd:minInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nc0dfb02ee27346c1b37dfc8905c0db59">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasGPFormersWtPct"/>
+    <owl:someValuesFrom rdf:nodeID="N7e376392414e4727a6a83d205b9202bf"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nb9815b0448114220a4e7abb0dce2b777">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AllDisjointClasses"/>
+    <owl:members rdf:nodeID="N259c8964aa044de4bd929203621b3fcb"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N78b858c3614f4211b023107389dc6f61">
+    <rdf:first rdf:nodeID="Na3576693243248d6bbc0b36e79c8342b"/>
+    <rdf:rest rdf:nodeID="Nec428f47142747f194bb0d694dc928fb"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N4a3ff60ebac541ec96bbff37f66cc2a2">
+    <xsd:maxExclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.96</xsd:maxExclusive>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N3cb81511c69a42ba8c247e2e500f7187">
+    <rdf:first rdf:resource="https://w3id.org/alloygraph/ont#TCPRiskLow"/>
+    <rdf:rest rdf:nodeID="Nedcd4f05170b43f3b889125643e0eaf3"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N5bdf3d9cc56f4b7ca9ffc84dedc00e96">
+    <rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Datatype"/>
+    <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <owl:withRestrictions rdf:nodeID="N8a30aeddba584e758f55f4cdbe5537ea"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasQuantity">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Measurement"/>
+    <rdfs:range rdf:resource="https://w3id.org/alloygraph/ont#Quantity"/>
+    <rdfs:label xml:lang="en">has quantity</rdfs:label>
+    <rdfs:comment xml:lang="en">Links a measurement to its numeric quantity value.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nc75ff82e3efe4c0daa793250c81aab30">
+    <rdf:first rdf:nodeID="Na59f6afe7608453788d337e1d25adf7e"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N8ef64247b1df4bfea19bc26d6f594a31">
+    <rdf:first rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdf:rest rdf:nodeID="N344d1928e7fe4f93bcc94be1c799e966"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nabde0d5560f348efab66db7ae76e2faf">
+    <rdf:first rdf:nodeID="Nf559c628f5c14e4c9e1b4e0171eb0748"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N9f8443bcee9849adac26216db8fdda62">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasGPFormersWtPct"/>
+    <owl:someValuesFrom rdf:nodeID="N0221c50a244e43598b778961483d82d4"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N882a05140ebc42db9dd23a0ee1e46d85">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasMdAverage"/>
+    <owl:someValuesFrom rdf:nodeID="N897c43c843b640f2a2f4b9ff27dab2fe"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#HeatTreatment">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+    <rdfs:label xml:lang="en">Heat Treatment</rdfs:label>
+    <rdfs:comment xml:lang="en">A heat treatment applied to an alloy variant.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#unsNumber">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#NickelBasedSuperalloy"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <rdfs:label xml:lang="en">UNS number</rdfs:label>
+    <rdfs:comment xml:lang="en">The Unified Numbering System identifier for the alloy.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N4f0083013ab84b49b4d448eb78851652">
+    <rdf:first rdf:nodeID="Na68b4ac9384d4697a10e250cb2fa935a"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#UTS">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="https://w3id.org/alloygraph/ont#MechanicalProperty"/>
+    <rdfs:label xml:lang="en">Ultimate Tensile Strength</rdfs:label>
+    <rdfs:comment xml:lang="en">The ultimate tensile strength, measured in MPa.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N3490e96e3cc046b9829c0c6581c493c9">
+    <rdf:first rdf:nodeID="N8d99ca2f3cef43808b1d948041527289"/>
+    <rdf:rest rdf:nodeID="Nede505f38f7e4e15a731c8d7fcc21f5b"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N2fe768fe460d4ad892789cad9b96cbd6">
+    <rdf:first rdf:nodeID="Nf55d5b75d066472f900bd39aef70ce2c"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N5e81c40cd2804e04b1ea5414167cc142">
+    <rdf:first rdf:nodeID="Ne1fa881d3f71434796d7b1ff9a980f08"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasAlTiInteraction">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">Al x Ti interaction</rdfs:label>
+    <rdfs:comment xml:lang="en">The Al-Ti interaction term (product of atomic percentages).</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Ne30e4e651b67469e823bd24d61fc1915">
+    <xsd:minInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.7</xsd:minInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N9604325a37164ac5b672c8088fe9e0c6">
+    <rdf:first rdf:nodeID="Na0ba952ded2b436ba405be8274bbe9fd"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N9ae2a3b8ac8148adb22c01744216c7ea">
+    <rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Datatype"/>
+    <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <owl:withRestrictions rdf:nodeID="N687c8340a84b4ba69e0ad5c557b4fa41"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#CreepRupture">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="https://w3id.org/alloygraph/ont#MechanicalProperty"/>
+    <rdfs:label xml:lang="en">Creep Rupture</rdfs:label>
+    <rdfs:comment xml:lang="en">The creep rupture life at a given stress and temperature.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Ne152afde24d240b8bf4e6473477aeed2">
+    <rdf:first rdf:nodeID="Ne26f7c9368a0404da78bc350e5c288e0"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nbd22985196a342378f5956af3c172cb1">
+    <rdf:first rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdf:rest rdf:nodeID="N95a2d3492522464c86f5d24245748fb6"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N9e1d6c9d1220430187e66b2ea1e21f60">
+    <rdf:first rdf:nodeID="Nf6009de8453540088f5457f8c7bd2ff7"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N9f5c757aefbd43b38e99fb27da4dee72">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasDensityCalculated"/>
+    <owl:allValuesFrom rdf:nodeID="Nc6222815cc334be0935bcb0aa84310c7"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasComposition">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="https://w3id.org/alloygraph/ont#Composition"/>
+    <rdfs:label xml:lang="en">has composition</rdfs:label>
+    <rdfs:comment xml:lang="en">Links a variant to its chemical composition.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Ncde28fc473ed4d40a1bf3e01be265c8c">
+    <rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Datatype"/>
+    <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <owl:withRestrictions rdf:nodeID="N81ba96d921864ccba7edb75aeb19e453"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#family">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#NickelBasedSuperalloy"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <rdfs:label xml:lang="en">alloy family</rdfs:label>
+    <rdfs:comment xml:lang="en">The alloy family classification.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N929be7489a664886ba294bbab623aafb">
+    <rdf:first rdf:nodeID="N24f5d0433d3a437792e3388f287f18b4"/>
+    <rdf:rest rdf:nodeID="N4fb088d4e0dd466597653d810e8926cc"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N95a2d3492522464c86f5d24245748fb6">
+    <rdf:first rdf:nodeID="Nf8ef3e783c934c619d2290a2933a1e0e"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Ne1fa881d3f71434796d7b1ff9a980f08">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasGPFormersWtPct"/>
+    <owl:someValuesFrom rdf:nodeID="Nd536fac448a8455c9acaa87c6784fb77"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Na0ba952ded2b436ba405be8274bbe9fd">
+    <xsd:maxExclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">2.0</xsd:maxExclusive>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N1e2bd6f43c2e42008f92361f320f4ad4">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <owl:intersectionOf rdf:nodeID="N6c7ab5a1e56f4ffe903551b8a7a516b6"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N3e9bb03dbbc24936838ae1495da149af">
+    <rdf:first rdf:nodeID="N92c5942bfe1f4e45b7bd19a7ddca4497"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N7ea0eafe383d4959a5f0e4021d677b03">
+    <rdf:first rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdf:rest rdf:nodeID="Nc75ff82e3efe4c0daa793250c81aab30"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#otherConstituents">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Composition"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <rdfs:label xml:lang="en">other constituents</rdfs:label>
+    <rdfs:comment xml:lang="en">Description of other minor or trace constituents in the composition.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N90edad55c9c74dee9890e10695db7609">
+    <rdf:first rdf:nodeID="N4a3ff60ebac541ec96bbff37f66cc2a2"/>
+    <rdf:rest rdf:nodeID="N173803736cf94ea2802052fae384414a"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Na3576693243248d6bbc0b36e79c8342b">
+    <xsd:maxInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10.0</xsd:maxInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#Hardness">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="https://w3id.org/alloygraph/ont#MechanicalProperty"/>
+    <rdfs:label xml:lang="en">Hardness</rdfs:label>
+    <rdfs:comment xml:lang="en">A hardness measurement (e.g., Vickers, Rockwell).</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasGammaCompositionJson">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <rdfs:label xml:lang="en">gamma composition (JSON)</rdfs:label>
+    <rdfs:comment xml:lang="en">The estimated gamma matrix composition in atomic percent, serialised as a JSON string.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#gammaPrimeVolPct">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">measured gamma prime vol%</rdfs:label>
+    <rdfs:comment xml:lang="en">The experimentally measured gamma prime volume fraction in percent.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasSSSCoefficient">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">SSS coefficient</rdfs:label>
+    <rdfs:comment xml:lang="en">The solid solution strengthening coefficient computed via the Labusch-Nabarro model.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#element">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#CompositionEntry"/>
+    <rdfs:range rdf:resource="https://w3id.org/alloygraph/ont#Element"/>
+    <rdfs:label xml:lang="en">element</rdfs:label>
+    <rdfs:comment xml:lang="en">Links a composition entry to the chemical element it represents.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N6c32d15807d44fce840f09a3b06d5264">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <owl:intersectionOf rdf:nodeID="N5ff0296056574411b178ede9237c05b9"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nb67813735574461ebd24bfa971453f7a">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasGPFormersWtPct"/>
+    <owl:someValuesFrom rdf:nodeID="N098f0b7d259e4b27b3a89664942532db"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N1cfb856f2c1c475793f55a1435e3d572">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasMassFraction"/>
+    <owl:onClass rdf:resource="https://w3id.org/alloygraph/ont#Quantity"/>
+    <owl:maxQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:maxQualifiedCardinality>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Neae8b06fd88841ecb50dea6c115bc39a">
+    <rdf:first rdf:nodeID="Ne30e4e651b67469e823bd24d61fc1915"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nc40e236662e344b5910945936d6c54af">
+    <xsd:minInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.985</xsd:minInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N24f5d0433d3a437792e3388f287f18b4">
+    <xsd:maxInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">2.0</xsd:maxInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N03f6525225af443da7f8b4f5c8122e27">
+    <rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Datatype"/>
+    <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <owl:withRestrictions rdf:nodeID="N3075959e818142cb980b6077f1bf4911"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#Elasticity">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="https://w3id.org/alloygraph/ont#MechanicalProperty"/>
+    <rdfs:label xml:lang="en">Elastic Modulus</rdfs:label>
+    <rdfs:comment xml:lang="en">The elastic modulus (Young's modulus), measured in GPa.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N5ff0296056574411b178ede9237c05b9">
+    <rdf:first rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdf:rest rdf:nodeID="N3eb69df75a884a75a003f31ee54d948c"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N26647f5adefa4d82aa37679d7d046c3e">
+    <rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Datatype"/>
+    <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <owl:withRestrictions rdf:nodeID="Nd312c207bf034b64abe9b92e17359272"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N75013bba20884404be2957a72b941cac">
+    <rdf:first rdf:nodeID="N93084cc8a3224bf7a127c2b89f6dd25d"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N09acb2cc448c4d238dcecaf93d23bf7f">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <owl:intersectionOf rdf:nodeID="Nbd22985196a342378f5956af3c172cb1"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasMoWRatio">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">Mo/W ratio</rdfs:label>
+    <rdfs:comment xml:lang="en">The molybdenum-to-tungsten weight percent ratio.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N201b5b3a6ef54371906668a95154f5f6">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasLatticeMismatchPct"/>
+    <owl:allValuesFrom rdf:nodeID="N99e313800dc64f738911dfdbe76a7513"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nd45ef6f584d6423db0641bd44ef03603">
+    <rdf:first rdf:nodeID="N45d03a3dde2b45f6bf932833cd76f486"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nb4affe2821e9449f989ad7a100f79b92">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasLatticeMismatchPct"/>
+    <owl:allValuesFrom rdf:nodeID="N0ad25667151e4d93976035a606fadad1"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N63918c978b4d49f4bfa13d08a4f4f6fe">
+    <rdf:first rdf:nodeID="Na53f621e26f340969ed16a59e59efce4"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nfc71bd7df2284d6abd47e5060ac1ded3">
+    <xsd:maxInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">85.0</xsd:maxInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasCreepResistanceParam">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">creep resistance parameter</rdfs:label>
+    <rdfs:comment xml:lang="en">A creep resistance parameter weighted by Re, Ru, and W content.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Na68b4ac9384d4697a10e250cb2fa935a">
+    <xsd:minInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">-2.0</xsd:minInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N878c98cd0cb3401aaece6dacb587fea8">
+    <rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Datatype"/>
+    <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <owl:withRestrictions rdf:nodeID="N2cc780e789694b1bb08baa4fdd204364"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nec428f47142747f194bb0d694dc928fb">
+    <rdf:first rdf:nodeID="N7bd9f55d38a1427faed00cb92d7e8acf"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N9b517fe42a784b02b2710da28a3a9c98">
+    <xsd:minInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.7</xsd:minInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N2cc780e789694b1bb08baa4fdd204364">
+    <rdf:first rdf:nodeID="N798bb62450984d6996e9706509641734"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#hasRefractoryTotalWtPct">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Variant"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">refractory total wt%</rdfs:label>
+    <rdfs:comment xml:lang="en">Total weight percent of refractory elements (Mo+W+Ta+Re+Nb+Hf).</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N0bb1078f6e654b3dafb1a9f348c4661a">
+    <xsd:maxInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">1.05</xsd:maxInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://w3id.org/alloygraph/ont#lifeHours">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://w3id.org/alloygraph/ont#Measurement"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <rdfs:label xml:lang="en">life hours</rdfs:label>
+    <rdfs:comment xml:lang="en">The creep rupture life in hours.</rdfs:comment>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N08f268016e5e4087a2d98520d25eef73">
+    <xsd:maxInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">2.0</xsd:maxInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N581e3f263e1e466d8600b83ba820378b">
+    <rdf:first rdf:nodeID="N73222d6ce2e34021b5f9505f78aed56f"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nbd5a4c2c019a4f43ad8a4eb9c95a43a9">
+    <xsd:minInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.94</xsd:minInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N4731b7633d1342f0abc204d1e6f64352">
+    <xsd:minInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.96</xsd:minInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N99ca0485495540e49ce2e26feaae2b59">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <owl:intersectionOf rdf:nodeID="Nd218cc87aa20469eb02cdf841d31ea5e"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nf5d7bf1f8efe412f86d63b563cd300d1">
+    <rdf:first rdf:nodeID="N882a05140ebc42db9dd23a0ee1e46d85"/>
+    <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N45d03a3dde2b45f6bf932833cd76f486">
+    <xsd:maxExclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">2.0</xsd:maxExclusive>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nedcd4f05170b43f3b889125643e0eaf3">
+    <rdf:first rdf:resource="https://w3id.org/alloygraph/ont#TCPRiskModerate"/>
+    <rdf:rest rdf:nodeID="Nf3a512b74c184f21b347a2086620f53d"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N798bb62450984d6996e9706509641734">
+    <xsd:minInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.985</xsd:minInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N92c5942bfe1f4e45b7bd19a7ddca4497">
+    <xsd:maxExclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.94</xsd:maxExclusive>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Na59f6afe7608453788d337e1d25adf7e">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Restriction"/>
+    <owl:onProperty rdf:resource="https://w3id.org/alloygraph/ont#hasMdAverage"/>
+    <owl:someValuesFrom rdf:nodeID="N958db8e6ef604e0db31e9ac501eef23c"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N73222d6ce2e34021b5f9505f78aed56f">
+    <xsd:minInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">7.0</xsd:minInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nfe43f2dd79aa4a1090d9a7eba56f16a7">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <owl:intersectionOf rdf:nodeID="N25ec721bcce34b719c73a6d3b9a7e7fb"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Na53f621e26f340969ed16a59e59efce4">
+    <xsd:minInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.96</xsd:minInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nb77b088f55b145849d84bca2852047ea">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <owl:intersectionOf rdf:nodeID="N68887a0f51b549cb864581cadd89ef7e"/>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nf6009de8453540088f5457f8c7bd2ff7">
+    <xsd:minInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">2.0</xsd:minInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="N6f1fdf863f87424da101e5f7d72cec59">
+    <xsd:maxInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10.0</xsd:maxInclusive>
+  </rdf:Description>
+  <rdf:Description rdf:nodeID="Nf55d5b75d066472f900bd39aef70ce2c">
+    <xsd:minInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">0.0</xsd:minInclusive>
+  </rdf:Description>
+</rdf:RDF>
