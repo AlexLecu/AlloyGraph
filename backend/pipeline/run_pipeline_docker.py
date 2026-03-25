@@ -20,7 +20,7 @@ WEAVIATE_GRPC_PORT = os.getenv("WEAVIATE_GRPC_PORT", "50051")
 # Data paths
 DATA_DIR = "/app/alloy_crew/models/training_data"
 DEFAULT_DATA_FILE = os.path.join(DATA_DIR, "train_77alloys.jsonl")
-ONTOLOGY_OUTPUT = "/app/Data/Ontology/alloygraph.owl"
+ONTOLOGY_OUTPUT = "/app/ontology/alloygraph.owl"
 
 
 def wait_for_service(url: str, name: str, max_attempts: int = 60) -> bool:
