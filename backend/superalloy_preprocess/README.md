@@ -1,6 +1,6 @@
-# AlloyMind Superalloy Data Processing Pipeline
+# AlloyGraph Superalloy Data Processing Pipeline
 
-This README describes the workflow for extracting, transforming, and preparing superalloy data for machine learning fine-tuning using the AlloyMind project scripts.
+This README describes the workflow for extracting, transforming, and preparing superalloy data for machine learning fine-tuning using the AlloyGraph project scripts.
 
 ## 1. Extract Alloy Data from Excel
 
