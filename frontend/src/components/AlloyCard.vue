@@ -302,15 +302,15 @@ const mechanicalProperties = computed(() => {
 <style scoped>
 .alloy-card {
   margin-top: 0.5rem;
-  background: rgba(30, 41, 59, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
   border-radius: 10px;
   font-size: 0.8rem;
   transition: all 0.2s ease;
 }
 
 .alloy-card:hover {
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--border-strong);
 }
 
 .alloy-card.expanded {
@@ -327,7 +327,7 @@ const mechanicalProperties = computed(() => {
 }
 
 .card-header:hover {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-glass);
 }
 
 .header-main {
@@ -369,7 +369,7 @@ const mechanicalProperties = computed(() => {
 /* Expanded body */
 .card-body {
   padding: 0.5rem 0.75rem 0.75rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--border-subtle);
   animation: slideDown 0.2s ease;
 }
 
@@ -394,7 +394,7 @@ h3 {
 .badge {
   font-size: 0.65rem;
   padding: 0.1rem 0.4rem;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--bg-glass);
   border-radius: 4px;
   color: var(--text-muted);
   text-transform: lowercase;
@@ -470,8 +470,8 @@ h3 {
 }
 
 .tab {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
   color: var(--text-muted);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
@@ -492,7 +492,7 @@ h3 {
 }
 
 .comp-tag {
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--bg-input);
   padding: 0.15rem 0.35rem;
   border-radius: 3px;
   font-size: 0.7rem;
@@ -506,7 +506,7 @@ h3 {
 
 /* Phase compositions - stacked */
 .phases {
-  background: rgba(0, 0, 0, 0.15);
+  background: var(--bg-glass);
   border-radius: 6px;
   padding: 0.4rem;
 }
@@ -541,7 +541,7 @@ h3 {
 .phase-tag {
   font-size: 0.65rem;
   color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-glass);
   padding: 0.1rem 0.25rem;
   border-radius: 2px;
 }
@@ -553,8 +553,8 @@ h3 {
 
 /* Temperature selector */
 .temp-select {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
   border-radius: 4px;
   color: var(--text-primary);
   font-size: 0.75rem;
@@ -575,7 +575,7 @@ h3 {
 }
 
 .prop-item {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-glass);
   padding: 0.25rem 0.4rem;
   border-radius: 4px;
   text-align: center;
@@ -594,5 +594,25 @@ h3 {
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .alloy-card { font-size: 0.85rem; }
+  .card-header { padding: 0.5rem 0.6rem; }
+  h3 { font-size: 0.95rem; }
+  .quick-stats { gap: 0.5rem; padding-left: 0.8rem; }
+  .quick-stat { font-size: 0.75rem; }
+  .card-body { padding: 0.4rem 0.6rem 0.6rem; }
+  .section-title { font-size: 0.7rem; }
+  .comp-tag { font-size: 0.75rem; padding: 0.2rem 0.4rem; }
+  .phase-label { font-size: 0.65rem; min-width: 3.5rem; }
+  .phase-tag { font-size: 0.7rem; }
+  .prop-label { font-size: 0.6rem; }
+  .prop-value { font-size: 0.8rem; }
+  .prop-item { min-width: 60px; padding: 0.3rem 0.4rem; }
+  .phase-row { flex-wrap: wrap; }
+  .badge { font-size: 0.7rem; }
+  .design-btn { padding: 0.35rem 0.7rem; font-size: 0.75rem; }
 }
 </style>

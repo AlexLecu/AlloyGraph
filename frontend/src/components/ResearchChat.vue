@@ -1,23 +1,76 @@
 <script setup>
-import { ref, nextTick } from 'vue'
+defineOptions({ name: 'ResearchChat' })
+
+import { ref, nextTick, onMounted, onUnmounted } from 'vue'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 
 import { API_BASE_URL } from '../config'
 import AlloyCard from './AlloyCard.vue'
+
+// ── Timestamp formatting ────────────────────────────────────────────────
+const formatTimestamp = (ts) => {
+  if (!ts) return ''
+  const diff = Math.floor((Date.now() - ts) / 1000)
+  if (diff < 10) return 'just now'
+  if (diff < 60) return `${diff}s ago`
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+// Refresh timestamps every 30s
+let timestampInterval = null
+
+let msgIdCounter = 0
+const nextMsgId = () => ++msgIdCounter
 
 // Generate unique session ID
 const generateSessionId = () => {
   return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
 }
 
+const CHAT_KEY = 'alloygraph-chat-history'
+
 const sessionId = ref(generateSessionId())
 const messages = ref([
-  { role: 'system', text: 'Ask me anything about alloys - compositions, properties, comparisons, or recommendations.' }
+  { id: nextMsgId(), role: 'system', text: 'Ask me anything about alloys - compositions, properties, comparisons, or recommendations.', timestamp: Date.now() }
 ])
+
+// ── Chat history persistence ────────────────────────────────────────────
+const saveHistory = () => {
+  try {
+    const toSave = messages.value.map(m => ({
+      role: m.role, text: m.text, display: m.display,
+      timestamp: m.timestamp, error: m.error, retryPrompt: m.retryPrompt
+    }))
+    localStorage.setItem(CHAT_KEY, JSON.stringify({ sessionId: sessionId.value, messages: toSave }))
+  } catch { /* quota exceeded */ }
+}
+
+const restoreHistory = () => {
+  try {
+    const stored = localStorage.getItem(CHAT_KEY)
+    if (!stored) return false
+    const { sessionId: sid, messages: msgs } = JSON.parse(stored)
+    if (!msgs || msgs.length <= 1) return false
+    sessionId.value = sid
+    messages.value = msgs
+    return true
+  } catch { return false }
+}
 const input = ref('')
 const loading = ref(false)
 const messagesContainer = ref(null)
 const inputField = ref(null)
 const emit = defineEmits(['design'])
+
+// Copy button state
+const copiedIndex = ref(null)
+
+// Scroll-to-bottom state
+const showScrollBtn = ref(false)
+const timestampTick = ref(0)
 
 // Track which alloys have been shown (to show card only on first mention)
 const shownAlloys = ref(new Set())
@@ -56,6 +109,53 @@ const focusInput = async () => {
   }
 }
 
+const autoResize = () => {
+  const el = inputField.value
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+}
+
+// Scroll-to-bottom detection
+const onMessagesScroll = () => {
+  const el = messagesContainer.value
+  if (!el) return
+  const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+  showScrollBtn.value = distFromBottom > 100
+}
+
+const scrollToBottomClick = () => {
+  if (messagesContainer.value) {
+    messagesContainer.value.scrollTo({
+      top: messagesContainer.value.scrollHeight,
+      behavior: 'smooth'
+    })
+  }
+}
+
+// Copy message text
+const copyMessage = async (msg, index) => {
+  try {
+    await navigator.clipboard.writeText(msg.text || msg.display || '')
+    copiedIndex.value = index
+    setTimeout(() => { copiedIndex.value = null }, 1500)
+  } catch {
+    // Fallback — ignore
+  }
+}
+
+// Lifecycle
+onMounted(() => {
+  timestampInterval = setInterval(() => { timestampTick.value++ }, 30000)
+  if (restoreHistory()) {
+    nextTick(() => scrollToBottom(true))
+  }
+})
+
+onUnmounted(() => {
+  if (timestampInterval) clearInterval(timestampInterval)
+})
+
 // Filter alloys to only show ones not yet shown in conversation
 const getNewAlloys = (alloys) => {
   if (!alloys) return []
@@ -64,46 +164,16 @@ const getNewAlloys = (alloys) => {
   return newAlloys
 }
 
-// ── Markdown formatting ─────────────────────────────────────────────────
-const escapeHtml = (str) =>
-  str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+// ── Markdown rendering (marked + DOMPurify) ────────────────────────────
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+})
 
 const formatText = (text) => {
   if (!text) return ''
-
-  // Split out fenced code blocks first so we don't mangle them
-  const parts = text.split(/(```[\s\S]*?```)/g)
-
-  const rendered = parts.map(part => {
-    // Fenced code block
-    if (part.startsWith('```') && part.endsWith('```')) {
-      const inner = part.slice(3, -3).replace(/^\w*\n/, '') // strip optional lang tag
-      return `<pre><code>${escapeHtml(inner)}</code></pre>`
-    }
-
-    // Escape HTML first to prevent XSS, then apply markdown transforms
-    let safe = escapeHtml(part)
-
-    return safe
-      // Inline code (uses escaped backticks)
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      // Headers: ### h3, ## h2
-      .replace(/^###\s+(.*)$/gm, '<h4>$1</h4>')
-      .replace(/^##\s+(.*)$/gm, '<h3>$1</h3>')
-      // Bold
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/__(.*?)__/g, '<strong>$1</strong>')
-      // Italic
-      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-      // Numbered lists: "1. item" → "<li class='ol'>item</li>"
-      .replace(/^\d+\.\s+(.*)$/gm, '<li class="ol">$1</li>')
-      // Unordered lists: "- item" or "* item"
-      .replace(/^[-*]\s+(.*)$/gm, '<li>$1</li>')
-      // Line breaks
-      .replace(/\n/g, '<br>')
-  }).join('')
-
-  return rendered
+  const raw = marked.parse(text)
+  return DOMPurify.sanitize(raw)
 }
 
 // ── Send / Cancel ───────────────────────────────────────────────────────
@@ -122,8 +192,9 @@ const sendMessage = async () => {
   cancelRequest()
 
   const prompt = input.value
-  messages.value.push({ role: 'user', text: prompt })
+  messages.value.push({ id: nextMsgId(), role: 'user', text: prompt, timestamp: Date.now() })
   input.value = ''
+  nextTick(() => autoResize())
   loading.value = true
 
   let assistantMsg = null
@@ -170,11 +241,13 @@ const sendMessage = async () => {
 
           if (!assistantMsg && (chunk.type === 'data' || chunk.type === 'chunk' || chunk.type === 'error')) {
             assistantMsg = {
+              id: nextMsgId(),
               role: 'assistant',
               display: '',
               text: '',
               alloys: [],
-              toolSuggestion: null
+              toolSuggestion: null,
+              timestamp: Date.now()
             }
             messages.value.push(assistantMsg)
           }
@@ -202,10 +275,9 @@ const sendMessage = async () => {
     }
 
     scrollToBottom(true)
+    saveHistory()
   } catch (error) {
     if (error.name === 'AbortError') {
-      // User cancelled — mark visually but clear text so partial
-      // responses don't pollute history on the next turn
       if (assistantMsg) {
         assistantMsg.display += '\n*(cancelled)*'
         assistantMsg.text = ''
@@ -214,11 +286,15 @@ const sendMessage = async () => {
       // If no assistant message exists yet (e.g., network error or HTTP 500
       // before any NDJSON chunk arrived), create one so the user sees the error
       if (!assistantMsg) {
-        assistantMsg = { role: 'assistant', display: '', text: '', alloys: [], toolSuggestion: null }
+        assistantMsg = { id: nextMsgId(), role: 'assistant', display: '', text: '', alloys: [], toolSuggestion: null, timestamp: Date.now() }
         messages.value.push(assistantMsg)
       }
-      assistantMsg.display += `\n[Error: ${error.message}]`
+      assistantMsg.display = ''
+      assistantMsg.error = true
+      assistantMsg.retryPrompt = prompt
+      assistantMsg.text = error.message
     }
+    saveHistory()
     scrollToBottom(true)
   } finally {
     // Only reset state if this is still the active request
@@ -235,19 +311,40 @@ const clearChat = () => {
   cancelRequest()
   sessionId.value = generateSessionId()
   messages.value = [
-    { role: 'system', text: 'New conversation! Ask me anything about alloys.' }
+    { id: nextMsgId(), role: 'system', text: 'New conversation! Ask me anything about alloys.', timestamp: Date.now() }
   ]
   shownAlloys.value.clear()
+  localStorage.removeItem(CHAT_KEY)
   scrollToBottom()
   focusInput()
 }
 
-// Quick suggestion prompts
-const suggestions = [
-  'What is Inconel 718?',
-  'Find an alloy with ~500 MPa yield strength',
-  'Which alloy has the highest yield strength?'
+// Categorized suggestion prompts
+const suggestionGroups = [
+  {
+    label: 'Search',
+    icon: '🔍',
+    items: ['What is Inconel 718?', 'Find alloys similar to Haynes 282']
+  },
+  {
+    label: 'Properties',
+    icon: '⚡',
+    items: ['Which alloy has the highest yield strength?', 'Compare Inconel 718 and Haynes 282']
+  },
+  {
+    label: 'Learn',
+    icon: '📚',
+    items: ['How does γ\' strengthening work?', 'What makes CMSX-4 a good single crystal alloy?']
+  }
 ]
+
+const retryMessage = (msg) => {
+  // Remove the failed message, then resend
+  const idx = messages.value.indexOf(msg)
+  if (idx > -1) messages.value.splice(idx, 1)
+  input.value = msg.retryPrompt
+  sendMessage()
+}
 
 const useSuggestion = (text) => {
   input.value = text
@@ -277,12 +374,12 @@ const useSuggestion = (text) => {
     </header>
 
     <!-- Messages Area -->
-    <div class="messages-area" ref="messagesContainer">
+    <div class="messages-area" ref="messagesContainer" @scroll="onMessagesScroll">
       <div
         v-for="(msg, i) in messages"
-        :key="i"
+        :key="msg.id || i"
         :class="['msg', msg.role]"
-        v-show="msg.display || msg.text || (msg.alloys && msg.alloys.length)"
+        v-show="msg.display || msg.text || msg.error || (msg.alloys && msg.alloys.length)"
       >
         <!-- Avatar -->
         <div class="avatar">
@@ -292,7 +389,27 @@ const useSuggestion = (text) => {
 
         <!-- Content -->
         <div class="content">
-          <div class="text" v-if="msg.display || msg.text" v-html="formatText(msg.display || msg.text)"></div>
+          <!-- Error state with retry -->
+          <div v-if="msg.error" class="error-bubble">
+            <div class="error-icon">!</div>
+            <div class="error-body">
+              <span class="error-text">Failed to get response: {{ msg.text }}</span>
+              <button class="retry-btn" @click="retryMessage(msg)">Retry</button>
+            </div>
+          </div>
+
+          <div class="text" v-else-if="msg.display || msg.text" v-html="formatText(msg.display || msg.text)"></div>
+
+          <!-- Copy button (assistant only) -->
+          <button
+            v-if="msg.role === 'assistant' && !msg.error && (msg.text || msg.display)"
+            class="copy-btn"
+            @click="copyMessage(msg, i)"
+            :title="copiedIndex === i ? 'Copied!' : 'Copy message'"
+          >
+            <span v-if="copiedIndex === i">&#10003; Copied</span>
+            <span v-else>&#128203; Copy</span>
+          </button>
 
           <!-- Tool Suggestion (e.g. "Use Designer") -->
           <button
@@ -312,40 +429,59 @@ const useSuggestion = (text) => {
               @design="$emit('design', $event)"
             />
           </div>
+
+          <!-- Timestamp -->
+          <span v-if="msg.timestamp" class="msg-timestamp" :key="timestampTick">
+            {{ formatTimestamp(msg.timestamp) }}
+          </span>
         </div>
       </div>
 
-      <!-- Loading Indicator (with cancel) -->
+      <!-- Skeleton Loader (with cancel) -->
       <div v-if="loading" class="msg assistant">
         <div class="avatar"><span>🤖</span></div>
         <div class="content">
-          <div class="typing">
-            <span></span><span></span><span></span>
+          <div class="skeleton-block">
+            <div class="skeleton-line" style="width: 85%"></div>
+            <div class="skeleton-line" style="width: 65%"></div>
+            <div class="skeleton-line" style="width: 45%"></div>
           </div>
           <button class="cancel-btn" @click="cancelRequest" title="Cancel request">Stop</button>
         </div>
       </div>
 
-      <!-- Empty state with suggestions -->
-      <div v-if="messages.length === 1 && !loading" class="suggestions">
-        <p>Try asking:</p>
-        <div class="chips">
-          <button v-for="s in suggestions" :key="s" @click="useSuggestion(s)" class="chip">
-            {{ s }}
-          </button>
+      <!-- Empty state with categorized suggestions -->
+      <div v-if="messages.length === 1 && !loading" class="empty-state">
+        <div class="empty-state-title">How can I help you today?</div>
+        <div class="suggestion-groups">
+          <div v-for="group in suggestionGroups" :key="group.label" class="suggestion-group">
+            <div class="group-label"><span class="group-icon">{{ group.icon }}</span> {{ group.label }}</div>
+            <button v-for="s in group.items" :key="s" @click="useSuggestion(s)" class="chip">
+              {{ s }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
+    <!-- Scroll-to-bottom button -->
+    <transition name="scroll-btn">
+      <button v-if="showScrollBtn" class="scroll-to-bottom" @click="scrollToBottomClick" title="Scroll to bottom">
+        ↓
+      </button>
+    </transition>
+
     <!-- Input Area -->
     <div class="input-area">
-      <input
+      <textarea
         ref="inputField"
         v-model="input"
-        @keyup.enter="sendMessage"
+        @keydown.enter.exact.prevent="sendMessage"
+        @input="autoResize"
         :disabled="loading"
         placeholder="Ask about alloys..."
-      />
+        rows="1"
+      ></textarea>
       <button @click="sendMessage" :disabled="loading || !input.trim()" class="send-btn">
         <span v-if="loading">...</span>
         <span v-else>→</span>
@@ -359,9 +495,10 @@ const useSuggestion = (text) => {
   display: flex;
   flex-direction: column;
   height: 70vh;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
+  position: relative;
+  background: var(--bg-card);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   border-radius: 16px;
   overflow: hidden;
   transition: all 0.3s ease;
@@ -382,8 +519,8 @@ const useSuggestion = (text) => {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.25rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--bg-glass);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .header-left {
@@ -425,8 +562,8 @@ const useSuggestion = (text) => {
   width: 2rem;
   height: 2rem;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-glass);
   color: var(--text-muted);
   font-size: 1rem;
   cursor: pointer;
@@ -437,9 +574,9 @@ const useSuggestion = (text) => {
 }
 
 .icon-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--bg-elevated);
   color: var(--text-primary);
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: var(--border-strong);
 }
 
 /* Messages Area */
@@ -486,7 +623,7 @@ const useSuggestion = (text) => {
   justify-content: center;
   font-size: 1rem;
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-glass);
 }
 
 .msg.user .avatar {
@@ -506,13 +643,12 @@ const useSuggestion = (text) => {
   font-size: 0.9rem;
   line-height: 1.5;
   color: var(--text-primary);
-  counter-reset: ol-counter;
 }
 
 .msg.assistant .text,
 .msg.system .text {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
   border-radius: 12px 12px 12px 4px;
 }
 
@@ -520,6 +656,18 @@ const useSuggestion = (text) => {
   background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
   color: white;
   border-radius: 12px 12px 4px 12px;
+}
+
+.text :deep(p) {
+  margin: 0.25rem 0;
+}
+
+.text :deep(p:first-child) {
+  margin-top: 0;
+}
+
+.text :deep(p:last-child) {
+  margin-bottom: 0;
 }
 
 .text :deep(strong) {
@@ -532,30 +680,31 @@ const useSuggestion = (text) => {
   opacity: 0.85;
 }
 
-.text :deep(li) {
-  list-style: none;
-  padding-left: 1rem;
-  position: relative;
-  margin: 0.25rem 0;
+.text :deep(ul),
+.text :deep(ol) {
+  padding-left: 1.25rem;
+  margin: 0.35rem 0;
 }
 
-.text :deep(li)::before {
-  content: '•';
-  position: absolute;
-  left: 0;
+.text :deep(li) {
+  margin: 0.2rem 0;
+}
+
+.text :deep(ul > li) {
+  list-style: disc;
+}
+
+.text :deep(ul > li)::marker {
   color: var(--primary);
 }
 
-.text :deep(li.ol) {
-  counter-increment: ol-counter;
-}
-
-.text :deep(li.ol)::before {
-  content: counter(ol-counter) '.';
+.text :deep(ol > li)::marker {
   color: var(--primary);
   font-weight: 600;
 }
 
+.text :deep(h1),
+.text :deep(h2),
 .text :deep(h3),
 .text :deep(h4) {
   margin: 0.5rem 0 0.25rem;
@@ -563,12 +712,46 @@ const useSuggestion = (text) => {
   color: var(--primary-light);
 }
 
+.text :deep(h1) { font-size: 1.1rem; }
+.text :deep(h2) { font-size: 1.05rem; }
 .text :deep(h3) { font-size: 1rem; }
 .text :deep(h4) { font-size: 0.95rem; }
 
+.text :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5rem 0;
+  font-size: 0.85rem;
+}
+
+.text :deep(th),
+.text :deep(td) {
+  border: 1px solid var(--border-subtle);
+  padding: 0.35rem 0.6rem;
+  text-align: left;
+}
+
+.text :deep(th) {
+  background: var(--bg-glass);
+  font-weight: 600;
+  color: var(--primary-light);
+}
+
+.text :deep(blockquote) {
+  border-left: 3px solid var(--primary);
+  padding-left: 0.75rem;
+  margin: 0.5rem 0;
+  color: var(--text-secondary);
+}
+
+.text :deep(a) {
+  color: var(--primary-light);
+  text-decoration: underline;
+}
+
 .text :deep(pre) {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   padding: 0.75rem;
   overflow-x: auto;
@@ -581,9 +764,65 @@ const useSuggestion = (text) => {
 }
 
 .text :deep(:not(pre) > code) {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--bg-glass);
   padding: 0.1em 0.35em;
   border-radius: 4px;
+}
+
+/* Error Bubble with Retry */
+.error-bubble {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 12px 12px 12px 4px;
+}
+
+.error-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.error-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.error-text {
+  font-size: 0.85rem;
+  color: #fca5a5;
+  line-height: 1.4;
+}
+
+.retry-btn {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.3rem 0.85rem;
+  border-radius: 6px;
+  cursor: pointer;
+  width: fit-content;
+  transition: all 0.2s;
+}
+
+.retry-btn:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.5);
+  transform: translateY(-1px);
 }
 
 .tool-suggestion-btn {
@@ -609,30 +848,65 @@ const useSuggestion = (text) => {
   width: 100%;
 }
 
-/* Typing Indicator */
-.typing {
+/* Skeleton Loader */
+.skeleton-block {
   display: flex;
-  gap: 4px;
+  flex-direction: column;
+  gap: 0.5rem;
   padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px 12px 12px 4px;
+  min-width: 200px;
+}
+
+.skeleton-line {
+  height: 0.75rem;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--border-subtle) 25%, var(--bg-elevated) 50%, var(--border-subtle) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite ease-in-out;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+/* Copy Button */
+.copy-btn {
+  background: none;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
   width: fit-content;
+  transition: all 0.2s;
+  opacity: 0;
 }
 
-.typing span {
-  width: 8px;
-  height: 8px;
-  background: var(--primary);
-  border-radius: 50%;
-  animation: bounce 1.4s infinite;
+.msg.assistant:hover .copy-btn {
+  opacity: 1;
 }
 
-.typing span:nth-child(2) { animation-delay: 0.2s; }
-.typing span:nth-child(3) { animation-delay: 0.4s; }
+.copy-btn:hover {
+  background: var(--bg-glass);
+  border-color: var(--border-strong);
+  color: var(--text-secondary);
+}
 
-@keyframes bounce {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-  30% { transform: translateY(-6px); opacity: 1; }
+/* Timestamp */
+.msg-timestamp {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.msg:hover .msg-timestamp {
+  opacity: 1;
 }
 
 /* Cancel button */
@@ -653,40 +927,105 @@ const useSuggestion = (text) => {
   border-color: rgba(239, 68, 68, 0.5);
 }
 
-/* Suggestions */
-.suggestions {
-  text-align: center;
-  padding: 2rem 1rem;
-}
-
-.suggestions p {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin-bottom: 0.75rem;
-}
-
-.chips {
+/* Empty State */
+.empty-state {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem 1rem;
+  gap: 1.25rem;
+}
+
+.empty-state-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.suggestion-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: 480px;
+}
+
+.suggestion-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.group-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-left: 0.25rem;
+}
+
+.group-icon {
+  margin-right: 0.25rem;
 }
 
 .chip {
   padding: 0.5rem 0.75rem;
-  background: rgba(99, 102, 241, 0.1);
-  border: 1px solid rgba(99, 102, 241, 0.2);
-  border-radius: 20px;
-  color: var(--primary-light);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  color: var(--text-primary);
   font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.2s;
+  text-align: left;
 }
 
 .chip:hover {
-  background: rgba(99, 102, 241, 0.2);
+  background: var(--bg-elevated);
   border-color: var(--primary);
-  transform: translateY(-1px);
+  color: var(--primary-light);
+  transform: translateX(4px);
+}
+
+/* Scroll-to-bottom Button */
+.scroll-to-bottom {
+  position: absolute;
+  bottom: 5.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.scroll-to-bottom:hover {
+  background: var(--bg-elevated);
+  border-color: var(--primary);
+  color: var(--primary);
+  box-shadow: var(--shadow-lg);
+}
+
+.scroll-btn-enter-active,
+.scroll-btn-leave-active {
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.scroll-btn-enter-from,
+.scroll-btn-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px);
 }
 
 /* Input Area */
@@ -694,28 +1033,34 @@ const useSuggestion = (text) => {
   display: flex;
   gap: 0.75rem;
   padding: 1rem 1.25rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--bg-glass);
+  border-top: 1px solid var(--border-subtle);
 }
 
-.input-area input {
+.input-area textarea {
   flex: 1;
   padding: 0.75rem 1rem;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-input);
   color: var(--text-primary);
   font-size: 0.9rem;
-  transition: all 0.2s;
+  font-family: var(--font-family);
+  line-height: 1.5;
+  resize: none;
+  overflow-y: auto;
+  min-height: 2.75rem;
+  max-height: 120px;
+  transition: border-color 0.2s;
 }
 
-.input-area input:focus {
+.input-area textarea:focus {
   outline: none;
   border-color: var(--primary);
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--bg-input);
 }
 
-.input-area input::placeholder {
+.input-area textarea::placeholder {
   color: var(--text-muted);
 }
 
@@ -754,11 +1099,121 @@ const useSuggestion = (text) => {
 }
 
 .messages-area::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--border-subtle);
   border-radius: 3px;
 }
 
 .messages-area::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--border-strong);
+}
+
+/* === RESPONSIVE: TABLET (≤768px) === */
+@media (max-width: 768px) {
+  .chat-panel {
+    height: calc(100vh - 120px);
+    border-radius: 12px;
+  }
+
+  .header {
+    padding: 0.75rem 1rem;
+  }
+
+  .logo {
+    width: 2rem;
+    height: 2rem;
+    font-size: 1.2rem;
+  }
+
+  .messages-area {
+    padding: 0.75rem;
+  }
+
+  .empty-state {
+    padding: 1rem 0.75rem;
+  }
+
+  .input-area {
+    padding: 0.75rem 1rem;
+  }
+
+  .scroll-to-bottom {
+    bottom: 4.5rem;
+  }
+}
+
+/* === RESPONSIVE: PHONE (≤480px) === */
+@media (max-width: 480px) {
+  .chat-panel {
+    height: calc(100dvh - 80px);
+    border-radius: 8px;
+  }
+
+  .header {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .header-text h2 {
+    font-size: 0.9rem;
+  }
+
+  .subtitle {
+    display: none;
+  }
+
+  .messages-area {
+    padding: 0.5rem;
+    gap: 0.75rem;
+  }
+
+  .content {
+    max-width: 92%;
+  }
+
+  .text {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .empty-state {
+    padding: 0.75rem 0.5rem;
+    gap: 0.75rem;
+  }
+
+  .empty-state-title {
+    font-size: 0.95rem;
+  }
+
+  .chip {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
+  }
+
+  .input-area {
+    padding: 0.5rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .input-area textarea {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    min-height: 2.5rem;
+  }
+
+  .send-btn {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1.1rem;
+  }
+
+  .scroll-to-bottom {
+    bottom: 4rem;
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.85rem;
+  }
+
+  .skeleton-block {
+    min-width: 150px;
+  }
 }
 </style>

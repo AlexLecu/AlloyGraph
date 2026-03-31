@@ -2,13 +2,22 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import ResearchChat from './components/ResearchChat.vue'
 import AlloyDesigner from './components/AlloyDesigner.vue'
+import ToastNotification from './components/ToastNotification.vue'
 import axios from 'axios'
 import { API_BASE_URL } from './config'
+import { useTheme } from './composables/useTheme'
+import { useTour } from './composables/useTour'
+
+const { theme, toggleTheme } = useTheme()
+const { tourCompleted, startTour } = useTour()
 
 const activeTab = ref('chat')
 const isBackendOnline = ref(false)
-const designContext = ref(null) // Stores alloy data for design handoff
+const designContext = ref(null)
 const showInfo = ref(false)
+const showTourHint = ref(false)
+const openSection = ref(null)
+const toggleSection = (id) => { openSection.value = openSection.value === id ? null : id }
 let healthCheckInterval = null
 
 const handleDesign = (alloy) => {
@@ -16,7 +25,16 @@ const handleDesign = (alloy) => {
   activeTab.value = 'design'
 }
 
-// Check backend health
+const tourOptions = { switchToTab: (tab) => { activeTab.value = tab } }
+
+const dismissHint = () => { showTourHint.value = false }
+
+const launchTour = () => {
+  showInfo.value = false
+  showTourHint.value = false
+  setTimeout(() => startTour(tourOptions), 300)
+}
+
 const checkBackendHealth = async () => {
   try {
     await axios.get(`${API_BASE_URL}/health`, { timeout: 2000 })
@@ -26,13 +44,15 @@ const checkBackendHealth = async () => {
   }
 }
 
-// Start health checks on mount
 onMounted(() => {
   checkBackendHealth()
-  healthCheckInterval = setInterval(checkBackendHealth, 5000) // Check every 5s
+  healthCheckInterval = setInterval(checkBackendHealth, 5000)
+
+  if (!tourCompleted.value) {
+    setTimeout(() => { showTourHint.value = true }, 800)
+  }
 })
 
-// Cleanup on unmount
 onUnmounted(() => {
   if (healthCheckInterval) {
     clearInterval(healthCheckInterval)
@@ -49,9 +69,21 @@ onUnmounted(() => {
           <span class="logo-icon">🧬</span>
           <h1>AlloyGraph</h1>
         </div>
-        <div :class="['status-badge', { offline: !isBackendOnline }]">
-          <span class="status-dot"></span>
-          {{ isBackendOnline ? 'Backend Online' : 'Backend Offline' }}
+        <div class="header-right">
+          <button
+            class="theme-toggle"
+            @click="toggleTheme"
+            :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+            :aria-label="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+            data-tour="theme-toggle"
+          >
+            <span v-if="theme === 'dark'" class="theme-icon">☀️</span>
+            <span v-else class="theme-icon">🌙</span>
+          </button>
+          <div :class="['status-badge', { offline: !isBackendOnline }]">
+            <span class="status-dot"></span>
+            {{ isBackendOnline ? 'Backend Online' : 'Backend Offline' }}
+          </div>
         </div>
       </div>
     </header>
@@ -61,6 +93,7 @@ onUnmounted(() => {
       <button
         :class="['tab-button', { active: activeTab === 'chat' }]"
         @click="activeTab = 'chat'"
+        data-tour="research-tab"
       >
         <span class="tab-icon">🔬</span>
         <span class="tab-label">Research</span>
@@ -68,14 +101,31 @@ onUnmounted(() => {
       <button
         :class="['tab-button', { active: activeTab === 'design' }]"
         @click="activeTab = 'design'"
+        data-tour="design-tab"
       >
         <span class="tab-icon">🧪</span>
         <span class="tab-label">Evaluate & Design</span>
       </button>
+      <div class="tour-button-wrapper">
+        <button
+          class="nav-icon-button tour-button"
+          @click="launchTour"
+          title="Take a guided tour"
+        >
+          <span>?</span>
+        </button>
+        <transition name="hint-pop">
+          <div v-if="showTourHint" class="tour-hint" @click="launchTour">
+            <span class="tour-hint-text">New here? Take a quick tour!</span>
+            <button class="tour-hint-close" @click.stop="dismissHint" aria-label="Dismiss">&times;</button>
+          </div>
+        </transition>
+      </div>
       <button
-        class="info-button"
+        class="nav-icon-button"
         @click="showInfo = true"
         title="Help & Information"
+        data-tour="info-button"
       >
         <span>ℹ️</span>
       </button>
@@ -90,64 +140,99 @@ onUnmounted(() => {
             <button class="close-btn" @click="showInfo = false">×</button>
           </div>
           <div class="modal-body">
-            <h4>🧬 Inverse Design Mode (Auto)</h4>
-            <p><strong>Purpose:</strong> AI-driven composition synthesis to meet target mechanical properties using multi-agent optimization.</p>
-            <ul>
-              <li><strong>Target Properties:</strong> Specify minimum values for YS (Yield Strength), UTS (Ultimate Tensile Strength), Elongation, Elastic Modulus, or maximum Density. Set to <strong>0</strong> to exclude from optimization.</li>
-              <li><strong>Processing Route:</strong> Select <em>wrought</em> or <em>cast</em> based on your intended manufacturing method.</li>
-              <li><strong>Iterations:</strong> Higher values (5-10) explore more compositional space but increase runtime (~2-5 min per iteration).</li>
-            </ul>
+            <div class="accordion">
+              <div class="accordion-item">
+                <button class="accordion-trigger" @click="toggleSection('design')" :class="{ open: openSection === 'design' }">
+                  <span>🧬 Inverse Design Mode</span>
+                  <span class="accordion-arrow">›</span>
+                </button>
+                <div v-if="openSection === 'design'" class="accordion-content">
+                  <p><strong>Purpose:</strong> AI-driven composition synthesis to meet target mechanical properties using multi-agent optimization.</p>
+                  <ul>
+                    <li><strong>Target Properties:</strong> Specify minimum values for YS, UTS, Elongation, Elastic Modulus, or maximum Density. Set to <strong>0</strong> to exclude.</li>
+                    <li><strong>Processing Route:</strong> Select <em>wrought</em> or <em>cast</em> based on your manufacturing method.</li>
+                    <li><strong>Iterations:</strong> Higher values (5-10) explore more compositional space but increase runtime (~2-5 min per iteration).</li>
+                  </ul>
+                </div>
+              </div>
 
-            <h4>🧪 Property Prediction Mode (Manual)</h4>
-            <p><strong>Purpose:</strong> ML/KG data fusion to predict properties for known compositions, validated against physics constraints.</p>
-            <ul>
-              <li><strong>Input:</strong> Enter weight percentages (should sum to ~100%).</li>
-              <li><strong>ML Models:</strong> Trained on Ni-based superalloy database with engineered metallurgical features (γ' fraction, Md parameter, lattice mismatch, VEC).</li>
-              <li><strong>Knowledge Graph Fusion:</strong> If composition closely matches known alloys in the database, predictions are weighted toward experimental data.</li>
-            </ul>
+              <div class="accordion-item">
+                <button class="accordion-trigger" @click="toggleSection('predict')" :class="{ open: openSection === 'predict' }">
+                  <span>🧪 Property Prediction Mode</span>
+                  <span class="accordion-arrow">›</span>
+                </button>
+                <div v-if="openSection === 'predict'" class="accordion-content">
+                  <p><strong>Purpose:</strong> ML/KG data fusion to predict properties for known compositions, validated against physics constraints.</p>
+                  <ul>
+                    <li><strong>Input:</strong> Enter weight percentages (should sum to ~100%).</li>
+                    <li><strong>ML Models:</strong> Trained on Ni-based superalloy database with engineered metallurgical features (γ' fraction, Md parameter, lattice mismatch, VEC).</li>
+                    <li><strong>Knowledge Graph Fusion:</strong> If composition closely matches known alloys, predictions are weighted toward experimental data.</li>
+                  </ul>
+                </div>
+              </div>
 
-            <h4>📊 Physics Validation & Confidence</h4>
-            <ul>
-              <li><span class="status-pass">PASS</span> No critical violations. Md (phase stability) &lt; 0.98, lattice mismatch &lt; 0.8%, properties within known ranges.</li>
-              <li><span class="status-reject">REJECT</span> Physics constraints violated (e.g., TCP phase risk, excessive lattice mismatch, γ' incoherence).</li>
-              <li><strong>Confidence Level:</strong> HIGH (database match + model agreement), MEDIUM (model interpolation), LOW (extrapolation beyond training data).</li>
-              <li><strong>Prediction Intervals:</strong> Uncertainty ranges shown for each property based on model confidence and nearest-neighbor distances.</li>
-            </ul>
+              <div class="accordion-item">
+                <button class="accordion-trigger" @click="toggleSection('physics')" :class="{ open: openSection === 'physics' }">
+                  <span>📊 Physics Validation & Confidence</span>
+                  <span class="accordion-arrow">›</span>
+                </button>
+                <div v-if="openSection === 'physics'" class="accordion-content">
+                  <ul>
+                    <li><span class="status-pass">PASS</span> No critical violations. Md &lt; 0.98, lattice mismatch &lt; 0.8%, properties within known ranges.</li>
+                    <li><span class="status-reject">REJECT</span> Physics constraints violated (TCP phase risk, excessive lattice mismatch, γ' incoherence).</li>
+                    <li><strong>Confidence:</strong> HIGH (database match), MEDIUM (interpolation), LOW (extrapolation).</li>
+                    <li><strong>Intervals:</strong> Uncertainty ranges based on model confidence and nearest-neighbor distances.</li>
+                  </ul>
+                </div>
+              </div>
 
-            <h4>🔬 Research & Chat Mode</h4>
-            <p><strong>Purpose:</strong> Query the knowledge graph to find similar alloys, explore literature data, or ask metallurgical questions.</p>
-            <ul>
-              <li><strong>Search by Composition:</strong> "Find alloys similar to Inconel 718" or "Show me high-γ' superalloys"</li>
-              <li><strong>Property Queries:</strong> "What alloys have YS > 1000 MPa?" or "Compare Waspaloy and Inconel 718"</li>
-              <li><strong>Metallurgical Questions:</strong> Ask about phase stability, strengthening mechanisms, or processing effects.</li>
-            </ul>
+              <div class="accordion-item">
+                <button class="accordion-trigger" @click="toggleSection('chat')" :class="{ open: openSection === 'chat' }">
+                  <span>🔬 Research & Chat Mode</span>
+                  <span class="accordion-arrow">›</span>
+                </button>
+                <div v-if="openSection === 'chat'" class="accordion-content">
+                  <p><strong>Purpose:</strong> Query the knowledge graph to find similar alloys, explore literature data, or ask metallurgical questions.</p>
+                  <ul>
+                    <li><strong>Search:</strong> "Find alloys similar to Inconel 718" or "Show me high-γ' superalloys"</li>
+                    <li><strong>Properties:</strong> "What alloys have YS > 1000 MPa?" or "Compare Waspaloy and Inconel 718"</li>
+                    <li><strong>Learn:</strong> Ask about phase stability, strengthening mechanisms, or processing effects.</li>
+                  </ul>
+                </div>
+              </div>
 
-            <h4>⚙️ Known Limitations</h4>
-            <ul>
-              <li>Predictions assume room temperature (20°C) unless otherwise specified.</li>
-              <li>γ' (gamma prime) volume fraction uses a composition-based solubility model; accuracy may vary for non-standard compositions.</li>
-              <li>TCP risk assessment is based on composition; actual phase formation depends on heat treatment and kinetics.</li>
-              <li>For optimal accuracy, experimental validation is recommended for novel alloy designs.</li>
-            </ul>
+              <div class="accordion-item">
+                <button class="accordion-trigger" @click="toggleSection('limits')" :class="{ open: openSection === 'limits' }">
+                  <span>⚙️ Known Limitations</span>
+                  <span class="accordion-arrow">›</span>
+                </button>
+                <div v-if="openSection === 'limits'" class="accordion-content">
+                  <ul>
+                    <li>Predictions assume room temperature (20°C) unless otherwise specified.</li>
+                    <li>γ' volume fraction uses a composition-based solubility model; accuracy may vary for non-standard compositions.</li>
+                    <li>TCP risk is composition-based; actual phase formation depends on heat treatment and kinetics.</li>
+                    <li>Experimental validation is recommended for novel alloy designs.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </transition>
 
     <!-- Content Area -->
-    <main class="content-area">
-      <KeepAlive>
-        <ResearchChat
-          v-if="activeTab === 'chat'"
-          @design="handleDesign"
-        />
-      </KeepAlive>
-      <AlloyDesigner
-        v-if="activeTab === 'design'"
-        :initialAlloy="designContext"
-        @design="handleDesign"
-      />
+    <main>
+      <Transition name="tab-fade" mode="out-in">
+        <KeepAlive :include="['ResearchChat']">
+          <ResearchChat v-if="activeTab === 'chat'" key="chat" @design="handleDesign" />
+          <AlloyDesigner v-else key="design" :initialAlloy="designContext" />
+        </KeepAlive>
+      </Transition>
     </main>
+
+    <!-- Global Toast Notifications -->
+    <ToastNotification />
   </div>
 </template>
 
@@ -194,6 +279,37 @@ onUnmounted(() => {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  padding: 0;
+}
+
+.theme-toggle:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--primary);
+  transform: scale(1.05);
+}
+
+.theme-icon {
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
 .status-badge {
@@ -296,15 +412,16 @@ onUnmounted(() => {
   font-weight: var(--font-weight-semibold);
 }
 
-/* === INFO BUTTON === */
-.info-button {
+
+/* === NAV ICON BUTTONS === */
+.nav-icon-button {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 44px;
   min-width: 44px;
   padding: var(--space-md);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-glass);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   color: var(--text-secondary);
@@ -313,10 +430,92 @@ onUnmounted(() => {
   transition: all var(--transition-base);
 }
 
-.info-button:hover {
+.nav-icon-button:hover {
   background: rgba(99, 102, 241, 0.15);
   border-color: var(--primary);
   color: var(--primary);
+}
+
+.nav-icon-button.tour-button span {
+  font-weight: var(--font-weight-bold);
+  font-size: 1.1rem;
+  font-family: var(--font-family);
+}
+
+/* === TOUR HINT BUBBLE === */
+.tour-button-wrapper {
+  position: relative;
+}
+
+.tour-hint {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  box-shadow: var(--shadow-lg);
+  z-index: 10;
+  animation: hint-bounce 2s ease-in-out infinite;
+}
+
+.tour-hint::before {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  right: 16px;
+  width: 12px;
+  height: 12px;
+  background: var(--secondary);
+  transform: rotate(45deg);
+  border-radius: 2px;
+}
+
+.tour-hint-text {
+  pointer-events: none;
+}
+
+.tour-hint-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: color var(--transition-fast);
+}
+
+.tour-hint-close:hover {
+  color: white;
+}
+
+@keyframes hint-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.hint-pop-enter-active {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.hint-pop-leave-active {
+  transition: all 0.2s ease-in;
+}
+.hint-pop-enter-from {
+  opacity: 0;
+  transform: scale(0.8) translateY(-8px);
+}
+.hint-pop-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
 }
 
 /* === INFO MODAL === */
@@ -381,27 +580,88 @@ onUnmounted(() => {
   line-height: 1.6;
 }
 
-.modal-body h4 {
-  margin: var(--space-lg) 0 var(--space-sm);
-  font-size: var(--font-size-md);
+/* === ACCORDION === */
+.accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.accordion-item {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.accordion-trigger {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   color: var(--text-primary);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family);
+  cursor: pointer;
+  transition: all var(--transition-base);
 }
 
-.modal-body h4:first-child {
-  margin-top: 0;
+.accordion-trigger:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-strong);
 }
 
-.modal-body p {
+.accordion-trigger.open {
+  background: var(--bg-elevated);
+  border-color: var(--primary);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.accordion-arrow {
+  font-size: 1.2rem;
+  transition: transform var(--transition-base);
+  color: var(--text-muted);
+}
+
+.accordion-trigger.open .accordion-arrow {
+  transform: rotate(90deg);
+  color: var(--primary);
+}
+
+.accordion-content {
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-top: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  animation: accordionOpen 0.2s ease-out;
+}
+
+@keyframes accordionOpen {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.accordion-content p {
   margin: 0 0 var(--space-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
 }
 
-.modal-body ul {
+.accordion-content ul {
   margin: 0;
   padding-left: var(--space-lg);
 }
 
-.modal-body li {
+.accordion-content li {
   margin-bottom: var(--space-xs);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
 }
 
 .status-pass {
@@ -424,11 +684,6 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-/* === CONTENT AREA === */
-.content-area {
-  animation: fadeIn var(--transition-slow) ease-out;
-}
-
 /* === TRANSITIONS === */
 .fade-enter-active,
 .fade-leave-active {
@@ -438,5 +693,144 @@ onUnmounted(() => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* === TAB TRANSITIONS === */
+.tab-fade-enter-active,
+.tab-fade-leave-active {
+  transition: opacity var(--transition-slow), transform var(--transition-slow);
+}
+
+.tab-fade-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.tab-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+/* === RESPONSIVE: TABLET (≤768px) === */
+@media (max-width: 768px) {
+  .glass-header {
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+    border-radius: var(--radius-md);
+  }
+
+  .logo-icon {
+    font-size: 1.75rem;
+  }
+
+  .logo h1 {
+    font-size: var(--font-size-xl);
+  }
+
+  .status-badge {
+    font-size: 0;
+    padding: var(--space-xs);
+    min-width: 28px;
+    justify-content: center;
+  }
+
+  .status-badge .status-dot {
+    margin: 0;
+  }
+
+  .tab-nav {
+    gap: var(--space-xs);
+    margin-bottom: var(--space-md);
+    padding: var(--space-xs);
+  }
+
+  .tab-button {
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-size-sm);
+  }
+
+  .modal-content {
+    max-width: 90vw;
+  }
+
+  .modal-overlay {
+    padding: var(--space-md);
+  }
+
+  .tour-hint {
+    display: none;
+  }
+}
+
+/* === RESPONSIVE: PHONE (≤480px) === */
+@media (max-width: 480px) {
+  .glass-header {
+    padding: var(--space-sm);
+    margin-bottom: var(--space-sm);
+  }
+
+  .logo-icon {
+    font-size: 1.5rem;
+  }
+
+  .logo h1 {
+    font-size: var(--font-size-lg);
+  }
+
+  .logo {
+    gap: var(--space-xs);
+  }
+
+  .header-right {
+    gap: var(--space-xs);
+  }
+
+  .theme-toggle {
+    width: 36px;
+    height: 36px;
+  }
+
+  .tab-nav {
+    gap: 4px;
+    padding: 4px;
+    margin-bottom: var(--space-sm);
+  }
+
+  .tab-button {
+    padding: var(--space-sm);
+    gap: 0;
+  }
+
+  .tab-label {
+    display: none;
+  }
+
+  .tab-icon {
+    font-size: 1.1rem;
+  }
+
+  .nav-icon-button {
+    width: 38px;
+    min-width: 38px;
+    padding: var(--space-sm);
+    font-size: 1rem;
+  }
+
+  .modal-content {
+    max-width: 95vw;
+    max-height: 90vh;
+  }
+
+  .modal-overlay {
+    padding: var(--space-sm);
+  }
+
+  .modal-body {
+    padding: var(--space-md);
+  }
+
+  .modal-header {
+    padding: var(--space-md);
+  }
 }
 </style>
