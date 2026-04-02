@@ -224,7 +224,7 @@ onUnmounted(() => {
     <!-- Content Area -->
     <main>
       <Transition name="tab-fade" mode="out-in">
-        <KeepAlive :include="['ResearchChat']">
+        <KeepAlive :include="['ResearchChat', 'AlloyDesigner']">
           <ResearchChat v-if="activeTab === 'chat'" key="chat" @design="handleDesign" />
           <AlloyDesigner v-else key="design" :initialAlloy="designContext" />
         </KeepAlive>

@@ -1,4 +1,5 @@
 <script setup>
+defineOptions({ name: 'AlloyDesigner' })
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import { API_BASE_URL } from '../config'
