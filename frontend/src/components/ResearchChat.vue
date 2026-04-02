@@ -1,7 +1,7 @@
 <script setup>
 defineOptions({ name: 'ResearchChat' })
 
-import { ref, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted, onActivated } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 
@@ -148,8 +148,19 @@ const copyMessage = async (msg, index) => {
 onMounted(() => {
   timestampInterval = setInterval(() => { timestampTick.value++ }, 30000)
   if (restoreHistory()) {
-    nextTick(() => scrollToBottom(true))
+    nextTick(() => {
+      scrollToBottom(true)
+      setTimeout(() => scrollToBottom(true), 200)
+    })
   }
+})
+
+onActivated(() => {
+  nextTick(() => {
+    scrollToBottom(true)
+    setTimeout(() => scrollToBottom(true), 200)
+    focusInput()
+  })
 })
 
 onUnmounted(() => {
@@ -653,8 +664,9 @@ const useSuggestion = (text) => {
 }
 
 .msg.user .text {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-  color: white;
+  background: rgba(0, 212, 255, 0.15);
+  color: #e8f4f8 !important;
+  border: 1px solid rgba(0, 212, 255, 0.35);
   border-radius: 12px 12px 4px 12px;
 }
 
