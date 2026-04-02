@@ -117,34 +117,59 @@ def create_reviewer_agent(llm=None, memory=False):
 # ---------------------------------------------------------
 
 def _resolve_llm(llm=None, temperature=0.1):
-    """Resolve LLM instance. Priority: Groq > OpenAI > Local Ollama."""
+    """Resolve LLM instance.
+
+    Priority: LLM_PROVIDER env override > Groq > OpenAI > Ollama fallback.
+    Set LLM_PROVIDER=ollama and LLM_MODEL=qwen3.5:35b for local inference.
+    """
     if llm is not None:
         return llm
 
-    groq_key = os.getenv("GROQ_API_KEY")
-    openai_key = os.getenv("OPENAI_API_KEY")
+    provider = os.getenv("LLM_PROVIDER", "").lower()
+    model = os.getenv("LLM_MODEL")
+    ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 
-    if groq_key:
-        logger.info("Using Groq Cloud Inference: llama-3.3-70b-versatile (T=%.1f)", temperature)
+    # Explicit Ollama
+    if provider == "ollama":
+        model = model or "llama3.1:8b"
+        logger.info("Using Ollama: %s (T=%.1f)", model, temperature)
         return LLM(
-            model="groq/llama-3.3-70b-versatile",
+            model=f"ollama/{model}",
+            base_url=ollama_host,
+            temperature=temperature,
+        )
+
+    # Groq (default if key exists)
+    groq_key = os.getenv("GROQ_API_KEY")
+    if groq_key:
+        model = model or "llama-3.3-70b-versatile"
+        logger.info("Using Groq: %s (T=%.1f)", model, temperature)
+        return LLM(
+            model=f"groq/{model}",
             api_key=groq_key,
             temperature=temperature,
             num_retries=3,
         )
-    elif openai_key:
-        logger.info("Using OpenAI: gpt-4o-mini (T=%.1f)", temperature)
+
+    # OpenAI
+    openai_key = os.getenv("OPENAI_API_KEY")
+    if openai_key:
+        model = model or "gpt-4o-mini"
+        logger.info("Using OpenAI: %s (T=%.1f)", model, temperature)
         return LLM(
-            model="gpt-4o-mini",
+            model=model,
             api_key=openai_key,
             temperature=temperature,
         )
-    else:
-        logger.info("Using Local Inference: ollama/llama3.1:8b (T=%.1f)", temperature)
-        return LLM(
-            model="ollama/llama3.1:8b",
-            temperature=temperature,
-        )
+
+    # Fallback to Ollama
+    model = model or "llama3.1:8b"
+    logger.info("Using Ollama (fallback): %s (T=%.1f)", model, temperature)
+    return LLM(
+        model=f"ollama/{model}",
+        base_url=ollama_host,
+        temperature=temperature,
+    )
 
 
 def get_evaluation_agents(llm=None):

@@ -282,7 +282,7 @@ def route_query(prompt: str, history: list) -> dict:
         )
 
         completion = client.chat.completions.create(
-            model=LLMConfig.MODEL,
+            model=LLMConfig.get_model(),
             messages=[
                 {"role": "system", "content": Prompts.ROUTE_AND_EXTRACT},
                 {"role": "user", "content": f"History:\n{hist_str}\nQuery: {prompt}"},
@@ -417,7 +417,7 @@ def _stream_chat_inner(prompt: str, session_id: str, history: list):
                     "Keep it short (1-2 sentences)."
                 )
                 stream = client.chat.completions.create(
-                    model=LLMConfig.MODEL,
+                    model=LLMConfig.get_model(),
                     messages=[
                         {"role": "system", "content": conv_prompt},
                         {"role": "user", "content": prompt},
@@ -561,7 +561,7 @@ def _stream_chat_inner(prompt: str, session_id: str, history: list):
                     })
                 messages.append({"role": "user", "content": prompt})
                 stream = client.chat.completions.create(
-                    model=LLMConfig.MODEL,
+                    model=LLMConfig.get_model(),
                     messages=messages,
                     max_tokens=LLMConfig.RESPONSE_MAX_TOKENS,
                     temperature=LLMConfig.RESPONSE_TEMPERATURE,
@@ -598,7 +598,7 @@ def _stream_chat_inner(prompt: str, session_id: str, history: list):
         messages.append({"role": "user", "content": f"Context:\n{final_context}\n\nUser Query: {prompt}"})
 
         stream = client.chat.completions.create(
-            model=LLMConfig.MODEL,
+            model=LLMConfig.get_model(),
             messages=messages,
             max_tokens=LLMConfig.RESPONSE_MAX_TOKENS,
             temperature=LLMConfig.RESPONSE_TEMPERATURE,

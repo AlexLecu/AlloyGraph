@@ -1,10 +1,11 @@
 import os
-from groq import Groq
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class LLMConfig:
     """LLM model and parameter settings"""
-    MODEL = "llama-3.3-70b-versatile"
     ROUTING_TEMPERATURE = 0.0
     ROUTING_MAX_TOKENS = 250
     RESPONSE_TEMPERATURE = 0.2
@@ -14,13 +15,57 @@ class LLMConfig:
     _client = None
 
     @classmethod
-    def get_client(cls) -> Groq | None:
-        """Return a singleton Groq client, or None if no API key."""
-        if cls._client is None:
-            key = os.getenv("GROQ_API_KEY")
-            if not key:
-                return None
-            cls._client = Groq(api_key=key)
+    def get_model(cls) -> str:
+        """Return the model name based on provider."""
+        model = os.getenv("LLM_MODEL")
+        if model:
+            return model
+        provider = os.getenv("LLM_PROVIDER", "").lower()
+        if provider == "ollama":
+            return "llama3.1:8b"
+        if os.getenv("GROQ_API_KEY"):
+            return "llama-3.3-70b-versatile"
+        if os.getenv("OPENAI_API_KEY"):
+            return "gpt-4o-mini"
+        return "llama3.1:8b"
+
+    @classmethod
+    def get_client(cls):
+        """Return a singleton LLM client. Supports Groq, OpenAI, and Ollama."""
+        if cls._client is not None:
+            return cls._client
+
+        provider = os.getenv("LLM_PROVIDER", "").lower()
+
+        # Explicit Ollama
+        if provider == "ollama":
+            from openai import OpenAI
+            host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+            cls._client = OpenAI(base_url=f"{host}/v1", api_key="ollama")
+            logger.info("Chat using Ollama: %s at %s", cls.get_model(), host)
+            return cls._client
+
+        # Groq (default if key exists)
+        groq_key = os.getenv("GROQ_API_KEY")
+        if groq_key:
+            from groq import Groq
+            cls._client = Groq(api_key=groq_key)
+            logger.info("Chat using Groq: %s", cls.get_model())
+            return cls._client
+
+        # OpenAI
+        openai_key = os.getenv("OPENAI_API_KEY")
+        if openai_key:
+            from openai import OpenAI
+            cls._client = OpenAI(api_key=openai_key)
+            logger.info("Chat using OpenAI: %s", cls.get_model())
+            return cls._client
+
+        # Fallback to Ollama
+        from openai import OpenAI
+        host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+        cls._client = OpenAI(base_url=f"{host}/v1", api_key="ollama")
+        logger.info("Chat using Ollama (fallback): %s at %s", cls.get_model(), host)
         return cls._client
 
 
