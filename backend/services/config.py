@@ -13,6 +13,23 @@ class LLMConfig:
     STREAM_ENABLED = True
 
     _client = None
+    _provider = None
+
+    @classmethod
+    def get_provider(cls) -> str:
+        """Detect the active LLM provider."""
+        if cls._provider:
+            return cls._provider
+        provider = os.getenv("LLM_PROVIDER", "").lower()
+        if provider == "ollama":
+            cls._provider = "ollama"
+        elif os.getenv("GROQ_API_KEY"):
+            cls._provider = "groq"
+        elif os.getenv("OPENAI_API_KEY"):
+            cls._provider = "openai"
+        else:
+            cls._provider = "ollama"
+        return cls._provider
 
     @classmethod
     def get_model(cls) -> str:
@@ -20,14 +37,16 @@ class LLMConfig:
         model = os.getenv("LLM_MODEL")
         if model:
             return model
-        provider = os.getenv("LLM_PROVIDER", "").lower()
+        provider = cls.get_provider()
         if provider == "ollama":
             return "llama3.1:8b"
-        if os.getenv("GROQ_API_KEY"):
+        if provider == "groq":
             return "llama-3.3-70b-versatile"
-        if os.getenv("OPENAI_API_KEY"):
-            return "gpt-4o-mini"
-        return "llama3.1:8b"
+        return "gpt-4o-mini"
+
+    @classmethod
+    def is_ollama(cls) -> bool:
+        return cls.get_provider() == "ollama"
 
     @classmethod
     def get_client(cls):
@@ -35,38 +54,30 @@ class LLMConfig:
         if cls._client is not None:
             return cls._client
 
-        provider = os.getenv("LLM_PROVIDER", "").lower()
+        provider = cls.get_provider()
 
-        # Explicit Ollama
         if provider == "ollama":
             from openai import OpenAI
             host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
             cls._client = OpenAI(base_url=f"{host}/v1", api_key="ollama")
             logger.info("Chat using Ollama: %s at %s", cls.get_model(), host)
-            return cls._client
-
-        # Groq (default if key exists)
-        groq_key = os.getenv("GROQ_API_KEY")
-        if groq_key:
+        elif provider == "groq":
             from groq import Groq
-            cls._client = Groq(api_key=groq_key)
+            cls._client = Groq(api_key=os.getenv("GROQ_API_KEY"))
             logger.info("Chat using Groq: %s", cls.get_model())
-            return cls._client
-
-        # OpenAI
-        openai_key = os.getenv("OPENAI_API_KEY")
-        if openai_key:
+        elif provider == "openai":
             from openai import OpenAI
-            cls._client = OpenAI(api_key=openai_key)
+            cls._client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
             logger.info("Chat using OpenAI: %s", cls.get_model())
-            return cls._client
 
-        # Fallback to Ollama
-        from openai import OpenAI
-        host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-        cls._client = OpenAI(base_url=f"{host}/v1", api_key="ollama")
-        logger.info("Chat using Ollama (fallback): %s at %s", cls.get_model(), host)
         return cls._client
+
+    @classmethod
+    def get_extra_kwargs(cls) -> dict:
+        """Return extra kwargs for chat completions (e.g., disable thinking for Ollama)."""
+        if cls.is_ollama():
+            return {"extra_body": {"think": False}}
+        return {}
 
 
 class SearchConfig:
