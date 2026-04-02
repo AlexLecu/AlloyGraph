@@ -290,7 +290,7 @@ def route_query(prompt: str, history: list) -> dict:
             temperature=LLMConfig.ROUTING_TEMPERATURE,
             max_tokens=LLMConfig.ROUTING_MAX_TOKENS,
             response_format={"type": "json_object"},
-            **LLMConfig.get_extra_kwargs(),
+
         )
 
         data = json.loads(completion.choices[0].message.content)
@@ -426,7 +426,7 @@ def _stream_chat_inner(prompt: str, session_id: str, history: list):
                     max_tokens=150,
                     temperature=0.7,
                     stream=True,
-                    **LLMConfig.get_extra_kwargs(),
+        
                 )
                 for chunk in stream:
                     content = chunk.choices[0].delta.content
@@ -568,7 +568,7 @@ def _stream_chat_inner(prompt: str, session_id: str, history: list):
                     max_tokens=LLMConfig.RESPONSE_MAX_TOKENS,
                     temperature=LLMConfig.RESPONSE_TEMPERATURE,
                     stream=True,
-                    **LLMConfig.get_extra_kwargs(),
+        
                 )
                 for chunk in stream:
                     content = chunk.choices[0].delta.content
@@ -606,7 +606,7 @@ def _stream_chat_inner(prompt: str, session_id: str, history: list):
             max_tokens=LLMConfig.RESPONSE_MAX_TOKENS,
             temperature=LLMConfig.RESPONSE_TEMPERATURE,
             stream=True,
-            **LLMConfig.get_extra_kwargs(),
+
         )
 
         for chunk in stream:

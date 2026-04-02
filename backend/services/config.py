@@ -4,6 +4,71 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+# ── Ollama wrapper (matches OpenAI client interface) ──────────────────
+
+class _Msg:
+    def __init__(self, content):
+        self.content = content
+
+class _Choice:
+    def __init__(self, content, is_stream=False):
+        self.message = _Msg(content)
+        self.delta = _Msg(content) if is_stream else None
+
+class _Response:
+    def __init__(self, content):
+        self.choices = [_Choice(content)]
+
+class _StreamChunk:
+    def __init__(self, content):
+        self.choices = [_Choice(content, is_stream=True)]
+
+class _OllamaCompat:
+    """Wraps native Ollama client to match client.chat.completions.create() interface."""
+
+    def __init__(self, ollama_client, model):
+        self._client = ollama_client
+        self._model = model
+        self.chat = _OllamaCompletions(ollama_client, model)
+
+class _OllamaCompletions:
+    def __init__(self, client, model):
+        self._client = client
+        self._model = model
+        self.completions = self
+
+    def create(self, model=None, messages=None, stream=False,
+               response_format=None, **kwargs):
+        options = {}
+        if "temperature" in kwargs:
+            options["temperature"] = kwargs["temperature"]
+        if "max_tokens" in kwargs:
+            options["num_predict"] = kwargs["max_tokens"]
+
+        fmt = "json" if response_format and response_format.get("type") == "json_object" else None
+
+        call_kwargs = dict(
+            model=model or self._model,
+            messages=messages,
+            options=options,
+            think=False,
+        )
+        if fmt:
+            call_kwargs["format"] = fmt
+
+        if stream:
+            return self._stream(call_kwargs)
+
+        resp = self._client.chat(**call_kwargs)
+        return _Response(resp.message.content)
+
+    def _stream(self, call_kwargs):
+        for chunk in self._client.chat(**call_kwargs, stream=True):
+            yield _StreamChunk(chunk.message.content)
+
+
+# ── LLM Configuration ────────────────────────────────────────────────
+
 class LLMConfig:
     """LLM model and parameter settings"""
     ROUTING_TEMPERATURE = 0.0
@@ -57,9 +122,10 @@ class LLMConfig:
         provider = cls.get_provider()
 
         if provider == "ollama":
-            from openai import OpenAI
+            from ollama import Client
             host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-            cls._client = OpenAI(base_url=f"{host}/v1", api_key="ollama")
+            native = Client(host=host)
+            cls._client = _OllamaCompat(native, cls.get_model())
             logger.info("Chat using Ollama: %s at %s", cls.get_model(), host)
         elif provider == "groq":
             from groq import Groq
@@ -71,13 +137,6 @@ class LLMConfig:
             logger.info("Chat using OpenAI: %s", cls.get_model())
 
         return cls._client
-
-    @classmethod
-    def get_extra_kwargs(cls) -> dict:
-        """Return extra kwargs for chat completions (e.g., disable thinking for Ollama)."""
-        if cls.is_ollama():
-            return {"extra_body": {"think": False}}
-        return {}
 
 
 class SearchConfig:
