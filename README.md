@@ -7,7 +7,6 @@
 [![License: CC BY 4.0](https://img.shields.io/badge/Ontology-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Docker](https://img.shields.io/badge/docker-compose-2496ED.svg)](https://docs.docker.com/compose/)
-[![DOI](https://img.shields.io/badge/data-figshare-blue.svg)](https://doi.org/10.6084/m9.figshare.31860466)
 
 [🌐 Live Demo](http://alloygraph.ddnsfree.com:3000) · [📐 Ontology](https://w3id.org/alloygraph/ont) · [📦 Data (figshare)](https://doi.org/10.6084/m9.figshare.31860466)
 
@@ -163,11 +162,11 @@ Registered at [w3id.org/alloygraph/ont](https://w3id.org/alloygraph/ont) under C
 
 ## 📦 Data
 
-All data used in this project is publicly available:
+All data used in this project is publicly available. The complete archive (KG data, evaluation sets, ontology, and trained models) is hosted on [figshare](https://doi.org/10.6084/m9.figshare.31860466).
 
 | Resource | Description | Link |
 |----------|-------------|------|
-| 🗃️ **Knowledge Graph data** | 77 alloys with compositions, properties, and metadata | [figshare](https://doi.org/10.6084/m9.figshare.31860466) |
+| 🗃️ **Knowledge Graph data** | 77 alloys with compositions, properties, and metadata | Included in archive |
 | 📐 **OWL Ontology** | 32 classes, 63 properties, HermiT-compatible | [w3id.org/alloygraph/ont](https://w3id.org/alloygraph/ont) |
 | 📏 **Evaluation set** | 88 alloys from manufacturer datasheets (Special Metals, Haynes, ATI) and a held-out subset of the Nickel Institute handbook | Included in [`evaluation/`](evaluation/) |
 | 📚 **Source data** | Nickel Institute High-Temperature High-Strength Ni-Base Alloys | [nickelinstitute.org](https://nickelinstitute.org/en/technical-resources/high-temperature-alloys/) |
@@ -182,7 +181,7 @@ All data used in this project is publicly available:
 | 🖥️ Frontend | Vue.js, Nginx |
 | 🗄️ Databases | Weaviate 1.33, GraphDB 10.8 |
 | 🤖 LLM | Llama 3.3-70B (Groq API or Ollama for local deployment) |
-| 📐 Ontology | OWL 2 DL, HermiT reasoner, Protege |
+| 📐 Ontology | OWL 2 DL, HermiT reasoner, Protégé |
 
 ---
 
