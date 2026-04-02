@@ -117,7 +117,7 @@ AlloyGraph/
 │   └── services/              # Chat and evaluation services
 ├── frontend/                   # Vue.js web interface
 ├── ontology/                   # Published OWL ontology
-│   └── alloygraph.owl         # 32 classes · 17 object properties · 46 data properties
+│   └── alloygraph.owl         # OWL 2 DL with HermiT classification axioms
 ├── evaluation/                 # Evaluation scripts and results
 │   ├── prediction/            # Property prediction (88 alloys, 3 classes)
 │   ├── chatbot/               # MCQ, RAGAS, and expert evaluation
@@ -166,8 +166,7 @@ All data used in this project is publicly available. The complete archive (KG da
 | Resource | Description | Link |
 |----------|-------------|------|
 | 🗃️ **Knowledge Graph data** | 77 alloys with compositions, properties, and metadata | Included in archive |
-| 📐 **OWL Ontology** | 32 classes, 63 properties, HermiT-compatible | [w3id.org/alloygraph/ont](https://w3id.org/alloygraph/ont) |
-| 📏 **Evaluation set** | 88 alloys from manufacturer datasheets (Special Metals, Haynes, ATI) and a held-out subset of the Nickel Institute handbook | Included in [`evaluation/`](evaluation/) |
+| 📏 **Evaluation set** | 88 alloys from manufacturer datasheets and Nickel Institute handbook holdout | Included in [`evaluation/`](evaluation/) |
 | 📚 **Source data** | Nickel Institute High-Temperature High-Strength Ni-Base Alloys | [nickelinstitute.org](https://nickelinstitute.org/en/technical-resources/high-temperature-alloys/) |
 
 ---
@@ -188,5 +187,5 @@ All data used in this project is publicly available. The complete archive (KG da
 
 - **Findable**: Published on GitHub with persistent DOI via [figshare](https://doi.org/10.6084/m9.figshare.31860466). Ontology registered at [w3id.org/alloygraph/ont](https://w3id.org/alloygraph/ont).
 - **Accessible**: All code, data, and ontology are openly available. Docker Compose deployment requires no proprietary software.
-- **Interoperable**: OWL 2 DL ontology aligned to EMMO, ChEBI, and QUDT via `skos:closeMatch`. RDF triples in GraphDB; standard SPARQL access.
+- **Interoperable**: Standards-aligned ontology (see [Ontology](#-ontology) section). RDF triples in GraphDB; standard SPARQL access.
 - **Reusable**: Modular pipeline (ontology builder, KG ingestion, ML training, agent evaluation) with documented configuration and reproducible Docker setup.
