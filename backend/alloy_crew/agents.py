@@ -137,7 +137,6 @@ def _resolve_llm(llm=None, temperature=0.1):
             model=f"ollama/{model}",
             base_url=ollama_host,
             temperature=temperature,
-            extra_params={"think": False},
         )
 
     # Groq (default if key exists)
@@ -170,7 +169,6 @@ def _resolve_llm(llm=None, temperature=0.1):
         model=f"ollama/{model}",
         base_url=ollama_host,
         temperature=temperature,
-        extra_params={"think": False},
     )
 
 
