@@ -7,7 +7,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Docker](https://img.shields.io/badge/docker-compose-2496ED.svg)](https://docs.docker.com/compose/)
 
-[🌐 Live Demo](http://alloygraph.ddnsfree.com:3000) · [🎥 Video](https://youtu.be/2NUNi8fizJs) · [📐 Ontology](https://w3id.org/alloygraph/ont) · [📦 Data (figshare)](https://doi.org/10.6084/m9.figshare.31860466)
+[🌐 Live Demo](https://alloygraph.utcluj.ro) · [🎥 Video](https://youtu.be/2NUNi8fizJs) · [📐 Ontology](https://w3id.org/alloygraph/ont) · [📦 Data (figshare)](https://doi.org/10.6084/m9.figshare.31860466)
 
 <img src="assets/system_architecture.png" alt="AlloyGraph System Architecture" width="90%">
 
