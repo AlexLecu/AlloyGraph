@@ -146,6 +146,7 @@ class _CacheBreakpointSafeLLM(LLM):
 #: A value that fails this is treated as absent rather than passed to the API,
 #: so provider selection can never be hijacked by a placeholder such as "sk-".
 _KEY_SHAPES = {
+    "TOGETHER_API_KEY": ("tgp_", 30),
     "GROQ_API_KEY": ("gsk_", 20),
     "OPENAI_API_KEY": ("sk-", 20),
 }
@@ -178,44 +179,61 @@ def valid_api_key(env_var: str) -> str:
 
 
 def _resolve_llm(llm=None, temperature=0.1):
-    """Resolve LLM instance. Priority: Groq > OpenAI > Local Ollama.
+    """Resolve the agent LLM. Priority: Together AI > Groq > OpenAI > Ollama.
 
-    Only keys that pass valid_api_key() are considered, so a malformed value
-    is skipped rather than selected and then rejected by the provider.
+    The published configuration is Llama 3.3 70B. Groq decommissioned that
+    model on 2026-08-16, so Together AI is the primary provider; Groq remains
+    in the chain for other models and for anyone still holding access.
+
+    Only keys passing valid_api_key() are considered, so a malformed value is
+    skipped rather than selected and then rejected by the provider.
+
+    ALLOYGRAPH_LLM_MODEL overrides the model for whichever provider is chosen.
+    Give it the provider-native id (e.g. meta-llama/Llama-3.3-70B-Instruct);
+    the litellm provider prefix is added automatically. Any override must be
+    recorded with the results -- it is not the published configuration.
     """
     if llm is not None:
         return llm
 
+    together_key = valid_api_key("TOGETHER_API_KEY")
     groq_key = valid_api_key("GROQ_API_KEY")
     openai_key = valid_api_key("OPENAI_API_KEY")
 
-    if groq_key:
-        # The published configuration is llama-3.3-70b-versatile. Override with
-        # ALLOYGRAPH_GROQ_MODEL when an account cannot reach it (Groq exposes a
-        # per-project model allowlist) or to benchmark an alternative. Any
-        # override must be recorded alongside results: it is not the published
-        # configuration and numbers are not comparable without saying so.
-        groq_model = os.getenv("ALLOYGRAPH_GROQ_MODEL", "llama-3.3-70b-versatile")
-        logger.info("LLM provider: Groq — %s (T=%.1f)", groq_model, temperature)
+    override = (os.getenv("ALLOYGRAPH_LLM_MODEL") or "").strip()
+
+    if together_key:
+        model = override or "meta-llama/Llama-3.3-70B-Instruct-Turbo"
+        logger.info("LLM provider: Together AI — %s (T=%.1f)", model, temperature)
         return _CacheBreakpointSafeLLM(
-            model=f"groq/{groq_model}",
+            model=f"together_ai/{model}",
+            api_key=together_key,
+            temperature=temperature,
+            num_retries=3,
+        )
+    elif groq_key:
+        model = override or "llama-3.3-70b-versatile"
+        logger.info("LLM provider: Groq — %s (T=%.1f)", model, temperature)
+        return _CacheBreakpointSafeLLM(
+            model=f"groq/{model}",
             api_key=groq_key,
             temperature=temperature,
             num_retries=3,
         )
     elif openai_key:
-        logger.info("LLM provider: OpenAI — gpt-4o-mini (T=%.1f)", temperature)
+        model = override or "gpt-4o-mini"
+        logger.info("LLM provider: OpenAI — %s (T=%.1f)", model, temperature)
         return _CacheBreakpointSafeLLM(
-            model="gpt-4o-mini",
+            model=model,
             api_key=openai_key,
             temperature=temperature,
         )
     else:
         logger.warning(
             "LLM provider: local Ollama — llama3.1:8b (T=%.1f). No usable cloud API "
-            "key was found; results will NOT be comparable to a Groq run.", temperature
+            "key was found; results will NOT be comparable to a hosted run.", temperature
         )
-        return LLM(
+        return _CacheBreakpointSafeLLM(
             model="ollama/llama3.1:8b",
             temperature=temperature,
         )
