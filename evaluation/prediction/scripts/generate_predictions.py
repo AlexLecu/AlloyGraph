@@ -4,7 +4,8 @@ AlloyGraph Prediction Generator
 
 Generates predictions for evaluation with multiple ablation modes:
   --ml-only            : Raw ML model output (no agents, no physics enforcement)
-  --ml-deterministic   : ML + physics enforcement (UTS/YS caps, EM Reuss, EL caps) — no agents
+  --ml-deterministic   : ML + physics enforcement (UTS/YS caps, EM VRH, EL caps) — no agents
+  --ml-physics-kg      : ML + physics + KG anchoring, deterministically applied — no agents
   --llm-only           : Raw LLM prediction from composition (no ML, no KG, no agents)
   (default)            : Full system (ML + physics + KG + multi-agent pipeline)
 
@@ -223,43 +224,30 @@ def run_ml_only(composition, processing, temperature):
     }
 
 
-def run_ml_deterministic(composition, processing, temperature):
-    """ML predictions + deterministic physics enforcement (no LLM agents).
+def _ml_plus_physics(composition, processing, temperature):
+    """ML ensemble prediction followed by the deterministic physics corrections.
 
-    Applies the same physics caps as the full evaluator:
-    - Density & gamma prime from composition (not ML)
-    - UTS >= YS * 1.05 floor
-    - UTS/YS ratio ceiling (processing & gamma-prime aware)
-    - Elongation caps for high gamma-prime alloys
-    - EM override if >20% from the Voigt-Reuss-Hill average
-    - compute_metallurgy_validation for TCP risk & penalties
+    Shared by --ml-deterministic and --ml-physics-kg so the two modes cannot
+    drift apart. Returns ``(properties, gamma_prime_pct)``, or ``(None, 0.0)``
+    when the predictor yields nothing.
     """
     from alloy_crew.models.predictor import AlloyPredictor
-    from alloy_crew.models.feature_engineering import (
-        compute_alloy_features, calculate_em_rule_of_mixtures
-    )
-    from alloy_crew.config.alloy_parameters import (
-        is_sss_alloy, get_em_temp_factor, UTS_YS_RATIO, ELONGATION
-    )
-    from alloy_crew.tools.metallurgy_tools import compute_metallurgy_validation
+    from alloy_crew.models.feature_engineering import compute_alloy_features
+    from alloy_crew.config.alloy_parameters import is_sss_alloy
+    from alloy_crew.physics_corrections import apply_physics_corrections, LEGACY_ABLATION
 
-    # --- Step 1: Raw ML predictions (same as run_ml_only) ---
     predictor = AlloyPredictor.get_shared_predictor()
     result_df = predictor.predict(
-        composition,
-        extra_params={'processing': processing},
-        temperatures=[temperature]
+        composition, extra_params={'processing': processing}, temperatures=[temperature]
     )
-
     if result_df.empty:
-        return {'status': 'FAIL', 'error': 'Empty prediction result'}
+        return None, 0.0
 
     row = result_df.iloc[0]
-
-    # Composition-determined density & gamma prime
     features = compute_alloy_features(composition)
     density = round(features.get("density_calculated_gcm3", 0), 2)
-    gp = 0.0 if is_sss_alloy(composition) else round(features.get("gamma_prime_estimated_vol_pct", 0), 1)
+    gp = 0.0 if is_sss_alloy(composition) else round(
+        features.get("gamma_prime_estimated_vol_pct", 0), 1)
 
     props = {
         'Yield Strength': float(row.get('ys', 0)) if 'ys' in row else None,
@@ -270,48 +258,31 @@ def run_ml_deterministic(composition, processing, temperature):
         'Gamma Prime': gp,
     }
 
-    # --- Step 2: Physics enforcement (mirrors alloy_evaluator.py) ---
-    ys_val = props['Yield Strength']
-    uts_val = props['Tensile Strength']
+    # LEGACY_ABLATION reproduces this harness's published behaviour exactly.
+    # Switch to PRODUCTION to adopt the evaluator's rules (differs on 49 of the
+    # 471 evaluation rows: 2 UTS, 12 elongation, 35 elastic modulus).
+    props, _notes = apply_physics_corrections(
+        props, composition, processing, temperature, gp, profile=LEGACY_ABLATION,
+    )
+    return props, gp
 
-    # UTS floor: must be >= YS * 1.05
-    if (isinstance(ys_val, (int, float)) and isinstance(uts_val, (int, float))
-            and ys_val > 0 and uts_val < ys_val):
-        props['Tensile Strength'] = round(ys_val * 1.05, 1)
-        uts_val = props['Tensile Strength']
 
-    # UTS/YS ratio ceiling
-    if isinstance(ys_val, (int, float)) and isinstance(uts_val, (int, float)) and ys_val > 0:
-        ratio = uts_val / ys_val
-        if is_sss_alloy(composition):
-            max_ratio = 2.4
-        elif processing in ["wrought", "forged"] and gp > 40:
-            max_ratio = UTS_YS_RATIO["WROUGHT_HIGH_GP_MAX"]
-        elif processing in ["wrought", "forged"]:
-            max_ratio = UTS_YS_RATIO["WROUGHT_MAX"]
-        else:
-            max_ratio = UTS_YS_RATIO["CAST_BASE"] + (gp / 100) * UTS_YS_RATIO["CAST_GP_FACTOR"] + 0.10
-        if ratio > max_ratio:
-            props['Tensile Strength'] = round(ys_val * max_ratio, 1)
+def run_ml_deterministic(composition, processing, temperature):
+    """ML + deterministic physics corrections (no agents, no KG).
 
-    # Elongation caps
-    el_val = props.get('Elongation')
-    if isinstance(el_val, (int, float)) and el_val > 0:
-        if gp > 60 and el_val > ELONGATION["HIGH_GP_MAX_EL"]:
-            props['Elongation'] = ELONGATION["HIGH_GP_MAX_EL"]
-        elif gp > 40 and el_val > ELONGATION["MOD_GP_MAX_EL"]:
-            props['Elongation'] = ELONGATION["MOD_GP_MAX_EL"]
+    Applies:
+    - Density & gamma prime from composition (not ML)
+    - UTS >= YS * 1.05 floor
+    - UTS/YS ratio ceiling (processing & gamma-prime aware)
+    - Elongation caps for high gamma-prime alloys
+    - EM override if >20% from the Voigt-Reuss-Hill average
+    - compute_metallurgy_validation for TCP risk & penalties
+    """
+    from alloy_crew.tools.metallurgy_tools import compute_metallurgy_validation
 
-    # EM Voigt-Reuss-Hill enforcement (override if >20% deviation)
-    em_val = props.get('Elastic Modulus')
-    if isinstance(em_val, (int, float)) and em_val > 0:
-        em_rt = calculate_em_rule_of_mixtures(composition)
-        em_temp_factor = get_em_temp_factor(temperature)
-        em_physics = round(em_rt * em_temp_factor, 1)
-        if em_physics > 0:
-            em_deviation = abs(em_val - em_physics) / em_physics
-            if em_deviation > 0.20:
-                props['Elastic Modulus'] = em_physics
+    props, gp = _ml_plus_physics(composition, processing, temperature)
+    if props is None:
+        return {'status': 'FAIL', 'error': 'Empty prediction result'}
 
     # --- Step 3: Metallurgical validation (TCP, penalties, intervals) ---
     validation = compute_metallurgy_validation(
@@ -328,6 +299,89 @@ def run_ml_deterministic(composition, processing, temperature):
         'tcp_risk': validation.get('tcp_risk', 'N/A'),
         'validation_status': validation.get('status', 'UNKNOWN'),
         'penalty_score': validation.get('penalty_score', 0),
+    }
+
+
+def run_ml_physics_kg(composition, processing, temperature):
+    """ML + deterministic physics + KG anchoring, with no agents.
+
+    Fills the gap between --ml-deterministic and the full system: it isolates
+    what knowledge-graph calibration contributes on its own, without any LLM
+    reasoning on top.
+
+    Pipeline:
+      1. ML ensemble prediction (identical to --ml-only)
+      2. deterministic physics corrections (identical to --ml-deterministic)
+      3. KG retrieval through the production path -- AlloySearchTool then
+         _slim_kg_context, exactly as alloy_evaluator does it
+      4. AlloyAnalysisTool builds the calibration proposals the Analyst would
+         receive; we deterministically accept those tagged KG_anchoring and
+         ignore the rest, so the delta against --ml-deterministic is purely
+         knowledge-graph anchoring and not the empirical physics proposals
+      5. physics corrections re-applied, since a KG override can otherwise push
+         UTS back above its ratio ceiling. The rules are idempotent, and this
+         matches production, where enforcement runs after the agents.
+    """
+    from alloy_crew.physics_corrections import apply_physics_corrections, LEGACY_ABLATION
+    from alloy_crew.kg_anchoring import KG_ANCHOR_SOURCE
+    from alloy_crew.tools.metallurgy_tools import compute_metallurgy_validation
+
+    props, gp = _ml_plus_physics(composition, processing, temperature)
+    if props is None:
+        return {'status': 'FAIL', 'error': 'Empty prediction result'}
+
+    # --- Step 3: KG retrieval (same calls, same order, as alloy_evaluator) ---
+    kg_match, kg_applied = None, []
+    try:
+        from alloy_crew.tools.rag_tools import AlloySearchTool
+        from alloy_crew.tools.analysis_tool import AlloyAnalysisTool
+        from alloy_crew.alloy_evaluator import _slim_kg_context
+
+        kg_raw = AlloySearchTool()._run(composition=composition, limit=3, processing=processing)
+        kg_context = _slim_kg_context(kg_raw, target_temp=temperature)
+
+        analysis = AlloyAnalysisTool()._run(
+            composition=composition,
+            temperature_c=temperature,
+            processing=processing,
+            kg_context=kg_context,
+        )
+        analysis = json.loads(analysis) if isinstance(analysis, str) else analysis
+
+        kg_match = (analysis.get('alloy_analysis') or {}).get('kg_match')
+
+        # --- Step 4: accept only the KG-anchoring proposals, no LLM ---
+        for prop in analysis.get('proposed_corrections') or []:
+            if prop.get('source') != KG_ANCHOR_SOURCE:
+                continue
+            name, value = prop.get('property_name'), prop.get('proposed_value')
+            if name in props and isinstance(value, (int, float)):
+                kg_applied.append(f"{name}: {props[name]} -> {value}")
+                props[name] = value
+    except Exception as e:
+        logger.warning(f"KG anchoring unavailable ({e}); falling back to ML+physics only")
+
+    # --- Step 5: re-enforce physics after the KG overrides ---
+    props, _ = apply_physics_corrections(
+        props, composition, processing, temperature, gp, profile=LEGACY_ABLATION,
+    )
+
+    validation = compute_metallurgy_validation(
+        properties=props, composition=composition,
+        temperature_c=temperature, processing=processing,
+    )
+
+    return {
+        'properties': props,
+        'confidence': {'level': 'MEDIUM', 'score': 0.5},
+        'status': 'SUCCESS',
+        'tcp_risk': validation.get('tcp_risk', 'N/A'),
+        'validation_status': validation.get('status', 'UNKNOWN'),
+        'penalty_score': validation.get('penalty_score', 0),
+        'kg_match_name': (kg_match or {}).get('name'),
+        'kg_match_distance': (kg_match or {}).get('distance'),
+        # The harness takes len() of this, so it must stay a list.
+        'corrections_applied': kg_applied,
     }
 
 
@@ -540,6 +594,8 @@ def parse_args():
                             help='ML-only predictions (no physics caps, no agents)')
     mode_group.add_argument('--ml-deterministic', action='store_true',
                             help='ML + physics enforcement (UTS/YS caps, EM Reuss, EL caps) — no agents')
+    mode_group.add_argument('--ml-physics-kg', action='store_true',
+                            help='ML + physics + KG anchoring, no agents (needs Weaviate)')
     mode_group.add_argument('--llm-only', action='store_true',
                             help='LLM-only predictions (no ML model, no KG, no agents)')
 
@@ -588,6 +644,8 @@ def main():
         method = 'ML_ONLY'
     elif args.ml_deterministic:
         method = 'ML_DETERMINISTIC'
+    elif args.ml_physics_kg:
+        method = 'ML_PHYSICS_KG'
     elif args.llm_only:
         method = 'LLM_ONLY'
     else:
@@ -596,7 +654,7 @@ def main():
     # Default delay per mode
     if args.delay is not None:
         delay = args.delay
-    elif method in ('ML_ONLY', 'ML_DETERMINISTIC'):
+    elif method in ('ML_ONLY', 'ML_DETERMINISTIC', 'ML_PHYSICS_KG'):
         delay = 0.0
     elif method == 'LLM_ONLY':
         delay = 3.0
@@ -727,6 +785,8 @@ def main():
                     eval_result = run_ml_only(composition, processing, int(temp))
                 elif method == 'ML_DETERMINISTIC':
                     eval_result = run_ml_deterministic(composition, processing, int(temp))
+                elif method == 'ML_PHYSICS_KG':
+                    eval_result = run_ml_physics_kg(composition, processing, int(temp))
                 elif method == 'LLM_ONLY':
                     eval_result = run_llm_only(
                         composition, processing, int(temp),

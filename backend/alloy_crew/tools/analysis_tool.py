@@ -11,7 +11,11 @@ from ..config.alloy_parameters import (
     SSS, GP_TEMP, SC_DS, UTS_YS_RATIO, ELONGATION,
     classify_tcp_risk, get_em_temp_factor, compress_uts_ys_ratio,
     KG_ANCHOR_MAX_DISTANCE,
+    KG_ANCHOR_MAX_DISTANCE_INCOMPATIBLE,
+    KG_ANCHOR_MAX_GP_DIFF,
+    KG_ANCHOR_MIN_DIVERGENCE_PCT,
 )
+from ..kg_anchoring import kg_anchor_weight
 from ..models.feature_engineering import (
     compute_alloy_features, calculate_density,
     calculate_em_rule_of_mixtures
@@ -778,7 +782,8 @@ class AlloyAnalysisTool(BaseTool):
         proc_lower = processing.lower()
         proc_compatible = (proc_lower and kg_proc and
                            (proc_lower in kg_proc or kg_proc in proc_lower))
-        max_anchor_dist = KG_ANCHOR_MAX_DISTANCE if proc_compatible else 3.0
+        max_anchor_dist = (KG_ANCHOR_MAX_DISTANCE if proc_compatible
+                           else KG_ANCHOR_MAX_DISTANCE_INCOMPATIBLE)
 
         if kg_data.get("matched") and kg_distance < max_anchor_dist:
             kg_name = kg_data.get("name", "Unknown")
@@ -794,7 +799,7 @@ class AlloyAnalysisTool(BaseTool):
                 query_gp = physics_pred.get("gamma_prime_pct", gp)
                 gp_diff = abs(query_gp - kg_gp)
 
-                if gp_diff > 10:
+                if gp_diff > KG_ANCHOR_MAX_GP_DIFF:
                     class_mismatch = True
                     logger.warning(
                         "KG class mismatch (gamma prime): query=%.1f%% vs "
@@ -817,8 +822,8 @@ class AlloyAnalysisTool(BaseTool):
 
                     if kg_val and ml_val:
                         deviation = abs(ml_val - kg_val) / kg_val * 100
-                        if deviation > 15:
-                            kg_weight = 1.0 / (1.0 + math.exp((kg_distance - 2.5) / 0.5))
+                        if deviation > KG_ANCHOR_MIN_DIVERGENCE_PCT:
+                            kg_weight = kg_anchor_weight(kg_distance)
                             proposed_val = ml_val * (1 - kg_weight) + kg_val * kg_weight
 
                             # Describe the match by the weight it actually earns,

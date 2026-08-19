@@ -466,6 +466,22 @@ def compress_uts_ys_ratio(rt_ratio: float, temperature_c: float) -> float:
 
 KG_ANCHOR_MAX_DISTANCE = 4.5
 
+# Hard gate when the knowledge-graph match has an incompatible processing route.
+KG_ANCHOR_MAX_DISTANCE_INCOMPATIBLE = 3.0
+
+# Sigmoid that converts a composition distance into a knowledge-graph weight:
+#     w_KG = 1 / (1 + exp((d - MIDPOINT) / SLOPE))
+# Decays fast: d=2.0 -> 73%, d=2.5 -> 50%, d=3.0 -> 27%, d=4.0 -> 5%, d=4.5 -> 2%.
+KG_SIGMOID_MIDPOINT = 2.5
+KG_SIGMOID_SLOPE = 0.5
+
+# Minimum ML-vs-KG disagreement (percent) before a calibration proposal is made.
+KG_ANCHOR_MIN_DIVERGENCE_PCT = 15.0
+
+# Maximum gamma-prime difference (vol%) between query and KG match before the
+# match is treated as a different alloy class and anchoring is skipped.
+KG_ANCHOR_MAX_GP_DIFF = 10.0
+
 # =============================================================================
 # CORRECTION THRESHOLDS — minimum change to consider a correction meaningful
 # =============================================================================
