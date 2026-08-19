@@ -1,0 +1,89 @@
+alloy,alloy_class,processing,nearest_training_alloy,distance,stratum
+MAR-M* 200,Precip,cast,MAR-M* 200(DS),0.024,NEAR
+Special Metals NIMONIC® Alloy 86,SSS,wrought,NIMONIC* 86,0.037,NEAR
+Rene 95,Precip,wrought,RENÉ* 95,0.107,NEAR
+ATI Allegheny Ludlum AL 601™ Nickel-Base Alloy,SSS,wrought,INCONEL* 601,0.311,NEAR
+Alloy 718 (AMS 5596 sheet),SSS,wrought,INCONEL* 718,0.365,NEAR
+Haynes 214® alloy,Precip,wrought,HAYNES* 214 (sheet),0.526,NEAR
+Inconel X-750,Precip,wrought,INCONEL* X750,0.757,NEAR
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,SSS,wrought,INCONEL* 718,0.818,NEAR
+Alloy 263 (C263),Precip,wrought,NIMONIC* 263,0.98,NEAR
+Udimet 720,Precip,wrought,UDIMET* 720LI,0.987,NEAR
+Haynes 263® alloy,Precip,wrought,NIMONIC* 263,1.145,NEAR
+Rene 100,Precip,cast,IN-100,1.6,NEAR
+Haynes 718 alloy,SSS,wrought,Cast Alloy 718,1.663,NEAR
+CM 247 LC,Precip,cast,CM 247LC*(DS),2.048,MID
+MAR-M* 247,Precip,cast,CM 247LC*(DS),2.078,MID
+NIMOCAST* 263,Precip,cast,NIMONIC* 263,2.164,MID
+Special Metals INCONEL® alloy 740 Precipitation-Hardenable Ni-Cr-Co Superalloy,Precip,wrought,IN-597,2.202,MID
+GTD-111,Precip,cast,IN-792,2.289,MID
+ASTROLOY,Precip,wrought,UDIMET* 700,2.44,MID
+RR1000,Precip,wrought,UDIMET* 700,2.678,MID
+ATI Allegheny Ludlum Altemp® X-750 Nickel-Based superalloy,Precip,wrought,INCONEL* X750,2.803,MID
+Haynes 282,Precip,wrought,M-252,2.827,MID
+WASPALOY*,Precip,wrought,UDIMET* 400,2.88,MID
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,SSS,wrought,HAYNES* 230,3.019,MID
+AF2-1DA,Precip,cast,UNITEMP* AF2-1DA,3.144,MID
+NIMOCAST* 242,SSS,cast,M-252,3.164,MID
+IN-738,Precip,cast,MAR-M* 421,3.199,MID
+TRW-NASA VI A,Precip,cast,PWA*1484*(SC),3.248,MID
+Rene 108,Precip,cast,CM 247LC*(DS),3.292,MID
+CMSX-8,SC/DS,cast,CMSX-4*(SC),3.544,MID
+NIMOCAST* 75,SSS,cast,NIMOCAST* 80,3.584,MID
+RENÉ* N5(SC),SC/DS,cast,CMSX-4*(SC),3.622,MID
+Haynes 625 alloy,SSS,wrought,INCONEL* 625,3.679,MID
+DD6,SC/DS,cast,CMSX-4*(SC),3.799,MID
+NIMONIC* 901,Precip,wrought,NIMONIC* 942,3.981,MID
+RR3000,SC/DS,cast,PWA*1484*(SC),3.998,MID
+MAR-M 002,Precip,cast,MAR-M* 200(DS),3.999,MID
+GTD-444,Precip,cast,RENÉ* N4 (SC),4.236,MID
+INCONEL* 600,SSS,wrought,INCONEL* X750,4.283,MID
+UDIMET* 520,Precip,wrought,UDIMET* 400,4.356,MID
+MERL 76,Precip,wrought,UDIMET* 700,4.361,MID
+ATI Allegheny Ludlum AL 600™ Nickel-Base Alloy,SSS,wrought,INCONEL* X750,4.378,MID
+GTD-262,Precip,cast,NIMONIC* PK33,4.416,MID
+DD5,SC/DS,cast,CMSX-4*(SC),4.421,MID
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,SSS,wrought,INCONEL* 625,4.643,FAR
+Rene N500,SC/DS,cast,CMSX-4*(SC),4.947,FAR
+NIMONIC* 90,Precip,wrought,UDIMET* 400,5.285,FAR
+Haynes 233,Precip,wrought,RENÉ* 88DT (forged),5.544,FAR
+RGT* 13,Precip,wrought,NIMONIC* 263,6.084,FAR
+Haynes R-41 alloy,Precip,wrought,RENÉ* 41,6.229,FAR
+DD9,SC/DS,cast,PWA*1484*(SC),6.354,FAR
+TMS-138,SC/DS,cast,TAZ-8B(DS),6.511,FAR
+IN-731,Precip,cast,CMSX-6*(SC),6.539,FAR
+Special Metals INCONEL® alloy 693,Precip,wrought,INCONEL* 690,6.839,FAR
+ATI Allegheny Ludlum AL 22™ Nickel-Base Alloy,SSS,wrought,INCONEL* 625,6.948,FAR
+RR3010,SC/DS,cast,TAZ-8B(DS),6.951,FAR
+D-979,Precip,wrought,PYROMET* 860,7.449,FAR
+DD98M,SC/DS,cast,TAZ-8B(DS),7.601,FAR
+Haynes CABVAL Hastelloy® G-50™ Grade 100 Ni-Cr-Fe-Mo Alloy,SSS,wrought,UDIMET* 630,7.66,FAR
+PWA*1480(SC),SC/DS,cast,TAZ-8B(DS),7.672,FAR
+Rene N6,SC/DS,cast,PWA*1484*(SC),8.074,FAR
+Nickel Alloy 59,SSS,wrought,INCONEL* 625,8.151,FAR
+Special Metals INCOLOY® alloy 890 Ni-Cr-Fe Superalloy,SSS,wrought,HAYNES* HR-120,8.177,FAR
+Haynes Hastelloy® C-4 alloy,SSS,wrought,HASTELLOY* S,8.197,FAR
+Alloy 725,SSS,wrought,INCONEL* 625,8.311,FAR
+Special Metals INCONEL® 622 Nickel Superalloy (UNS N06022) Plate 0.250 in (6.4 mm),SSS,wrought,INCONEL* 625,8.418,FAR
+Special Metals INCONEL® 725 Nickel Superalloy (UNS N07725),SSS,wrought,INCONEL* 625,8.566,FAR
+CMSX-10,SC/DS,cast,TAZ-8B(DS),8.657,FAR
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,SSS,wrought,UDIMET* 630,9.039,FAR
+Haynes Hastelloy® C-22® alloy,SSS,wrought,INCONEL* 625,9.053,FAR
+HASTELLOY* X,SSS,wrought,UDIMET* 630,9.142,FAR
+Haynes Hastelloy® C-2000® alloy,SSS,wrought,INCONEL* 625,9.621,FAR
+Haynes Hastelloy® N,SSS,wrought,HASTELLOY* S,9.866,FAR
+Special Metals INCONEL® Alloy 686 Nickel Superalloy Sheet (UNS N06686),SSS,wrought,INCONEL* 625,9.915,FAR
+NIMONIC* PE16,Precip,wrought,NIMONIC* 942,10.068,FAR
+Special Metals INCONEL® G-3 Nickel Superalloy (UNS N06985),SSS,wrought,UDIMET* 630,10.09,FAR
+Special Metals INCONEL® C276 Nickel Superalloy Sheet,SSS,wrought,HASTELLOY* S,10.134,FAR
+TMS-162,SC/DS,cast,TAZ-8B(DS),10.205,FAR
+ATI Allegheny Ludlum AL 276™ Nickel-Base Alloy,SSS,wrought,HASTELLOY* S,10.997,FAR
+Inconel 718Plus,Precip,wrought,RENÉ* 220C,11.315,FAR
+NIMONIC* 81,Precip,wrought,NIMONIC* 86,11.454,FAR
+PWA 1497,SC/DS,cast,PWA*1484*(SC),11.931,FAR
+Haynes Hastelloy® C-276 alloy,SSS,wrought,INCONEL* 625,12.812,FAR
+HAYNES* 242,SSS,wrought,HASTELLOY* S,13.32,FAR
+Haynes 244,SSS,wrought,HASTELLOY* S,14.612,FAR
+Haynes Hastelloy® G-30® alloy,SSS,wrought,UDIMET* 630,15.682,FAR
+Haynes Hastelloy® B-2 alloy,SSS,wrought,HASTELLOY* S,19.512,FAR
+Haynes Hastelloy® B-3® alloy,SSS,wrought,HASTELLOY* S,20.346,FAR

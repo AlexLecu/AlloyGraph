@@ -48,3 +48,6 @@ regex>=2024.9.11
 # ============================================
 notebook>=7.4.7
 pytest>=9.0.2
+
+# Plotting (evaluation figures)
+matplotlib>=3.10.0
