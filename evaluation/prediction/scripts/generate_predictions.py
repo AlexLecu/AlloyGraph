@@ -30,6 +30,7 @@ import json
 import time
 import logging
 import argparse
+import random
 import re
 import gc
 from datetime import datetime
@@ -54,6 +55,53 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(BASE_DIR))  # AlloyGraph/
 BACKEND_DIR = os.path.join(PROJECT_ROOT, 'backend')
 sys.path.insert(0, BACKEND_DIR)
 sys.path.insert(0, SCRIPT_DIR)
+
+
+# ---------------------------------------------------------------------------
+# Determinism
+# ---------------------------------------------------------------------------
+
+def seed_everything(seed):
+    """Seed Python and numpy RNGs and reduce run-to-run variation.
+
+    What this does and does NOT guarantee — measured, not assumed:
+
+      - Python `random` and `numpy.random` are seeded. This is what makes any
+        sampling or ordering decision in the harness repeatable.
+
+      - Predictions are reproducible to ~1e-13 relative, NOT bit-exact. Across
+        5 seeded ML_ONLY runs the pred_ys values agreed to 13 significant
+        figures but differed in the last digit (e.g. 394.95063667307 vs
+        394.95063667306994). The cause is summation order in parallel
+        reductions inside XGBoost/BLAS, which a seed does not control. This is
+        ~15 orders of magnitude below the precision of an MPa prediction, so it
+        does not affect any reported metric; do not expect `diff` on two CSVs
+        from the same seed to come back empty.
+
+      - Thread pinning below reduces but does not remove that variation: numpy
+        (and its BLAS) is imported at module load, before main() calls this, so
+        the BLAS variables arrive too late to bind. They do apply to XGBoost,
+        which is imported lazily inside the prediction functions. Exporting
+        OMP_NUM_THREADS=1 in the shell before launching is the only way to pin
+        every backend.
+
+      - PYTHONHASHSEED is set for any *subprocess*; this process fixed its hash
+        seed at interpreter start, so it would need a re-exec to take effect
+        here.
+
+      - Remote LLM calls are NOT made deterministic by a local seed. --seed
+        additionally drives sampling temperature to 0.0 and forwards the seed
+        to litellm, which passes it to providers that honour a `seed` parameter
+        (OpenAI, Groq). Both are best-effort, and neither is guaranteed.
+    """
+    os.environ['PYTHONHASHSEED'] = str(seed)
+
+    for var in ('OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS',
+                'NUMEXPR_NUM_THREADS', 'VECLIB_MAXIMUM_THREADS'):
+        os.environ[var] = '1'
+
+    random.seed(seed)
+    np.random.seed(seed)
 
 
 # ---------------------------------------------------------------------------
@@ -298,8 +346,13 @@ LLM_SYSTEM_PROMPT = (
 )
 
 
-def run_llm_only(composition, processing, temperature, model_key=None, max_retries=3):
-    """Run LLM-only prediction: prompt an LLM with composition, no ML/KG/agents."""
+def run_llm_only(composition, processing, temperature, model_key=None, max_retries=3,
+                 seed=None, sampling_temperature=0.3):
+    """Run LLM-only prediction: prompt an LLM with composition, no ML/KG/agents.
+
+    When ``seed`` is set the sampling temperature is driven to 0.0 by the caller
+    and the seed is forwarded to litellm for providers that honour it.
+    """
     from litellm import completion as llm_completion
 
     model_key = model_key or LLM_ONLY_DEFAULT
@@ -320,6 +373,14 @@ TEMPERATURE: {temperature}°C
 Predict the following properties. Reason briefly about the alloy class and expected behavior, then respond with JSON:
 {{"yield_strength": <number>, "uts": <number>, "elongation": <number>, "elastic_modulus": <number>}}"""
 
+    completion_kwargs = {
+        "temperature": sampling_temperature,
+        "max_tokens": 512,
+    }
+    if seed is not None:
+        # Best-effort: honoured by OpenAI/Groq, silently ignored elsewhere.
+        completion_kwargs["seed"] = seed
+
     for attempt in range(max_retries):
         try:
             response = llm_completion(
@@ -328,8 +389,7 @@ Predict the following properties. Reason briefly about the alloy class and expec
                     {"role": "system", "content": LLM_SYSTEM_PROMPT},
                     {"role": "user", "content": prompt},
                 ],
-                temperature=0.3,
-                max_tokens=512,
+                **completion_kwargs,
             )
             content = response.choices[0].message.content.strip()
 
@@ -429,20 +489,24 @@ def get_all_temperatures(alloy_data):
     return sorted(temps)
 
 
-def get_llm_config(llm_choice):
-    """Get LLM configuration based on user choice."""
+def get_llm_config(llm_choice, temperature=0.1):
+    """Get LLM configuration based on user choice.
+
+    ``temperature`` is driven to 0.0 by --seed so that full-system runs are as
+    close to reproducible as the provider allows.
+    """
     from crewai import LLM
 
     if llm_choice == 'openai':
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             raise ValueError("OPENAI_API_KEY not found in environment")
-        return LLM(model="gpt-4o-mini", api_key=api_key, temperature=0.1)
+        return LLM(model="gpt-4o-mini", api_key=api_key, temperature=temperature)
     elif llm_choice == 'groq':
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
             raise ValueError("GROQ_API_KEY not found in environment")
-        return LLM(model=LLM_ONLY_MODEL, api_key=api_key, temperature=0.1)
+        return LLM(model=LLM_ONLY_MODELS['groq'], api_key=api_key, temperature=temperature)
     else:
         return None
 
@@ -489,6 +553,12 @@ def parse_args():
                         help=f'Model for --llm-only mode. Aliases: {", ".join(LLM_ONLY_MODELS.keys())}. '
                              f'Or pass a raw litellm model string (e.g., openai/gpt-4.1). Default: {LLM_ONLY_DEFAULT}')
 
+    # Reproducibility
+    parser.add_argument('--seed', type=int, default=None,
+                        help='Seed Python/numpy RNGs, drive LLM sampling temperature to 0.0, '
+                             'and forward the seed to litellm where the provider supports it. '
+                             'Recorded in the output filename and in a `seed` column.')
+
     # Output
     parser.add_argument('--output', type=str, default=None,
                         help='Output filename')
@@ -504,6 +574,14 @@ def parse_args():
 
 def main():
     args = parse_args()
+
+    # Reproducibility: seed before anything else touches an RNG
+    if args.seed is not None:
+        seed_everything(args.seed)
+
+    # LLM sampling temperature: 0.0 when a seed is requested, else the defaults
+    llm_sampling_temp = 0.0 if args.seed is not None else 0.3
+    crew_sampling_temp = 0.0 if args.seed is not None else 0.1
 
     # Determine mode
     if args.ml_only:
@@ -570,7 +648,7 @@ def main():
     llm_config = None
     llm_name = 'auto'
     if method == 'FULL_SYSTEM' and args.llm:
-        llm_config = get_llm_config(args.llm)
+        llm_config = get_llm_config(args.llm, temperature=crew_sampling_temp)
         llm_name = args.llm
 
     # Resolve LLM-only model
@@ -584,6 +662,10 @@ def main():
         print(f"LLM model: {llm_only_model_name}")
     print(f"Alloys: {len(alloys)}")
     print(f"Delay: {delay}s")
+    if args.seed is not None:
+        print(f"Seed: {args.seed} (LLM sampling temperature forced to 0.0)")
+    else:
+        print("Seed: none (run is not reproducible)")
     print("=" * 70)
 
     # Prepare output
@@ -599,7 +681,11 @@ def main():
             # Include model name so different runs are distinguishable
             model_tag = llm_only_model_key.replace("/", "_").replace(":", "_")
             mode_suffix = f"llm_only_{model_tag}"
-        output_file = os.path.join(output_dir, f'predictions_{mode_suffix}_{timestamp}.csv')
+        # Include the seed so repeated runs at different seeds do not collide
+        seed_tag = f'_seed{args.seed}' if args.seed is not None else ''
+        output_file = os.path.join(
+            output_dir, f'predictions_{mode_suffix}{seed_tag}_{timestamp}.csv'
+        )
 
     # Run evaluations
     results = []
@@ -642,7 +728,12 @@ def main():
                 elif method == 'ML_DETERMINISTIC':
                     eval_result = run_ml_deterministic(composition, processing, int(temp))
                 elif method == 'LLM_ONLY':
-                    eval_result = run_llm_only(composition, processing, int(temp), model_key=llm_only_model_key)
+                    eval_result = run_llm_only(
+                        composition, processing, int(temp),
+                        model_key=llm_only_model_key,
+                        seed=args.seed,
+                        sampling_temperature=llm_sampling_temp,
+                    )
                 else:
                     eval_result = run_full_system(
                         composition=composition,
@@ -692,6 +783,7 @@ def main():
                     'tcp_risk': eval_result.get('tcp_risk', 'N/A'),
                     'corrections_applied': len(eval_result.get('corrections_applied', [])),
                     'eval_time_sec': round(elapsed, 1),
+                    'seed': args.seed if args.seed is not None else '',
                 }
 
                 results.append(row)

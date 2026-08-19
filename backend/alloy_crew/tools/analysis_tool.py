@@ -10,6 +10,7 @@ from ..config.alloy_parameters import (
     get_alloy_class, get_sss_physics_ys,
     SSS, GP_TEMP, SC_DS, UTS_YS_RATIO, ELONGATION,
     classify_tcp_risk, get_em_temp_factor, compress_uts_ys_ratio,
+    KG_ANCHOR_MAX_DISTANCE,
 )
 from ..models.feature_engineering import (
     compute_alloy_features, calculate_density,
@@ -232,7 +233,7 @@ class AlloyAnalysisTool(BaseTool):
                     cand_proc = (candidate.get("processing") or "").lower()
                     cand_dist = candidate.get("_distance", 999)
                     if cand_proc and (proc_lower in cand_proc or cand_proc in proc_lower):
-                        if cand_dist < 4.5:
+                        if cand_dist < KG_ANCHOR_MAX_DISTANCE:
                             best = candidate
                             logger.info(
                                 "KG: Preferred processing-compatible '%s' (%s, dist=%.2f) "
@@ -777,7 +778,7 @@ class AlloyAnalysisTool(BaseTool):
         proc_lower = processing.lower()
         proc_compatible = (proc_lower and kg_proc and
                            (proc_lower in kg_proc or kg_proc in proc_lower))
-        max_anchor_dist = 4.5 if proc_compatible else 3.0
+        max_anchor_dist = KG_ANCHOR_MAX_DISTANCE if proc_compatible else 3.0
 
         if kg_data.get("matched") and kg_distance < max_anchor_dist:
             kg_name = kg_data.get("name", "Unknown")
@@ -820,6 +821,22 @@ class AlloyAnalysisTool(BaseTool):
                             kg_weight = 1.0 / (1.0 + math.exp((kg_distance - 2.5) / 0.5))
                             proposed_val = ml_val * (1 - kg_weight) + kg_val * kg_weight
 
+                            # Describe the match by the weight it actually earns,
+                            # not by the fact that it passed the gate. The sigmoid
+                            # decays fast: d=3.0 -> 27%, d=4.0 -> 5%, d=4.5 -> 2%.
+                            if kg_weight > 0.5:
+                                match_strength = "Strong"
+                            elif kg_weight >= 0.1:
+                                match_strength = "Moderate"
+                            else:
+                                match_strength = "Weak"
+
+                            effect_note = (
+                                " KG weight is negligible at this distance — the proposal "
+                                "stays essentially at the ML value."
+                                if kg_weight < 0.1 else ""
+                            )
+
                             proposals.append({
                                 "property_name": prop,
                                 "current_value": ml_val,
@@ -827,9 +844,11 @@ class AlloyAnalysisTool(BaseTool):
                                 "correction_type": "calibration",
                                 "confidence": "HIGH" if kg_distance < 1.5 else "MEDIUM",
                                 "reasoning": (
-                                    f"Strong KG match to '{kg_name}' (distance={kg_distance:.2f}). "
+                                    f"{match_strength} KG match to '{kg_name}' "
+                                    f"(Euclidean distance={kg_distance:.2f}). "
                                     f"Experimental data shows {prop}={kg_val:.0f}, ML predicted {ml_val:.0f}. "
-                                    f"Anchoring with {kg_weight*100:.0f}% KG weight gives {proposed_val:.0f}."
+                                    f"Anchoring with {kg_weight*100:.1f}% KG weight gives {proposed_val:.0f}."
+                                    f"{effect_note}"
                                 ),
                                 "source": "KG_anchoring"
                             })
@@ -907,7 +926,11 @@ class AlloyAnalysisTool(BaseTool):
         cal_ys = params.get("CAL_YS_FACTOR", 1.0)
         cal_uts = params.get("CAL_UTS_FACTOR", 1.0)
 
-        if cal_ys != 1.0 and ml_ys > 0 and kg_distance > 3.0:
+        # Gate must mirror calibration_fix.get_calibration_factor, which skips
+        # calibration entirely below KG_ANCHOR_MAX_DISTANCE. Proposing a
+        # calibration the downstream stage would refuse to apply is incoherent,
+        # so both sides key off the same constant (>= here, < there).
+        if cal_ys != 1.0 and ml_ys > 0 and kg_distance >= KG_ANCHOR_MAX_DISTANCE:
             proposed_ys = ml_ys * cal_ys
             proposals.append({
                 "property_name": "Yield Strength",

@@ -447,6 +447,22 @@ def compress_uts_ys_ratio(rt_ratio: float, temperature_c: float) -> float:
 
 
 # =============================================================================
+# KG ANCHORING DISTANCE — boundary between "trust the KG neighbour" and
+# "fall back to systematic calibration"
+#
+# The distance is the Euclidean (L2) distance between wt%-normalised
+# compositions computed by rag_tools._composition_distance — units are wt%,
+# so the value is NOT bounded to [0, 2] the way a cosine distance would be.
+#
+# Below this boundary a KG neighbour may be blended in (sigmoid-weighted);
+# at or above it the neighbour is considered too far to anchor on and the
+# processing-level systematic calibration factors apply instead. Both sides
+# of the boundary must use this constant so they cannot drift apart.
+# =============================================================================
+
+KG_ANCHOR_MAX_DISTANCE = 4.5
+
+# =============================================================================
 # CORRECTION THRESHOLDS — minimum change to consider a correction meaningful
 # =============================================================================
 

@@ -1,13 +1,18 @@
 import logging
 
-from ..config.alloy_parameters import get_params, is_sss_alloy
+from ..config.alloy_parameters import get_params, is_sss_alloy, KG_ANCHOR_MAX_DISTANCE
 
 logger = logging.getLogger(__name__)
 
 def get_calibration_factor(composition, kg_distance, processing="cast"):
     """
-    Apply processing-dependent calibration to physics predictions."""
-    if kg_distance < 4.5:
+    Apply processing-dependent calibration to physics predictions.
+
+    Skipped when a KG neighbour is close enough to anchor on — the same
+    boundary AlloyAnalysisTool uses to gate its systematic_calibration
+    proposal, so the two stages agree on the whole distance range.
+    """
+    if kg_distance < KG_ANCHOR_MAX_DISTANCE:
         logger.info(f"KG match within anchoring range (distance={kg_distance:.2f}) - skipping calibration")
         return {"Yield Strength": 1.0, "Tensile Strength": 1.0, "Elastic Modulus": 1.0, "Elongation": 1.0}
 
