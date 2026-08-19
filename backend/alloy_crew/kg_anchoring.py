@@ -38,22 +38,44 @@ def kg_anchor_weight(distance: float) -> float:
 
 
 def processing_compatible(query_processing: str, kg_processing: str) -> bool:
-    """True when the two processing routes are the same family.
+    """True when both routes are known and name the same family.
 
     Substring matching in both directions, so "wrought" matches "wrought bar".
-    An empty or unknown route on either side counts as compatible: absence of
-    evidence is not evidence of a mismatch.
+
+    An empty route on either side is NOT treated as compatible. That is
+    deliberate and matches ``AlloyAnalysisTool``: an unknown route earns the
+    tighter distance cutoff, because there is no evidence the neighbour was
+    made the same way. It is still not grounds for outright rejection -- see
+    ``processing_mismatch``.
     """
     q = (query_processing or "").lower()
     k = (kg_processing or "").lower()
-    if not q or not k or k == "unknown":
-        return True
-    return q in k or k in q
+    return bool(q and k and (q in k or k in q))
+
+
+def processing_mismatch(query_processing: str, kg_processing: str) -> bool:
+    """True only when both routes are known and positively disagree.
+
+    A missing route, or the literal "unknown", is not a mismatch: it downgrades
+    the distance cutoff but never rejects on its own.
+    """
+    q = (query_processing or "").lower()
+    k = (kg_processing or "").lower()
+    if not (q and k and k != "unknown"):
+        return False
+    return not (q in k or k in q)
 
 
 def max_anchor_distance(proc_compatible: bool) -> float:
     """Hard cutoff beyond which no anchoring happens at all."""
     return KG_ANCHOR_MAX_DISTANCE if proc_compatible else KG_ANCHOR_MAX_DISTANCE_INCOMPATIBLE
+
+
+#: Machine-readable rejection reasons, for ablation accounting.
+REJECT_DISTANCE = "distance"
+REJECT_PROCESSING = "processing_route"
+REJECT_GP_CLASS = "gamma_prime_class"
+REJECT_NO_MATCH = "no_kg_match"
 
 
 def anchoring_allowed(
@@ -62,32 +84,37 @@ def anchoring_allowed(
     kg_gamma_prime: Optional[float],
     query_processing: str = "",
     kg_processing: str = "",
-) -> Tuple[bool, str]:
+    matched: bool = True,
+) -> Tuple[bool, str, str]:
     """Decide whether this neighbour may calibrate the query.
 
-    Returns ``(allowed, reason)``; ``reason`` explains the refusal and is empty
-    when allowed. Mirrors the guards in ``AlloyAnalysisTool._generate_proposals``:
-    a distance gate that tightens when the processing route differs, a
-    gamma-prime class check, and an outright processing-route mismatch check.
+    Returns ``(allowed, reason_code, detail)``. Evaluation order and semantics
+    mirror ``AlloyAnalysisTool._generate_proposals`` exactly: the distance gate
+    (tightened when the processing route is unknown or differs), then an
+    outright processing-route mismatch, then the gamma-prime class check.
+    ``kg_gamma_prime`` of None means the neighbour carried no composition, in
+    which case the class check is skipped -- as it is in the tool.
     """
+    if not matched:
+        return False, REJECT_NO_MATCH, "no knowledge-graph match returned"
+
     compatible = processing_compatible(query_processing, kg_processing)
 
     limit = max_anchor_distance(compatible)
     if not (distance < limit):
-        return False, f"distance {distance:.2f} >= cutoff {limit:.2f}"
+        return False, REJECT_DISTANCE, f"distance {distance:.2f} >= cutoff {limit:.2f}"
 
-    if not compatible:
-        return False, (f"processing mismatch: query '{query_processing}' "
-                       f"vs KG '{kg_processing}'")
+    if processing_mismatch(query_processing, kg_processing):
+        return False, REJECT_PROCESSING, (f"query '{query_processing}' vs KG '{kg_processing}'")
 
     if kg_gamma_prime is not None:
         gp_diff = abs(query_gamma_prime - kg_gamma_prime)
         if gp_diff > KG_ANCHOR_MAX_GP_DIFF:
-            return False, (f"gamma-prime class mismatch: query {query_gamma_prime:.1f}% "
-                           f"vs KG {kg_gamma_prime:.1f}% (diff {gp_diff:.1f} > "
-                           f"{KG_ANCHOR_MAX_GP_DIFF})")
+            return False, REJECT_GP_CLASS, (
+                f"query {query_gamma_prime:.1f}% vs KG {kg_gamma_prime:.1f}% "
+                f"(diff {gp_diff:.1f} > {KG_ANCHOR_MAX_GP_DIFF})")
 
-    return True, ""
+    return True, "", ""
 
 
 def blend(ml_value: float, kg_value: float, distance: float) -> float:

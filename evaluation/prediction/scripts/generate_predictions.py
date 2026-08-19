@@ -331,7 +331,7 @@ def run_ml_physics_kg(composition, processing, temperature):
         return {'status': 'FAIL', 'error': 'Empty prediction result'}
 
     # --- Step 3: KG retrieval (same calls, same order, as alloy_evaluator) ---
-    kg_match, kg_applied = None, []
+    kg_match, kg_applied, gate = None, [], {}
     try:
         from alloy_crew.tools.rag_tools import AlloySearchTool
         from alloy_crew.tools.analysis_tool import AlloyAnalysisTool
@@ -349,6 +349,7 @@ def run_ml_physics_kg(composition, processing, temperature):
         analysis = json.loads(analysis) if isinstance(analysis, str) else analysis
 
         kg_match = (analysis.get('alloy_analysis') or {}).get('kg_match')
+        gate = analysis.get('kg_gate') or {}
 
         # --- Step 4: accept only the KG-anchoring proposals, no LLM ---
         for prop in analysis.get('proposed_corrections') or []:
@@ -382,6 +383,12 @@ def run_ml_physics_kg(composition, processing, temperature):
         'kg_match_distance': (kg_match or {}).get('distance'),
         # The harness takes len() of this, so it must stay a list.
         'corrections_applied': kg_applied,
+        # Rejection accounting: which gate stopped anchoring, and the weight
+        # earned when it did fire.
+        'kg_gate_allowed': gate.get('allowed'),
+        'kg_reject_code': gate.get('reject_code'),
+        'kg_reject_detail': gate.get('reject_detail'),
+        'kg_weight': gate.get('weight'),
     }
 
 
@@ -845,6 +852,16 @@ def main():
                     'eval_time_sec': round(elapsed, 1),
                     'seed': args.seed if args.seed is not None else '',
                 }
+
+                if method == 'ML_PHYSICS_KG':
+                    row.update({
+                        'kg_match_name': eval_result.get('kg_match_name'),
+                        'kg_match_distance': eval_result.get('kg_match_distance'),
+                        'kg_gate_allowed': eval_result.get('kg_gate_allowed'),
+                        'kg_reject_code': eval_result.get('kg_reject_code'),
+                        'kg_reject_detail': eval_result.get('kg_reject_detail'),
+                        'kg_weight': eval_result.get('kg_weight'),
+                    })
 
                 results.append(row)
 

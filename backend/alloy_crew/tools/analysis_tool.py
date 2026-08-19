@@ -15,7 +15,7 @@ from ..config.alloy_parameters import (
     KG_ANCHOR_MAX_GP_DIFF,
     KG_ANCHOR_MIN_DIVERGENCE_PCT,
 )
-from ..kg_anchoring import kg_anchor_weight
+from ..kg_anchoring import anchoring_allowed, kg_anchor_weight
 from ..models.feature_engineering import (
     compute_alloy_features, calculate_density,
     calculate_em_rule_of_mixtures
@@ -316,7 +316,8 @@ class AlloyAnalysisTool(BaseTool):
         kg_data: Dict[str, Any],
         composition: Dict[str, float],
         temperature_c: int,
-        processing: str
+        processing: str,
+        diagnostics: Optional[Dict[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
         """Generate correction proposals based on physics rules. Agent decides acceptance."""
         proposals = []
@@ -778,85 +779,79 @@ class AlloyAnalysisTool(BaseTool):
                     })
 
         # === PROPOSAL 4: KG Anchoring (if strong match with SAME alloy class) ===
+        # Gate logic lives in alloy_crew.kg_anchoring so the ablation harness
+        # can reuse it and account for rejections without a second copy.
         kg_proc = (kg_data.get("processing") or "").lower()
-        proc_lower = processing.lower()
-        proc_compatible = (proc_lower and kg_proc and
-                           (proc_lower in kg_proc or kg_proc in proc_lower))
-        max_anchor_dist = (KG_ANCHOR_MAX_DISTANCE if proc_compatible
-                           else KG_ANCHOR_MAX_DISTANCE_INCOMPATIBLE)
+        kg_name = kg_data.get("name", "Unknown")
+        kg_comp = kg_data.get("composition_wt_pct", {})
+        kg_gp = None
+        if kg_comp:
+            kg_gp = compute_alloy_features(kg_comp).get("gamma_prime_estimated_vol_pct", 0)
+        query_gp = physics_pred.get("gamma_prime_pct", gp)
 
-        if kg_data.get("matched") and kg_distance < max_anchor_dist:
-            kg_name = kg_data.get("name", "Unknown")
+        allowed, reject_code, reject_detail = anchoring_allowed(
+            distance=kg_distance,
+            query_gamma_prime=query_gp,
+            kg_gamma_prime=kg_gp,
+            query_processing=processing,
+            kg_processing=kg_proc,
+            matched=bool(kg_data.get("matched")),
+        )
+        if diagnostics is not None:
+            diagnostics["kg_gate"] = {
+                "allowed": allowed,
+                "reject_code": reject_code,
+                "reject_detail": reject_detail,
+                "distance": kg_distance,
+                "kg_name": kg_name,
+                "weight": kg_anchor_weight(kg_distance) if allowed else None,
+            }
+        if not allowed and reject_code not in ("", "no_kg_match"):
+            logger.warning("KG anchoring skipped (%s): %s [match '%s']",
+                           reject_code, reject_detail, kg_name)
 
-            # Check for alloy class mismatch before anchoring.
-            # Vector search can match compositionally similar but functionally
-            # different alloys. Use γ' fraction difference as discriminator.
-            class_mismatch = False
-            kg_comp = kg_data.get("composition_wt_pct", {})
-            if kg_comp:
-                kg_features = compute_alloy_features(kg_comp)
-                kg_gp = kg_features.get("gamma_prime_estimated_vol_pct", 0)
-                query_gp = physics_pred.get("gamma_prime_pct", gp)
-                gp_diff = abs(query_gp - kg_gp)
+        if allowed:
+            for prop in ["Yield Strength", "Tensile Strength", "Elongation"]:
+                kg_val = kg_props.get(prop)
+                ml_val = ml_pred.get(prop, 0)
 
-                if gp_diff > KG_ANCHOR_MAX_GP_DIFF:
-                    class_mismatch = True
-                    logger.warning(
-                        "KG class mismatch (gamma prime): query=%.1f%% vs "
-                        "KG match '%s'=%.1f%% (diff=%.1f%%). Skipping KG anchoring.",
-                        query_gp, kg_name, kg_gp, gp_diff
-                    )
+                if kg_val and ml_val:
+                    deviation = abs(ml_val - kg_val) / kg_val * 100
+                    if deviation > KG_ANCHOR_MIN_DIVERGENCE_PCT:
+                        kg_weight = kg_anchor_weight(kg_distance)
+                        proposed_val = ml_val * (1 - kg_weight) + kg_val * kg_weight
 
-            processing_mismatch = not proc_compatible if (proc_lower and kg_proc and kg_proc != "unknown") else False
-            if processing_mismatch:
-                logger.warning(
-                    "KG processing mismatch: query='%s' vs KG match '%s' "
-                    "processing='%s'. Skipping KG anchoring.",
-                    processing, kg_name, kg_proc
-                )
+                        # Describe the match by the weight it actually earns,
+                        # not by the fact that it passed the gate. The sigmoid
+                        # decays fast: d=3.0 -> 27%, d=4.0 -> 5%, d=4.5 -> 2%.
+                        if kg_weight > 0.5:
+                            match_strength = "Strong"
+                        elif kg_weight >= 0.1:
+                            match_strength = "Moderate"
+                        else:
+                            match_strength = "Weak"
 
-            if not class_mismatch and not processing_mismatch:
-                for prop in ["Yield Strength", "Tensile Strength", "Elongation"]:
-                    kg_val = kg_props.get(prop)
-                    ml_val = ml_pred.get(prop, 0)
+                        effect_note = (
+                            " KG weight is negligible at this distance — the proposal "
+                            "stays essentially at the ML value."
+                            if kg_weight < 0.1 else ""
+                        )
 
-                    if kg_val and ml_val:
-                        deviation = abs(ml_val - kg_val) / kg_val * 100
-                        if deviation > KG_ANCHOR_MIN_DIVERGENCE_PCT:
-                            kg_weight = kg_anchor_weight(kg_distance)
-                            proposed_val = ml_val * (1 - kg_weight) + kg_val * kg_weight
-
-                            # Describe the match by the weight it actually earns,
-                            # not by the fact that it passed the gate. The sigmoid
-                            # decays fast: d=3.0 -> 27%, d=4.0 -> 5%, d=4.5 -> 2%.
-                            if kg_weight > 0.5:
-                                match_strength = "Strong"
-                            elif kg_weight >= 0.1:
-                                match_strength = "Moderate"
-                            else:
-                                match_strength = "Weak"
-
-                            effect_note = (
-                                " KG weight is negligible at this distance — the proposal "
-                                "stays essentially at the ML value."
-                                if kg_weight < 0.1 else ""
-                            )
-
-                            proposals.append({
-                                "property_name": prop,
-                                "current_value": ml_val,
-                                "proposed_value": round(proposed_val, 1),
-                                "correction_type": "calibration",
-                                "confidence": "HIGH" if kg_distance < 1.5 else "MEDIUM",
-                                "reasoning": (
-                                    f"{match_strength} KG match to '{kg_name}' "
-                                    f"(Euclidean distance={kg_distance:.2f}). "
-                                    f"Experimental data shows {prop}={kg_val:.0f}, ML predicted {ml_val:.0f}. "
-                                    f"Anchoring with {kg_weight*100:.1f}% KG weight gives {proposed_val:.0f}."
-                                    f"{effect_note}"
-                                ),
-                                "source": "KG_anchoring"
-                            })
+                        proposals.append({
+                            "property_name": prop,
+                            "current_value": ml_val,
+                            "proposed_value": round(proposed_val, 1),
+                            "correction_type": "calibration",
+                            "confidence": "HIGH" if kg_distance < 1.5 else "MEDIUM",
+                            "reasoning": (
+                                f"{match_strength} KG match to '{kg_name}' "
+                                f"(Euclidean distance={kg_distance:.2f}). "
+                                f"Experimental data shows {prop}={kg_val:.0f}, ML predicted {ml_val:.0f}. "
+                                f"Anchoring with {kg_weight*100:.1f}% KG weight gives {proposed_val:.0f}."
+                                f"{effect_note}"
+                            ),
+                            "source": "KG_anchoring"
+                        })
 
         # === PROPOSAL 5: Elongation Bounds ===
         if ml_el > 0:
@@ -1101,9 +1096,11 @@ class AlloyAnalysisTool(BaseTool):
             kg_data = self._parse_kg_context(kg_context, temperature_c, processing)
             density = calculate_density(composition)
 
+            diagnostics: Dict[str, Any] = {}
             proposals = self._generate_proposals(
                 ml_predictions, physics_predictions, kg_data,
-                composition, temperature_c, processing
+                composition, temperature_c, processing,
+                diagnostics=diagnostics,
             )
             discrepancy = self._detect_discrepancy(ml_predictions, physics_predictions, kg_data)
             output = {
@@ -1135,6 +1132,10 @@ class AlloyAnalysisTool(BaseTool):
 
                 "proposed_corrections": proposals,
                 "correction_count": len(proposals),
+
+                # Why KG anchoring did or did not fire. Consumed by the
+                # --ml-physics-kg ablation for rejection accounting.
+                "kg_gate": diagnostics.get("kg_gate"),
 
                 "metallurgy_metrics": {
                     "Md_gamma": features.get("Md_gamma", 0),
