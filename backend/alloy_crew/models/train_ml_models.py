@@ -159,16 +159,20 @@ def get_feature_importance(pipeline, feature_names: List[str]) -> Dict[str, floa
         model = pipeline.named_steps['model']
         preprocessor = pipeline.named_steps['preprocessor']
 
-        num_features = list(preprocessor.transformers_[0][2])
+        # Ask the fitted ColumnTransformer for its real output names. Do NOT
+        # reconstruct them: SimpleImputer(add_indicator=True) appends indicator
+        # columns for *only* the columns that actually had NaNs, all at the end
+        # of the numeric block -- it does not interleave one after each feature.
+        # The old reconstruction produced 162 names for a 129-long importance
+        # vector, and zip() silently truncated, mislabelling nearly every entry.
+        all_names = [n.split('__', 1)[-1] for n in preprocessor.get_feature_names_out()]
+
         cat_features = list(preprocessor.transformers_[1][2])
         ohe = preprocessor.named_transformers_['cat'].named_steps['onehot']
-        cat_feature_names = ohe.get_feature_names_out(cat_features).tolist()
-
-        num_feature_names = []
-        for feat in num_features:
-            num_feature_names.extend([feat, f'{feat}_missing_indicator'])
-
-        all_names = num_feature_names + cat_feature_names
+        ohe_to_source = {}
+        for src, cats in zip(cat_features, ohe.categories_):
+            for c in cats:
+                ohe_to_source[f'{src}_{c}'] = src
 
         if isinstance(model, VotingRegressor):
             importances = [e.feature_importances_ for e in model.estimators_ if hasattr(e, 'feature_importances_')]
@@ -181,14 +185,27 @@ def get_feature_importance(pipeline, feature_names: List[str]) -> Dict[str, floa
         if avg_importance is None:
             return {}
 
-        # Aggregate to original feature names
+        if len(all_names) != len(avg_importance):
+            raise ValueError(
+                f"feature-name/importance length mismatch: "
+                f"{len(all_names)} names vs {len(avg_importance)} importances"
+            )
+
+        # Aggregate back onto the original feature names: a missingness
+        # indicator and every one-hot level fold into their source column.
         aggregated = {}
         for name, imp in zip(all_names, avg_importance):
-            base = name.split('_missing_indicator')[0].split('_x0_')[0]
-            aggregated[base] = aggregated.get(base, 0) + imp
+            if name.startswith('missingindicator_'):
+                base = name[len('missingindicator_'):]
+            else:
+                base = ohe_to_source.get(name, name)
+            aggregated[base] = aggregated.get(base, 0) + float(imp)
 
         return dict(sorted(aggregated.items(), key=lambda x: x[1], reverse=True))
-    except Exception:
+    except Exception as e:
+        # Previously silent: a broken mapping returned {} and looked like
+        # "no importances available" rather than a defect.
+        print(f"  WARNING: feature importance unavailable ({type(e).__name__}: {e})")
         return {}
 
 
@@ -329,11 +346,23 @@ def load_tuned_params(model_id: str, models_dir: str) -> Tuple[Dict, Dict]:
 
 
 if __name__ == "__main__":
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    DATA_FILE = os.path.join(current_dir, "training_data", "train_77alloys.jsonl")
+    import argparse
 
-    OUTPUT_DIR = os.path.join(current_dir, "saved_models")
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+    ap = argparse.ArgumentParser(description="Train the four superalloy property models.")
+    ap.add_argument("--data", default=os.path.join(current_dir, "training_data", "train_77alloys.jsonl"),
+                    help="Training JSONL (records must carry precomputed 'computed_features').")
+    ap.add_argument("--out", default=os.path.join(current_dir, "saved_models"),
+                    help="Directory to write model_<id>.pkg into.")
+    ap.add_argument("--metrics-json", default=None,
+                    help="Optional path to dump the per-target metrics as JSON.")
+    args = ap.parse_args()
+
+    DATA_FILE = args.data
+    OUTPUT_DIR = args.out
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+    all_metrics = {}
 
     print(f"\nSUPERALLOY ML TRAINING\nData: {DATA_FILE}\n")
 
@@ -359,5 +388,11 @@ if __name__ == "__main__":
             'bounds': cfg.get("bounds"), 'exclude_phase_compositions': cfg.get("exclude_phase", False)
         }, filename)
         print(f"  Saved: {filename}")
+        all_metrics[model_id] = metrics
+
+    if args.metrics_json:
+        with open(args.metrics_json, "w") as f:
+            json.dump(all_metrics, f, indent=2)
+        print(f"\nMetrics written to {args.metrics_json}")
 
     print("\nTraining complete.")

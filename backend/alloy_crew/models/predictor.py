@@ -23,21 +23,69 @@ def flatten_dict(d, parent_key='', sep='_'):
 # Singleton Trace
 _SHARED_PREDICTOR = None
 
+# Active model generation. v2 was trained after the Vegard/lattice-mismatch fix
+# (Ni given its correct 0.0 coefficient, unlisted elements no longer picking up
+# a spurious 0.1). v1 lives on in saved_models/ for comparison and is selectable
+# via ALLOYGRAPH_MODEL_DIR.
+DEFAULT_MODEL_SUBDIR = "saved_models_v2"
+LEGACY_MODEL_SUBDIR = "saved_models"
+_MODEL_IDS = ('ys', 'uts', 'el', 'em')
+
+
+def resolve_model_dir(model_dir=None):
+    """Pick the model directory: explicit arg > $ALLOYGRAPH_MODEL_DIR > v2 > v1.
+
+    Falls back to the legacy directory only if v2 is absent or incomplete, and
+    says so loudly -- silently serving a different model generation than the
+    caller expects is worse than a noisy start-up.
+    """
+    if model_dir:
+        return model_dir
+
+    env_dir = os.environ.get("ALLOYGRAPH_MODEL_DIR")
+    if env_dir:
+        logger.info("Using ALLOYGRAPH_MODEL_DIR=%s", env_dir)
+        return env_dir
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+    def complete(d):
+        return all(os.path.exists(os.path.join(d, f"model_{m}.pkg")) for m in _MODEL_IDS)
+
+    preferred = os.path.join(current_dir, DEFAULT_MODEL_SUBDIR)
+    if complete(preferred):
+        return preferred
+
+    legacy = os.path.join(current_dir, LEGACY_MODEL_SUBDIR)
+    if complete(legacy):
+        logger.warning(
+            "%s missing or incomplete; falling back to legacy models in %s "
+            "(these predate the lattice-mismatch fix). Retrain with "
+            "train_ml_models.py --out %s to restore v2.",
+            DEFAULT_MODEL_SUBDIR, LEGACY_MODEL_SUBDIR, preferred,
+        )
+        return legacy
+
+    logger.error("No complete model set found in %s or %s", preferred, legacy)
+    return preferred
+
+
 class AlloyPredictor:
     @staticmethod
     def get_shared_predictor(model_dir=None):
         """Returns a singleton instance of AlloyPredictor to avoid reloading models."""
-        if model_dir is None:
-            # Default to the 'saved_models' directory relative to this script
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            model_dir = os.path.join(current_dir, "saved_models")
-            
+        model_dir = resolve_model_dir(model_dir)
+
         global _SHARED_PREDICTOR
         if _SHARED_PREDICTOR is None:
             _SHARED_PREDICTOR = AlloyPredictor(model_dir)
             _SHARED_PREDICTOR._model_dir = model_dir
-        elif model_dir is not None and hasattr(_SHARED_PREDICTOR, '_model_dir') and _SHARED_PREDICTOR._model_dir != model_dir:
-            logger.warning("AlloyPredictor singleton already initialized with different model_dir")
+        elif getattr(_SHARED_PREDICTOR, '_model_dir', None) != model_dir:
+            logger.warning(
+                "AlloyPredictor singleton already initialized with model_dir=%s; "
+                "ignoring request for %s",
+                getattr(_SHARED_PREDICTOR, '_model_dir', None), model_dir,
+            )
         return _SHARED_PREDICTOR
 
     def __init__(self, model_dir="."):
