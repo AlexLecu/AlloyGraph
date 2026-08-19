@@ -726,8 +726,18 @@ class AlloyEvaluationCrew:
                     output.properties["Elongation"] = cap
 
         # === EM ENFORCEMENT (override if >15% from VRH bound) ===
+        # Not applied to single crystals or DS alloys: Voigt-Reuss-Hill averages
+        # over randomly oriented grains, which those alloys do not have, so it
+        # does not estimate the measured [001] modulus at all. See
+        # physics_corrections.CorrectionProfile.skip_em_override_for_sc_ds.
         em_val = output.properties.get("Elastic Modulus")
-        if isinstance(em_val, (int, float)) and em_val > 0:
+        _em_sc_ds, _em_sc_reason = is_sc_ds_alloy(composition, processing)
+        if _em_sc_ds and isinstance(em_val, (int, float)) and em_val > 0:
+            logger.info(
+                f"[EM_OVERRIDE_SKIPPED] SC/DS alloy ({_em_sc_reason}) — keeping "
+                f"EM={em_val:.1f} GPa; VRH is undefined for single-crystal moduli"
+            )
+        elif isinstance(em_val, (int, float)) and em_val > 0:
             em_rt = calculate_em_rule_of_mixtures(composition)
             em_temp_factor = get_em_temp_factor(temperature)
             em_physics = round(em_rt * em_temp_factor, 1)

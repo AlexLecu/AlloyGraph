@@ -44,11 +44,21 @@ class CorrectionProfile:
     elongation_caps_processing_aware:
         True  -> cast polycrystalline alloys use the tighter *_CAST caps.
         False -> the wrought caps are applied to every alloy.
+    skip_em_override_for_sc_ds:
+        True  -> leave the elastic modulus alone for single-crystal and
+                 directionally-solidified alloys. Voigt-Reuss-Hill is an
+                 isotropic polycrystalline aggregate; a single crystal loaded
+                 along [001] has no such average, so VRH does not estimate the
+                 measured quantity at all. Measured [001] moduli sit near
+                 105-130 GPa while VRH returns ~162 GPa for the same
+                 compositions, a systematic +53% overshoot.
+        False -> apply the override to every class (pre-fix behaviour).
     """
 
     em_deviation_threshold: float = 0.15
     sss_ratio_processing_aware: bool = True
     elongation_caps_processing_aware: bool = True
+    skip_em_override_for_sc_ds: bool = True
 
 
 #: What ``alloy_evaluator`` applies after the agents.
@@ -61,6 +71,7 @@ LEGACY_ABLATION = CorrectionProfile(
     em_deviation_threshold=0.20,
     sss_ratio_processing_aware=False,
     elongation_caps_processing_aware=False,
+    skip_em_override_for_sc_ds=False,
 )
 
 
@@ -156,13 +167,26 @@ def apply_physics_corrections(
             props["Elongation"] = cap
 
     # 4. Elastic modulus override against the VRH estimate.
+    #
+    # Skipped for single crystals and DS alloys: VRH averages over randomly
+    # oriented grains, which a single crystal does not have. Enforcing it
+    # replaces a usable prediction with one that is wrong by construction --
+    # measured [001] moduli near 105-130 GPa against a VRH estimate near
+    # 162 GPa for the same composition.
     em = props.get("Elastic Modulus")
     if _num(em) and em > 0:
-        em_physics = vrh_elastic_modulus(composition, temperature_c)
-        if em_physics > 0:
-            deviation = abs(em - em_physics) / em_physics
-            if deviation > profile.em_deviation_threshold:
-                notes.append(f"EM_OVERRIDE: {em:.1f} -> {em_physics:.1f} GPa ({deviation:.0%} off VRH)")
-                props["Elastic Modulus"] = em_physics
+        sc_ds, sc_reason = is_sc_ds_alloy(composition, processing)
+        if profile.skip_em_override_for_sc_ds and sc_ds:
+            notes.append(
+                f"EM_OVERRIDE_SKIPPED_SC_DS: kept ML value {em:.1f} GPa; VRH is "
+                f"undefined for single-crystal/DS moduli ({sc_reason})"
+            )
+        else:
+            em_physics = vrh_elastic_modulus(composition, temperature_c)
+            if em_physics > 0:
+                deviation = abs(em - em_physics) / em_physics
+                if deviation > profile.em_deviation_threshold:
+                    notes.append(f"EM_OVERRIDE: {em:.1f} -> {em_physics:.1f} GPa ({deviation:.0%} off VRH)")
+                    props["Elastic Modulus"] = em_physics
 
     return props, notes

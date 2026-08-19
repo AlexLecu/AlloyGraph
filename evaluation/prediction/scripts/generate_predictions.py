@@ -261,10 +261,10 @@ def _ml_plus_physics(composition, processing, temperature):
     # PRODUCTION = the rules alloy_evaluator actually applies. This harness used
     # to carry a drifted copy (flat 2.4 SSS ratio, wrought elongation caps on
     # cast alloys, 20% EM threshold). See physics_corrections for both profiles.
-    props, _notes = apply_physics_corrections(
+    props, notes = apply_physics_corrections(
         props, composition, processing, temperature, gp, profile=PRODUCTION,
     )
-    return props, gp
+    return props, gp, notes
 
 
 def run_ml_deterministic(composition, processing, temperature):
@@ -280,9 +280,10 @@ def run_ml_deterministic(composition, processing, temperature):
     """
     from alloy_crew.tools.metallurgy_tools import compute_metallurgy_validation
 
-    props, gp = _ml_plus_physics(composition, processing, temperature)
+    props, gp, notes = _ml_plus_physics(composition, processing, temperature)
     if props is None:
         return {'status': 'FAIL', 'error': 'Empty prediction result'}
+    em_skipped = any(n.startswith('EM_OVERRIDE_SKIPPED_SC_DS') for n in notes)
 
     # --- Step 3: Metallurgical validation (TCP, penalties, intervals) ---
     validation = compute_metallurgy_validation(
@@ -299,6 +300,7 @@ def run_ml_deterministic(composition, processing, temperature):
         'tcp_risk': validation.get('tcp_risk', 'N/A'),
         'validation_status': validation.get('status', 'UNKNOWN'),
         'penalty_score': validation.get('penalty_score', 0),
+        'em_override_skipped_sc_ds': em_skipped,
     }
 
 
@@ -326,9 +328,10 @@ def run_ml_physics_kg(composition, processing, temperature):
     from alloy_crew.kg_anchoring import KG_ANCHOR_SOURCE
     from alloy_crew.tools.metallurgy_tools import compute_metallurgy_validation
 
-    props, gp = _ml_plus_physics(composition, processing, temperature)
+    props, gp, notes = _ml_plus_physics(composition, processing, temperature)
     if props is None:
         return {'status': 'FAIL', 'error': 'Empty prediction result'}
+    em_skipped = any(n.startswith('EM_OVERRIDE_SKIPPED_SC_DS') for n in notes)
 
     # --- Step 3: KG retrieval (same calls, same order, as alloy_evaluator) ---
     kg_match, kg_applied, gate = None, [], {}
@@ -389,6 +392,7 @@ def run_ml_physics_kg(composition, processing, temperature):
         'kg_reject_code': gate.get('reject_code'),
         'kg_reject_detail': gate.get('reject_detail'),
         'kg_weight': gate.get('weight'),
+        'em_override_skipped_sc_ds': em_skipped,
     }
 
 
@@ -852,6 +856,10 @@ def main():
                     'eval_time_sec': round(elapsed, 1),
                     'seed': args.seed if args.seed is not None else '',
                 }
+
+                if method in ('ML_DETERMINISTIC', 'ML_PHYSICS_KG'):
+                    row['em_override_skipped_sc_ds'] = eval_result.get(
+                        'em_override_skipped_sc_ds', False)
 
                 if method == 'ML_PHYSICS_KG':
                     row.update({

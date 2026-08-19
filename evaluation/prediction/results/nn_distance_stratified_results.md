@@ -77,7 +77,7 @@ measurement, not alloys.
 | YS (MPa) | 91 | 76.05 / 0.895 | 76.05 / 0.895 | 75.93 / 0.895 |
 | UTS (MPa) | 91 | 83.53 / 0.886 | 83.92 / 0.890 | 83.80 / 0.890 |
 | EL (%) | 82 | 7.91 / 0.631 | 7.86 / 0.632 | 7.60 / 0.644 |
-| EM (GPa) | 65 | 9.92 / 0.845 | 13.35 / 0.589 | 13.35 / 0.589 |
+| EM (GPa) | 65 | 9.92 / 0.845 | 10.48 / 0.821 | 10.48 / 0.821 |
 
 ### FAR — 44 alloys
 
@@ -95,7 +95,7 @@ measurement, not alloys.
 | YS (MPa) | 286 | 104.95 / 0.805 | 104.95 / 0.805 | 98.62 / 0.818 |
 | UTS (MPa) | 290 | 118.33 / 0.816 | 118.62 / 0.816 | 118.12 / 0.818 |
 | EL (%) | 284 | 14.00 / 0.239 | 13.97 / 0.239 | 12.99 / 0.395 |
-| EM (GPa) | 304 | 12.82 / 0.481 | 8.79 / 0.766 | 8.79 / 0.766 |
+| EM (GPa) | 304 | 12.82 / 0.481 | 8.17 / 0.830 | 8.17 / 0.830 |
 
 ## What the strata show
 
@@ -119,13 +119,61 @@ stored measurement, not calibration by compositional analogy.
 
 **Physics corrections behave in the opposite way** — they help most where the
 system has least knowledge. EM MAE falls from 13.32 to 7.78 GPa on FAR (−42%)
-and from 14.60 to 6.75 on NEAR, but *worsens* on MID (9.92 → 13.35, +35%). The
-MID regression is worth a look on its own; it is not caused by the KG.
+and from 14.60 to 6.75 on NEAR. It still rises slightly on MID (9.92 → 10.48,
++5.6%), down from +35% before the VRH override was gated off for single
+crystals; see *Elastic modulus and the SC/DS gate* below. The residual is four
+rows of Haynes 230, where VRH overshoots a W-rich solid-solution alloy
+(measured 212 GPa, VRH 239) and the override resolves the disagreement the
+wrong way.
 
 **Generalisation gap.** R² for the strength properties drops sharply on FAR
 (YS 0.875 NEAR / 0.895 MID / 0.656 FAR; UTS 0.930 / 0.886 / 0.644). Whatever
 the MAE comparison says, the models order test alloys much less well once they
 are compositionally far from the training set.
+
+## Elastic modulus and the SC/DS gate
+
+Voigt-Reuss-Hill averages the Voigt and Reuss bounds over randomly oriented
+grains. A single crystal has no such orientation distribution, so VRH does not
+estimate the quantity a [001] tensile test measures. Across the evaluation set
+the consequence is systematic:
+
+| class | rows | mean VRH | mean measured | bias |
+|---|---|---|---|---|
+| SSS | 176 | 197.2 | 183.4 | +7.5% |
+| Precip | 118 | 180.1 | 182.4 | −1.2% |
+| SC/DS | 10 | 162.1 | 105.6 | **+53.5%** |
+
+The EM override compares the ML prediction against VRH and, when they disagree
+by more than 15%, resolves toward VRH. It has no signal about which of the two
+is closer to truth, so wherever VRH is biased a large disagreement guarantees
+the override makes the answer worse. Over the whole set it fires on 62 of 304
+rows with a 71% hit rate (44 helped, 18 hurt), but every one of the 5 SC/DS
+firings hurt.
+
+The override is therefore skipped for SC/DS alloys
+(`CorrectionProfile.skip_em_override_for_sc_ds`, applied in both
+`physics_corrections` and `alloy_evaluator`). Effects:
+
+- René N5 (MID) keeps its ML values: EM MAE 56.80 → 19.54 GPa.
+- PWA 1480 (FAR) is unchanged. Its ML prediction was biased high in the same
+  direction as VRH, so the deviation sat at 0.10–0.14 and never crossed the
+  0.15 gate. It escaped by coincidence rather than correctness, and its 36.7
+  GPa error persists. A more accurate ML prediction for an SC alloy would have
+  been *more* likely to trigger the corruption -- the reason to gate on class
+  rather than retune the threshold.
+- 29 rows across 17 alloys carry the skip flag, but only 2 of those alloys have
+  measured EM, so the rest change no metric. They are flagged in the evaluation
+  CSVs as `em_override_skipped_sc_ds`.
+- Overall EM improves from 8.79 to 8.17 GPa MAE and R² from 0.766 to 0.830.
+  No other property moves.
+
+One hypothesis was tested and rejected: the SSS overshoot does not track
+refractory content. Correlation between (W+Mo+Re+Ta+Nb) wt% and VRH bias across
+30 SSS alloys is +0.07 -- Hastelloy B-3 at 31.5% refractory is biased +5.3%
+while HASTELLOY X at 9.6% is biased +18.0%. The SSS bias is a broad ~+7.5%
+offset with no compositional driver identified here, and the override still
+wins there because ML's errors are larger than the bias.
 
 ## Sanity check: is ML-only also memorising?
 
