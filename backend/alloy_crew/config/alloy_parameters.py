@@ -309,7 +309,11 @@ def get_temperature_factor(temp_c: float, alloy_class: str, gp_fraction: float =
         return max(factor, SC_DS["TEMP_MIN_FACTOR"])
 
     else:  # gp (polycrystalline γ' alloys)
-        gp = GP_TEMP["GP_REF"]
+        # Use the caller's γ' estimate. This previously read GP_TEMP["GP_REF"]
+        # unconditionally, so gp_fraction was accepted and silently discarded:
+        # every γ' alloy collapsed onto the 25 vol% reference curve with a
+        # constant 900 °C solvus, regardless of its actual γ' content.
+        gp = GP_TEMP["GP_REF"] if gp_fraction is None else gp_fraction
         gp = max(2.0, min(70.0, gp))
         gp_ref = GP_TEMP["GP_REF"]
 

@@ -32,7 +32,7 @@ def create_designer_agent(llm=None, memory=False):
 
             "PROPERTY FORMULAS (use to compute required γ'):\n"
             "- Wrought: YS ≈ 520+13×γ'%, EL ≈ 28-0.28×γ'%. Cast: YS ≈ 400+10×γ'%, EL ≈ 18-0.25×γ'%.\n"
-            "- UTS ≈ YS × 1.3-1.5 (wrought), × 1.1-1.3 (cast). EM ≈ Reuss bound; W(411), Mo(329) boost it.\n"
+            "- UTS ≈ YS × 1.3-1.5 (wrought), × 1.1-1.3 (cast). EM ≈ Voigt-Reuss-Hill average; W(411), Mo(329) boost it.\n"
             "- Match ALL targets within ±10%. Do not over-engineer.\n\n"
 
             "ALLOY CLASSES:\n"

@@ -896,11 +896,11 @@ class AlloyAnalysisTool(BaseTool):
                 # EM is more deterministic than strength — weight physics more heavily
                 if alloy_class == "sss":
                     blend_ml, blend_phys = 0.20, 0.80
-                    model_name = "SSS typical (Reuss-validated)"
+                    model_name = "SSS typical (VRH-validated)"
                     em_confidence = "HIGH"
                 else:
                     blend_ml, blend_phys = 0.30, 0.70
-                    model_name = "Reuss bound (harmonic mixing)"
+                    model_name = "Voigt-Reuss-Hill average"
                     em_confidence = "HIGH" if em_deviation > 20 else "MEDIUM"
 
                 proposed_em = blend_ml * ml_em + blend_phys * physics_em
@@ -1053,7 +1053,7 @@ class AlloyAnalysisTool(BaseTool):
                     "difference_pct": round(em_diff_pct, 1),
                     "analysis": (
                         f"EM disagreement: ML={ml_em:.1f} GPa, Physics={physics_em:.1f} GPa "
-                        f"({em_diff_pct:.0f}% difference). Physics (Reuss bound) is typically "
+                        f"({em_diff_pct:.0f}% difference). Physics (Voigt-Reuss-Hill) is typically "
                         f"more reliable for EM."
                     )
                 })

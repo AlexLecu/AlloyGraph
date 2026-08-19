@@ -231,7 +231,7 @@ def run_ml_deterministic(composition, processing, temperature):
     - UTS >= YS * 1.05 floor
     - UTS/YS ratio ceiling (processing & gamma-prime aware)
     - Elongation caps for high gamma-prime alloys
-    - EM override if >20% from Reuss bound
+    - EM override if >20% from the Voigt-Reuss-Hill average
     - compute_metallurgy_validation for TCP risk & penalties
     """
     from alloy_crew.models.predictor import AlloyPredictor
@@ -302,7 +302,7 @@ def run_ml_deterministic(composition, processing, temperature):
         elif gp > 40 and el_val > ELONGATION["MOD_GP_MAX_EL"]:
             props['Elongation'] = ELONGATION["MOD_GP_MAX_EL"]
 
-    # EM Reuss bound enforcement (override if >20% deviation)
+    # EM Voigt-Reuss-Hill enforcement (override if >20% deviation)
     em_val = props.get('Elastic Modulus')
     if isinstance(em_val, (int, float)) and em_val > 0:
         em_rt = calculate_em_rule_of_mixtures(composition)
