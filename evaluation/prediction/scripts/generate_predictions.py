@@ -234,7 +234,7 @@ def _ml_plus_physics(composition, processing, temperature):
     from alloy_crew.models.predictor import AlloyPredictor
     from alloy_crew.models.feature_engineering import compute_alloy_features
     from alloy_crew.config.alloy_parameters import is_sss_alloy
-    from alloy_crew.physics_corrections import apply_physics_corrections, LEGACY_ABLATION
+    from alloy_crew.physics_corrections import apply_physics_corrections, PRODUCTION
 
     predictor = AlloyPredictor.get_shared_predictor()
     result_df = predictor.predict(
@@ -258,11 +258,11 @@ def _ml_plus_physics(composition, processing, temperature):
         'Gamma Prime': gp,
     }
 
-    # LEGACY_ABLATION reproduces this harness's published behaviour exactly.
-    # Switch to PRODUCTION to adopt the evaluator's rules (differs on 49 of the
-    # 471 evaluation rows: 2 UTS, 12 elongation, 35 elastic modulus).
+    # PRODUCTION = the rules alloy_evaluator actually applies. This harness used
+    # to carry a drifted copy (flat 2.4 SSS ratio, wrought elongation caps on
+    # cast alloys, 20% EM threshold). See physics_corrections for both profiles.
     props, _notes = apply_physics_corrections(
-        props, composition, processing, temperature, gp, profile=LEGACY_ABLATION,
+        props, composition, processing, temperature, gp, profile=PRODUCTION,
     )
     return props, gp
 
@@ -275,7 +275,7 @@ def run_ml_deterministic(composition, processing, temperature):
     - UTS >= YS * 1.05 floor
     - UTS/YS ratio ceiling (processing & gamma-prime aware)
     - Elongation caps for high gamma-prime alloys
-    - EM override if >20% from the Voigt-Reuss-Hill average
+    - EM override if >15% from the Voigt-Reuss-Hill average
     - compute_metallurgy_validation for TCP risk & penalties
     """
     from alloy_crew.tools.metallurgy_tools import compute_metallurgy_validation
@@ -322,7 +322,7 @@ def run_ml_physics_kg(composition, processing, temperature):
          UTS back above its ratio ceiling. The rules are idempotent, and this
          matches production, where enforcement runs after the agents.
     """
-    from alloy_crew.physics_corrections import apply_physics_corrections, LEGACY_ABLATION
+    from alloy_crew.physics_corrections import apply_physics_corrections, PRODUCTION
     from alloy_crew.kg_anchoring import KG_ANCHOR_SOURCE
     from alloy_crew.tools.metallurgy_tools import compute_metallurgy_validation
 
@@ -363,7 +363,7 @@ def run_ml_physics_kg(composition, processing, temperature):
 
     # --- Step 5: re-enforce physics after the KG overrides ---
     props, _ = apply_physics_corrections(
-        props, composition, processing, temperature, gp, profile=LEGACY_ABLATION,
+        props, composition, processing, temperature, gp, profile=PRODUCTION,
     )
 
     validation = compute_metallurgy_validation(
