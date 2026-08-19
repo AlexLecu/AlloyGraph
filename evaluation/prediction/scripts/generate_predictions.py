@@ -34,6 +34,8 @@ import argparse
 import random
 import re
 import gc
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
 # Disable telemetry before importing crewai
@@ -109,11 +111,60 @@ def seed_everything(seed):
 # CrewAI state management
 # ---------------------------------------------------------------------------
 
-def reset_crewai_state():
-    """Reset CrewAI event context and bus state to prevent stack overflow.
+# ---------------------------------------------------------------------------
+# Shared rate-limit gate
+# ---------------------------------------------------------------------------
 
-    The main issue is the _event_id_stack ContextVar in crewai.events.event_context
-    which accumulates when crew executions fail without emitting ending events.
+class RateLimitGate:
+    """Process-wide pause shared by all workers.
+
+    When any worker sees a 429 the whole pool stops issuing new requests for a
+    backoff window, rather than each worker backing off alone and continuing to
+    hammer the endpoint. Backoff doubles per consecutive trip and resets once a
+    request succeeds.
+    """
+
+    def __init__(self, base_wait=30.0, max_wait=300.0):
+        self._open = threading.Event()
+        self._open.set()                 # set == traffic allowed
+        self._lock = threading.Lock()
+        self._base = base_wait
+        self._max = max_wait
+        self._consecutive = 0
+        self.trips = 0
+
+    def wait(self):
+        """Block while the gate is closed."""
+        self._open.wait()
+
+    def trip(self):
+        """Record a 429 and close the gate for a backoff window."""
+        with self._lock:
+            if not self._open.is_set():
+                return                   # another worker is already backing off
+            self._consecutive += 1
+            self.trips += 1
+            wait = min(self._base * (2 ** (self._consecutive - 1)), self._max)
+            self._open.clear()
+        print(f"  [rate limit] pausing all workers for {wait:.0f}s "
+              f"(trip #{self.trips})")
+        time.sleep(wait)
+        self._open.set()
+
+    def succeeded(self):
+        with self._lock:
+            self._consecutive = 0
+
+
+RATE_GATE = RateLimitGate()
+
+
+def reset_event_context():
+    """Clear the per-execution event ContextVars.
+
+    These are ContextVars, and in CPython each thread carries its own context,
+    so this is thread-local and safe to call from a worker. It is the part that
+    actually prevents the _event_id_stack overflow.
     """
     try:
         from crewai.events import event_context
@@ -122,6 +173,16 @@ def reset_crewai_state():
         event_context._triggering_event_id.set(None)
     except (ImportError, AttributeError) as e:
         print(f"  Warning: Could not reset event_context: {e}")
+
+
+def reset_crewai_state():
+    """Full reset: event ContextVars plus the global event bus.
+
+    MAIN THREAD ONLY. crewai_event_bus is a process-wide singleton, so flushing
+    it from a worker would discard events belonging to other in-flight
+    evaluations. Workers should call reset_event_context() instead.
+    """
+    reset_event_context()
 
     try:
         from crewai.events.event_bus import crewai_event_bus
@@ -147,7 +208,8 @@ def run_full_system(composition, processing, temperature, max_retries=3, base_wa
 
     for attempt in range(max_retries):
         try:
-            reset_crewai_state()
+            RATE_GATE.wait()
+            reset_event_context()
             evaluator = AlloyEvaluationCrew(llm_config=llm_config)
             result = evaluator.run(
                 composition=composition,
@@ -156,6 +218,7 @@ def run_full_system(composition, processing, temperature, max_retries=3, base_wa
             )
             del evaluator
             gc.collect()
+            RATE_GATE.succeeded()
             return result
 
         except Exception as e:
@@ -166,9 +229,8 @@ def run_full_system(composition, processing, temperature, max_retries=3, base_wa
             is_event_stack = 'event stack' in error_str or 'depth limit' in error_str
 
             if is_rate_limit:
-                wait_time = base_wait * (attempt + 1)
-                print(f"  Rate limit, waiting {wait_time}s (attempt {attempt + 1}/{max_retries})")
-                time.sleep(wait_time)
+                # Close the shared gate so every worker backs off together.
+                RATE_GATE.trip()
             elif is_event_stack:
                 print(f"  Event stack overflow, performing deep reset...")
                 reset_crewai_state()
@@ -621,6 +683,18 @@ def parse_args():
                              f'Or pass a raw litellm model string (e.g., openai/gpt-4.1). Default: {LLM_ONLY_DEFAULT}')
 
     # Reproducibility
+    parser.add_argument('--concurrency', type=int, default=1,
+                        help='Parallel evaluations for full-system mode (default 1). '
+                             'Raise to shorten a campaign; all workers share one '
+                             'rate-limit gate that closes on any 429.')
+    parser.add_argument('--resume', action='store_true',
+                        help='Skip alloy/temperature rows already present in the '
+                             'output CSV and append the rest. Requires --output.')
+    parser.add_argument('--rate-base-wait', type=float, default=30.0,
+                        help='Initial backoff in seconds when a 429 is seen (doubles '
+                             'per consecutive trip, capped at --rate-max-wait).')
+    parser.add_argument('--rate-max-wait', type=float, default=300.0,
+                        help='Ceiling on the 429 backoff window.')
     parser.add_argument('--seed', type=int, default=None,
                         help='Seed Python/numpy RNGs, drive LLM sampling temperature to 0.0, '
                              'and forward the seed to litellm where the provider supports it. '
@@ -638,6 +712,97 @@ def parse_args():
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
+def _evaluate_row(item, method, args, llm_only_model_key, llm_sampling_temp, llm_config,
+                  base_wait=30.0):
+    """Run one alloy/temperature evaluation. Returns (row, error_dict)."""
+    i = item["i"]
+    alloy_data = item["alloy_data"]
+    alloy_name = item["alloy_name"]
+    composition = item["composition"]
+    processing = item["processing"]
+    temp = item["temp"]
+    start_time = time.time()
+    try:
+        if method == 'ML_ONLY':
+            eval_result = run_ml_only(composition, processing, int(temp))
+        elif method == 'ML_DETERMINISTIC':
+            eval_result = run_ml_deterministic(composition, processing, int(temp))
+        elif method == 'ML_PHYSICS_KG':
+            eval_result = run_ml_physics_kg(composition, processing, int(temp))
+        elif method == 'LLM_ONLY':
+            eval_result = run_llm_only(
+                composition, processing, int(temp),
+                model_key=llm_only_model_key,
+                seed=args.seed,
+                sampling_temperature=llm_sampling_temp,
+            )
+        else:
+            eval_result = run_full_system(
+                composition=composition,
+                processing=processing,
+                temperature=int(temp),
+                base_wait=base_wait,
+                llm_config=llm_config
+            )
+
+        elapsed = time.time() - start_time
+
+        if eval_result.get('status') == 'FAIL':
+            return None, {
+                'alloy': alloy_name,
+                'temperature': temp,
+                'error': eval_result.get('error', 'Unknown'),
+                'stage': eval_result.get('stage', 'unknown'),
+            }
+
+        # Extract results
+        props = eval_result.get('properties', {})
+        confidence = eval_result.get('confidence', {})
+        actuals = get_actual_values(alloy_data, temp)
+
+        row = {
+            'alloy': alloy_name,
+            'temperature': temp,
+            'processing': processing,
+            'method': method,
+            'status': eval_result.get('status', 'UNKNOWN'),
+
+            'pred_ys': props.get('Yield Strength'),
+            'actual_ys': actuals.get('actual_ys'),
+            'pred_uts': props.get('Tensile Strength'),
+            'actual_uts': actuals.get('actual_uts'),
+            'pred_el': props.get('Elongation'),
+            'actual_el': actuals.get('actual_el'),
+            'pred_em': props.get('Elastic Modulus'),
+            'actual_em': actuals.get('actual_em'),
+
+            'pred_density': props.get('Density'),
+            'pred_gamma_prime': props.get('Gamma Prime'),
+            'confidence_level': confidence.get('level', 'UNKNOWN'),
+            'tcp_risk': eval_result.get('tcp_risk', 'N/A'),
+            'corrections_applied': len(eval_result.get('corrections_applied', [])),
+            'eval_time_sec': round(elapsed, 1),
+            'seed': args.seed if args.seed is not None else '',
+        }
+
+        if method in ('ML_DETERMINISTIC', 'ML_PHYSICS_KG'):
+            row['em_override_skipped_sc_ds'] = eval_result.get(
+                'em_override_skipped_sc_ds', False)
+
+        if method == 'ML_PHYSICS_KG':
+            row.update({
+                'kg_match_name': eval_result.get('kg_match_name'),
+                'kg_match_distance': eval_result.get('kg_match_distance'),
+                'kg_gate_allowed': eval_result.get('kg_gate_allowed'),
+                'kg_reject_code': eval_result.get('kg_reject_code'),
+                'kg_reject_detail': eval_result.get('kg_reject_detail'),
+                'kg_weight': eval_result.get('kg_weight'),
+            })
+
+        return row, None
+    except Exception as e:
+        return None, {"alloy": alloy_name, "temperature": temp, "error": str(e)}
 
 def main():
     args = parse_args()
@@ -761,141 +926,103 @@ def main():
     errors = []
     eval_times = []
 
+    # Flatten to one work item per alloy/temperature row.
+    work = []
     for i, alloy_data in enumerate(alloys):
         alloy_name = alloy_data.get('alloy', f'Alloy_{i}')
         composition = alloy_data.get('composition', {})
         processing = alloy_data.get('processing', 'cast')
 
-        # Validate composition
         if not composition or sum(composition.values()) < 90:
-            errors.append({
-                'alloy': alloy_name,
-                'error': 'Invalid composition',
-                'composition_sum': sum(composition.values()) if composition else 0
-            })
+            errors.append({'alloy': alloy_name, 'error': 'Invalid composition',
+                           'composition_sum': sum(composition.values()) if composition else 0})
             print(f"[{i+1}/{len(alloys)}] {alloy_name}: SKIP (invalid composition)")
             continue
 
-        # Get temperatures
         temps = get_all_temperatures(alloy_data)
         if args.temp is not None:
             temps = [t for t in temps if abs(t - args.temp) < 5]
-
         if not temps:
             errors.append({'alloy': alloy_name, 'error': 'No matching temperatures'})
             continue
 
-        # Evaluate at each temperature
         for temp in temps:
-            print(f"\n[{i+1}/{len(alloys)}] {alloy_name} @ {temp} C ({processing}) [{method}]")
+            work.append({'i': i, 'alloy_data': alloy_data, 'alloy_name': alloy_name,
+                         'composition': composition, 'processing': processing, 'temp': temp})
 
-            start_time = time.time()
+    # Resume: drop rows already present in the output file.
+    if args.resume and os.path.exists(output_file):
+        prior = pd.read_csv(output_file)
+        done = {(str(r.alloy), round(float(r.temperature), 1))
+                for r in prior.itertuples() if pd.notna(r.temperature)}
+        before = len(work)
+        work = [w for w in work if (str(w['alloy_name']), round(float(w['temp']), 1)) not in done]
+        results.extend(prior.to_dict('records'))
+        print(f"Resume: {len(done)} rows already in {os.path.basename(output_file)}, "
+              f"{before - len(work)} skipped, {len(work)} remaining")
+    elif args.resume:
+        print(f"Resume: no existing {os.path.basename(output_file)}, starting fresh")
 
-            try:
-                if method == 'ML_ONLY':
-                    eval_result = run_ml_only(composition, processing, int(temp))
-                elif method == 'ML_DETERMINISTIC':
-                    eval_result = run_ml_deterministic(composition, processing, int(temp))
-                elif method == 'ML_PHYSICS_KG':
-                    eval_result = run_ml_physics_kg(composition, processing, int(temp))
-                elif method == 'LLM_ONLY':
-                    eval_result = run_llm_only(
-                        composition, processing, int(temp),
-                        model_key=llm_only_model_key,
-                        seed=args.seed,
-                        sampling_temperature=llm_sampling_temp,
-                    )
-                else:
-                    eval_result = run_full_system(
-                        composition=composition,
-                        processing=processing,
-                        temperature=int(temp),
-                        base_wait=delay,
-                        llm_config=llm_config
-                    )
+    total = len(work)
+    print(f"Rows to evaluate: {total}\n")
 
-                elapsed = time.time() - start_time
-                eval_times.append(elapsed)
+    write_lock = threading.Lock()
+    completed = [0]
 
-                if eval_result.get('status') == 'FAIL':
-                    errors.append({
-                        'alloy': alloy_name,
-                        'temperature': temp,
-                        'error': eval_result.get('error', 'Unknown'),
-                        'stage': eval_result.get('stage', 'unknown')
-                    })
-                    print(f"  FAILED: {eval_result.get('error')}")
-                    continue
-
-                # Extract results
-                props = eval_result.get('properties', {})
-                confidence = eval_result.get('confidence', {})
-                actuals = get_actual_values(alloy_data, temp)
-
-                row = {
-                    'alloy': alloy_name,
-                    'temperature': temp,
-                    'processing': processing,
-                    'method': method,
-                    'status': eval_result.get('status', 'UNKNOWN'),
-
-                    'pred_ys': props.get('Yield Strength'),
-                    'actual_ys': actuals.get('actual_ys'),
-                    'pred_uts': props.get('Tensile Strength'),
-                    'actual_uts': actuals.get('actual_uts'),
-                    'pred_el': props.get('Elongation'),
-                    'actual_el': actuals.get('actual_el'),
-                    'pred_em': props.get('Elastic Modulus'),
-                    'actual_em': actuals.get('actual_em'),
-
-                    'pred_density': props.get('Density'),
-                    'pred_gamma_prime': props.get('Gamma Prime'),
-                    'confidence_level': confidence.get('level', 'UNKNOWN'),
-                    'tcp_risk': eval_result.get('tcp_risk', 'N/A'),
-                    'corrections_applied': len(eval_result.get('corrections_applied', [])),
-                    'eval_time_sec': round(elapsed, 1),
-                    'seed': args.seed if args.seed is not None else '',
-                }
-
-                if method in ('ML_DETERMINISTIC', 'ML_PHYSICS_KG'):
-                    row['em_override_skipped_sc_ds'] = eval_result.get(
-                        'em_override_skipped_sc_ds', False)
-
-                if method == 'ML_PHYSICS_KG':
-                    row.update({
-                        'kg_match_name': eval_result.get('kg_match_name'),
-                        'kg_match_distance': eval_result.get('kg_match_distance'),
-                        'kg_gate_allowed': eval_result.get('kg_gate_allowed'),
-                        'kg_reject_code': eval_result.get('kg_reject_code'),
-                        'kg_reject_detail': eval_result.get('kg_reject_detail'),
-                        'kg_weight': eval_result.get('kg_weight'),
-                    })
-
+    def _record(row, err):
+        with write_lock:
+            completed[0] += 1
+            n = completed[0]
+            if err:
+                errors.append(err)
+                print(f"  [{n}/{total}] EXCEPTION {err['alloy']} @ {err['temperature']}C: "
+                      f"{str(err['error'])[:70]}")
+            else:
                 results.append(row)
+                if isinstance(row.get('eval_time_sec'), (int, float)):
+                    eval_times.append(row['eval_time_sec'])
+                ys = row.get('pred_ys')
+                ys_str = f"{ys:.0f}" if isinstance(ys, (int, float)) else "N/A"
+                print(f"  [{n}/{total}] {row['alloy'][:34]} @ {row['temperature']}C "
+                      f"| {row.get('eval_time_sec')}s | YS {ys_str} "
+                      f"(actual {row.get('actual_ys', 'N/A')})")
+            # Checkpoint after every row so a crash never loses completed work.
+            if results:
+                pd.DataFrame(results).to_csv(output_file, index=False)
 
-                ys_pred = props.get('Yield Strength')
-                ys_str = f"{ys_pred:.0f}" if isinstance(ys_pred, (int, float)) else "N/A"
-                ys_actual = actuals.get('actual_ys', 'N/A')
-                print(f"  Done in {elapsed:.1f}s | YS: {ys_str} (actual: {ys_actual})")
+    concurrency = max(1, int(args.concurrency))
+    if concurrency > 1 and method != 'FULL_SYSTEM':
+        print(f"NOTE: --concurrency only applies to full-system mode; running sequentially")
+        concurrency = 1
 
-            except Exception as e:
-                elapsed = time.time() - start_time
-                errors.append({
-                    'alloy': alloy_name,
-                    'temperature': temp,
-                    'error': str(e)
-                })
-                print(f"  EXCEPTION: {e}")
-
-        # Save intermediate results
-        if results:
-            pd.DataFrame(results).to_csv(output_file, index=False)
-
-        # Reset state (full system only) and delay
+    if concurrency == 1:
+        for item in work:
+            row, err = _evaluate_row(item, method, args, llm_only_model_key,
+                                     llm_sampling_temp, llm_config, base_wait=delay)
+            _record(row, err)
+            if method == 'FULL_SYSTEM':
+                reset_crewai_state()
+            if delay > 0:
+                time.sleep(delay)
+    else:
+        print(f"Concurrency: {concurrency} workers, shared rate-limit gate")
+        with ThreadPoolExecutor(max_workers=concurrency) as pool:
+            futures = {pool.submit(_evaluate_row, item, method, args,
+                                   llm_only_model_key, llm_sampling_temp, llm_config,
+                                   delay): item
+                       for item in work}
+            for fut in as_completed(futures):
+                item = futures[fut]
+                try:
+                    row, err = fut.result()
+                except Exception as e:
+                    row, err = None, {'alloy': item['alloy_name'],
+                                      'temperature': item['temp'], 'error': str(e)}
+                _record(row, err)
+        # Global bus cleanup once, on the main thread, after the pool drains.
         if method == 'FULL_SYSTEM':
             reset_crewai_state()
-        if delay > 0 and i < len(alloys) - 1:
-            time.sleep(delay)
+
 
     # Final summary
     print("\n" + "=" * 70)
