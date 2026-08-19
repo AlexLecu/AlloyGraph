@@ -461,8 +461,9 @@ class AlloyEvaluationCrew:
                 f"3. Select the best value for each property using the decision rules below.\n\n"
                 f"DECISION RULES:\n"
                 f"- KG match (distance < 2.0): treat experimental values as ground truth\n"
-                f"- KG match (distance 2.0-4.0): weight KG evidence — closer = more trusted\n"
-                f"- KG match (distance > 4.0): note findings but rely on ML/physics\n"
+                f"- KG match (distance 2.0-{KG_ANCHOR_MAX_DISTANCE}): weight KG evidence — closer = more trusted\n"
+                f"- KG match (distance > {KG_ANCHOR_MAX_DISTANCE}): note findings but rely on ML/physics. "
+                f"Matches past this cutoff are rejected for anchoring — do NOT adopt their values.\n"
                 f"- Sources agree (within 15%) and no close KG match: use ML value\n"
                 f"- SSS alloy + disagreement: prefer Physics (Labusch-Nabarro is calibrated)\n"
                 f"- γ' alloy + disagreement: use proposed correction if available\n"
@@ -516,6 +517,7 @@ class AlloyEvaluationCrew:
         )
 
         token_usage = {}
+        pipeline_stage = "reviewer"
 
         try:
             crew_output = evaluation_crew.kickoff()
@@ -531,6 +533,7 @@ class AlloyEvaluationCrew:
                 token_usage = {}
 
             output = None
+            pipeline_stage = "reviewer"          # full Analyst -> Reviewer path
             if hasattr(crew_output, "pydantic") and crew_output.pydantic:
                 output = crew_output.pydantic
             elif hasattr(crew_output, "raw"):
@@ -545,11 +548,13 @@ class AlloyEvaluationCrew:
                 review_task_output = task_review.output
                 if review_task_output and review_task_output.pydantic:
                     output = review_task_output.pydantic
+                    pipeline_stage = "reviewer_task_output"
                 else:
                     logger.warning("Reviewer task failed, falling back to Analyst output...")
                     analyst_task_output = task_analysis.output
                     if analyst_task_output and analyst_task_output.pydantic:
                         output = analyst_task_output.pydantic
+                        pipeline_stage = "analyst_only"
                         output.reviewer_assessment = "Review skipped due to parsing failure."
                     elif ml_fallback:
                         logger.warning("Analyst also failed, using ML fallback...")
@@ -561,6 +566,7 @@ class AlloyEvaluationCrew:
                             analyst_reasoning="Agent pipeline failed. Using raw ML predictions.",
                             reviewer_assessment="Review not performed.",
                         )
+                        pipeline_stage = "ml_fallback"
                     else:
                         raise ValueError("Could not recover output from any pipeline stage.")
 
@@ -954,6 +960,10 @@ class AlloyEvaluationCrew:
         # === BUILD RESULT ===
         result = output.model_dump()
         result["token_usage"] = token_usage
+        # Which stage actually produced these numbers. Without this a row that
+        # silently degraded to Analyst-only or to raw ML is indistinguishable
+        # from a full Analyst->Reviewer result in the evaluation CSVs.
+        result["pipeline_stage"] = pipeline_stage
 
         if extra_output_fields:
             result.update(extra_output_fields)

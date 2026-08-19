@@ -13,6 +13,14 @@ from .tools.quick_check_tool import QuickCheckTool
 
 load_dotenv()
 
+#: Cap on tool-use iterations per agent. CrewAI defaults to 25, which lets the
+#: Analyst and Reviewer together reach ~56 LLM calls on a single row -- observed
+#: at ~2M prompt tokens, 32x the median row and 76% of projected campaign spend.
+#: The runaway is stochastic rather than tied to particular alloys, so a hard cap
+#: is the only reliable bound. Healthy rows use 8-12 calls across both agents,
+#: so 8 per agent leaves normal work untouched.
+MAX_AGENT_ITER = 8
+
 # ---------------------------------------------------------
 # AGENT 1: The Designer (Synthesis Lead)
 # ---------------------------------------------------------
@@ -115,13 +123,6 @@ def create_reviewer_agent(llm=None, memory=False):
         llm=llm
     )
 
-#: Cap on tool-use iterations per agent. CrewAI defaults to 25, which lets the
-#: Analyst and Reviewer together reach ~56 LLM calls on a single row -- observed
-#: at ~2M prompt tokens, 32x the median row and 76% of projected campaign spend.
-#: The runaway is stochastic rather than tied to particular alloys, so a hard cap
-#: is the only reliable bound. Healthy rows use 8-12 calls across both agents,
-#: so 8 per agent leaves normal work untouched.
-MAX_AGENT_ITER = 8
 
 
 # ---------------------------------------------------------
@@ -211,6 +212,17 @@ def _resolve_llm(llm=None, temperature=0.1):
     if llm is not None:
         return llm
 
+    # ALLOYGRAPH_LLM_TEMPERATURE overrides the caller's default. The evaluation
+    # harness sets it when --seed is given: previously the harness only built an
+    # explicit LLM when --llm was also passed, so a seeded run silently used the
+    # 0.1 default while printing "sampling temperature forced to 0.0".
+    _t_override = (os.getenv("ALLOYGRAPH_LLM_TEMPERATURE") or "").strip()
+    if _t_override:
+        try:
+            temperature = float(_t_override)
+        except ValueError:
+            logger.warning("ALLOYGRAPH_LLM_TEMPERATURE=%r is not a number; ignoring.", _t_override)
+
     deepinfra_key = valid_api_key("DEEPINFRA_API_KEY")
     together_key = valid_api_key("TOGETHER_API_KEY")
     groq_key = valid_api_key("GROQ_API_KEY")
@@ -299,7 +311,11 @@ def get_design_agents(llm=None):
     design_llm = _resolve_llm(llm, temperature=0.4)
 
     return {
-        "designer": create_designer_agent(design_llm, memory=True),
+        # memory=False: the docstring on get_evaluation_agents promises "No
+        # memory - ensures deterministic, reproducible results", but the Designer
+        # was carrying a persistent read-write LanceDB store that survives across
+        # runs, so identical inputs could yield different compositions.
+        "designer": create_designer_agent(design_llm, memory=False),
         "analyst": create_analyst_agent(eval_llm, memory=False),
         "reviewer": create_reviewer_agent(eval_llm, memory=False),
         "llm": eval_llm,  # For direct summary call

@@ -788,6 +788,14 @@ def _evaluate_row(item, method, args, llm_only_model_key, llm_sampling_temp, llm
             'seed': args.seed if args.seed is not None else '',
         }
 
+        if method == 'FULL_SYSTEM':
+            row['pipeline_stage'] = eval_result.get('pipeline_stage', 'unknown')
+            row['envelope_overrides'] = sum(
+                1 for c in (eval_result.get('corrections_applied') or [])
+                if isinstance(c, dict)
+                and c.get('physics_constraint') == 'evidence_envelope_override'
+            )
+
         tu = eval_result.get('token_usage') or {}
         if tu:
             row['prompt_tokens'] = tu.get('prompt_tokens')
@@ -823,6 +831,13 @@ def main():
     # LLM sampling temperature: 0.0 when a seed is requested, else the defaults
     llm_sampling_temp = 0.0 if args.seed is not None else 0.3
     crew_sampling_temp = 0.0 if args.seed is not None else 0.1
+
+    # Full-system agents resolve their own LLM unless --llm is passed, and that
+    # path used to ignore crew_sampling_temp entirely -- a seeded run announced
+    # 0.0 while actually sampling at the 0.1 default. Publish the temperature so
+    # agents._resolve_llm honours it for whichever provider it selects.
+    if args.seed is not None:
+        os.environ["ALLOYGRAPH_LLM_TEMPERATURE"] = str(crew_sampling_temp)
 
     # Determine mode
     if args.ml_only:
@@ -906,7 +921,7 @@ def main():
     print(f"Alloys: {len(alloys)}")
     print(f"Delay: {delay}s")
     if args.seed is not None:
-        print(f"Seed: {args.seed} (LLM sampling temperature forced to 0.0)")
+        print(f"Seed: {args.seed} (LLM sampling temperature forced to {crew_sampling_temp})")
     else:
         print("Seed: none (run is not reproducible)")
     print("=" * 70)
