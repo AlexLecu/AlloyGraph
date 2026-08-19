@@ -116,31 +116,105 @@ def create_reviewer_agent(llm=None, memory=False):
 # Agent Factories
 # ---------------------------------------------------------
 
+class _CacheBreakpointSafeLLM(LLM):
+    """CrewAI LLM that strips the ``cache_breakpoint`` marker before dispatch.
+
+    crewai >= 1.15 tags stable prompt prefixes with ``cache_breakpoint: True``
+    so provider adapters can translate it into their own caching directive.
+    The adapters strip it in ``base_llm``, but the litellm-backed ``LLM`` class
+    used for Groq and other pass-through providers never does, so the flag
+    reaches the API as an unknown message property. Groq rejects it outright:
+
+        GroqException - 'messages.0' : for 'role:system' the following must be
+        satisfied[('messages.0' : property 'cache_breakpoint' is unsupported)]
+
+    Stripping here is safe for every provider: the marker is metadata for
+    adapters, never content, and dropping it only forgoes an optional caching
+    optimisation. Remove this shim once crewai strips it on the litellm path.
+    """
+
+    def _format_messages_for_provider(self, messages):
+        formatted = super()._format_messages_for_provider(messages)
+        return [
+            {k: v for k, v in m.items() if k != "cache_breakpoint"}
+            if isinstance(m, dict) else m
+            for m in formatted
+        ]
+
+
+#: Minimum plausible length and required prefix for each provider's API key.
+#: A value that fails this is treated as absent rather than passed to the API,
+#: so provider selection can never be hijacked by a placeholder such as "sk-".
+_KEY_SHAPES = {
+    "GROQ_API_KEY": ("gsk_", 20),
+    "OPENAI_API_KEY": ("sk-", 20),
+}
+
+
+def valid_api_key(env_var: str) -> str:
+    """Return the key if it looks real, otherwise an empty string.
+
+    Placeholder values are common in checked-in .env templates ("sk-",
+    "your-key-here", ""). Left unchecked they are truthy, so a bare "sk-" will
+    silently win provider selection over an unset-but-intended provider and
+    every call then fails 401. Failing fast here is much cheaper than
+    discovering it part-way through a campaign.
+    """
+    raw = (os.getenv(env_var) or "").strip().strip("\"'")
+    if not raw:
+        return ""
+
+    prefix, min_len = _KEY_SHAPES.get(env_var, ("", 20))
+    placeholder = raw.lower() in {"none", "null", "changeme", "todo"} or "your" in raw.lower()
+
+    if placeholder or len(raw) < min_len or (prefix and not raw.startswith(prefix)):
+        logger.warning(
+            "%s is set but does not look like a real key (len=%d, expected prefix %r, "
+            "minimum length %d) — ignoring it for provider selection.",
+            env_var, len(raw), prefix, min_len,
+        )
+        return ""
+    return raw
+
+
 def _resolve_llm(llm=None, temperature=0.1):
-    """Resolve LLM instance. Priority: Groq > OpenAI > Local Ollama."""
+    """Resolve LLM instance. Priority: Groq > OpenAI > Local Ollama.
+
+    Only keys that pass valid_api_key() are considered, so a malformed value
+    is skipped rather than selected and then rejected by the provider.
+    """
     if llm is not None:
         return llm
 
-    groq_key = os.getenv("GROQ_API_KEY")
-    openai_key = os.getenv("OPENAI_API_KEY")
+    groq_key = valid_api_key("GROQ_API_KEY")
+    openai_key = valid_api_key("OPENAI_API_KEY")
 
     if groq_key:
-        logger.info("Using Groq Cloud Inference: llama-3.3-70b-versatile (T=%.1f)", temperature)
-        return LLM(
-            model="groq/llama-3.3-70b-versatile",
+        # The published configuration is llama-3.3-70b-versatile. Override with
+        # ALLOYGRAPH_GROQ_MODEL when an account cannot reach it (Groq exposes a
+        # per-project model allowlist) or to benchmark an alternative. Any
+        # override must be recorded alongside results: it is not the published
+        # configuration and numbers are not comparable without saying so.
+        groq_model = os.getenv("ALLOYGRAPH_GROQ_MODEL", "llama-3.3-70b-versatile")
+        logger.info("LLM provider: Groq — %s (T=%.1f)", groq_model, temperature)
+        return _CacheBreakpointSafeLLM(
+            model=f"groq/{groq_model}",
             api_key=groq_key,
             temperature=temperature,
             num_retries=3,
         )
     elif openai_key:
-        logger.info("Using OpenAI: gpt-4o-mini (T=%.1f)", temperature)
-        return LLM(
+        logger.info("LLM provider: OpenAI — gpt-4o-mini (T=%.1f)", temperature)
+        return _CacheBreakpointSafeLLM(
             model="gpt-4o-mini",
             api_key=openai_key,
             temperature=temperature,
         )
     else:
-        logger.info("Using Local Inference: ollama/llama3.1:8b (T=%.1f)", temperature)
+        logger.warning(
+            "LLM provider: local Ollama — llama3.1:8b (T=%.1f). No usable cloud API "
+            "key was found; results will NOT be comparable to a Groq run.", temperature
+        )
         return LLM(
             model="ollama/llama3.1:8b",
             temperature=temperature,

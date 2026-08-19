@@ -622,7 +622,9 @@ def get_llm_config(llm_choice, temperature=0.1):
     ``temperature`` is driven to 0.0 by --seed so that full-system runs are as
     close to reproducible as the provider allows.
     """
-    from crewai import LLM
+    # Same shim as agents._resolve_llm: crewai's litellm path leaves the
+    # cache_breakpoint marker on messages and Groq rejects it.
+    from alloy_crew.agents import _CacheBreakpointSafeLLM as LLM
 
     if llm_choice == 'openai':
         api_key = os.getenv("OPENAI_API_KEY")
@@ -785,6 +787,13 @@ def _evaluate_row(item, method, args, llm_only_model_key, llm_sampling_temp, llm
             'eval_time_sec': round(elapsed, 1),
             'seed': args.seed if args.seed is not None else '',
         }
+
+        tu = eval_result.get('token_usage') or {}
+        if tu:
+            row['prompt_tokens'] = tu.get('prompt_tokens')
+            row['completion_tokens'] = tu.get('completion_tokens')
+            row['total_tokens'] = tu.get('total_tokens')
+            row['llm_requests'] = tu.get('successful_requests')
 
         if method in ('ML_DETERMINISTIC', 'ML_PHYSICS_KG'):
             row['em_override_skipped_sc_ds'] = eval_result.get(

@@ -473,8 +473,20 @@ class AlloyEvaluationCrew:
             verbose=True
         )
 
+        token_usage = {}
+
         try:
             crew_output = evaluation_crew.kickoff()
+
+            # Token accounting for cost/throughput measurement. CrewOutput
+            # carries a UsageMetrics object; store it as a plain dict so it
+            # survives model_dump() and CSV serialisation.
+            try:
+                tu = getattr(crew_output, "token_usage", None)
+                if tu is not None:
+                    token_usage = tu.model_dump() if hasattr(tu, "model_dump") else dict(tu)
+            except Exception:
+                token_usage = {}
 
             output = None
             if hasattr(crew_output, "pydantic") and crew_output.pydantic:
@@ -842,6 +854,7 @@ class AlloyEvaluationCrew:
 
         # === BUILD RESULT ===
         result = output.model_dump()
+        result["token_usage"] = token_usage
 
         if extra_output_fields:
             result.update(extra_output_fields)
