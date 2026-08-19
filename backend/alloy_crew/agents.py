@@ -50,6 +50,7 @@ def create_designer_agent(llm=None, memory=False):
         tools=[QuickCheckTool()],
         verbose=True,
         allow_delegation=False,
+        max_iter=MAX_AGENT_ITER,
         memory=memory,
         llm=llm
     )
@@ -81,6 +82,7 @@ def create_analyst_agent(llm=None, memory=False):
         tools=[AlloySearchTool()],
         verbose=True,
         allow_delegation=False,
+        max_iter=MAX_AGENT_ITER,
         memory=memory,
         llm=llm
     )
@@ -108,9 +110,19 @@ def create_reviewer_agent(llm=None, memory=False):
         tools=[MetallurgyVerifierTool(), AlloySearchTool()],
         verbose=True,
         allow_delegation=False,
+        max_iter=MAX_AGENT_ITER,
         memory=memory,
         llm=llm
     )
+
+#: Cap on tool-use iterations per agent. CrewAI defaults to 25, which lets the
+#: Analyst and Reviewer together reach ~56 LLM calls on a single row -- observed
+#: at ~2M prompt tokens, 32x the median row and 76% of projected campaign spend.
+#: The runaway is stochastic rather than tied to particular alloys, so a hard cap
+#: is the only reliable bound. Healthy rows use 8-12 calls across both agents,
+#: so 8 per agent leaves normal work untouched.
+MAX_AGENT_ITER = 8
+
 
 # ---------------------------------------------------------
 # Agent Factories

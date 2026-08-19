@@ -10,6 +10,7 @@ from .tools.rag_tools import AlloySearchTool
 from .tools.ml_tools import AlloyPredictorTool
 from .tools.analysis_tool import AlloyAnalysisTool as AnalysisTool
 from .schemas import (
+    PropertyCorrection,
     PhysicsAuditWithCorrectionsOutput,
     AuditPenalty
 )
@@ -21,6 +22,7 @@ from .tools.metallurgy_tools import (
 )
 from .tools.calibration_fix import apply_calibration_safe
 from .config.alloy_parameters import (
+    KG_ANCHOR_MAX_DISTANCE,
     CORRECTION_THRESHOLDS, UTS_YS_RATIO, ELONGATION, AGENT_TRUST, SSS,
     is_sss_alloy, is_sc_ds_alloy, get_em_temp_factor,
 )
@@ -29,6 +31,16 @@ from .models.feature_engineering import compute_alloy_features, calculate_em_rul
 
 class TrustDecision(Enum):
     TRUST_PROPOSAL = "trust_proposal"
+
+
+#: How far past the min/max of the evidence anchors an agent value may sit
+#: before it is treated as unsupported. 50% is loose enough to allow genuine
+#: agent judgement and tight enough to catch invented magnitudes.
+ENVELOPE_TOLERANCE = 0.50
+
+#: Marker written into PropertyCorrection.physics_constraint when the envelope
+#: guard fires, so occurrences can be counted across a campaign.
+ENVELOPE_CORRECTION_TYPE = "evidence_envelope_override"
 
 
 def _slim_kg_context(kg_json_str: str, target_temp: int = 20) -> str:
@@ -142,9 +154,20 @@ class AlloyEvaluationCrew:
 
             prop_str = ", ".join(prop_parts) if prop_parts else "no property data"
             rank = ["Closest", "2nd", "3rd"][i]
-            lines.append(
-                f"{rank}: {name} (dist={dist:.2f}, {proc_match} processing). {prop_str}."
-            )
+            # Flag neighbours past the anchoring cutoff. Distance here is
+            # Euclidean wt%, unbounded; a match at 9 wt% shares almost no
+            # chemistry with the query and its measured values must not be
+            # carried across.
+            if isinstance(dist, (int, float)) and dist >= KG_ANCHOR_MAX_DISTANCE:
+                lines.append(
+                    f"{rank}: {name} (dist={dist:.2f}, {proc_match} processing) "
+                    f"— TOO FAR TO ANCHOR (cutoff {KG_ANCHOR_MAX_DISTANCE}); "
+                    f"reference only, do not adopt: {prop_str}."
+                )
+            else:
+                lines.append(
+                    f"{rank}: {name} (dist={dist:.2f}, {proc_match} processing). {prop_str}."
+                )
 
         return " ".join(lines)
 
@@ -191,10 +214,29 @@ class AlloyEvaluationCrew:
 
         kg = preds.get("kg")
         if kg and kg.get("matched"):
-            lines.append(f"KG: '{kg.get('name', '?')}' (dist={kg.get('distance', 999):.2f})")
+            # Show whether the anchoring gate accepted this match. Previously the
+            # rejection was logged but never surfaced here, so a neighbour the
+            # gate had thrown out still appeared as authoritative "(experimental)"
+            # data. On HASTELLOY X at 21C the Analyst copied UDIMET 630 verbatim
+            # from a match 9.14 wt% away, returning YS 1310 against a measured 360.
+            gate = analysis.get("kg_gate") or {}
+            allowed = gate.get("allowed")
+            if allowed is False:
+                reason = gate.get("reject_detail") or gate.get("reject_code") or "gate rejected"
+                lines.append(
+                    f"KG: '{kg.get('name', '?')}' (dist={kg.get('distance', 999):.2f}) "
+                    f"— REJECTED FOR ANCHORING ({reason})"
+                )
+                lines.append(
+                    "  DO NOT use these values. This alloy is too dissimilar to inform "
+                    "the query; they are shown only so you can see what was considered."
+                )
+            else:
+                lines.append(f"KG: '{kg.get('name', '?')}' (dist={kg.get('distance', 999):.2f})")
             for prop, val in kg.get("properties", {}).items():
                 if isinstance(val, (int, float)):
-                    lines.append(f"  {prop}: {val:.1f} {_UNITS.get(prop, '')} (experimental)")
+                    tag = "(rejected — do not use)" if allowed is False else "(experimental)"
+                    lines.append(f"  {prop}: {val:.1f} {_UNITS.get(prop, '')} {tag}")
 
         disc = analysis.get("discrepancy", {})
         if disc.get("detected"):
@@ -736,6 +778,63 @@ class AlloyEvaluationCrew:
                         f"capping EL: {el_val:.1f}% → {cap}%"
                     )
                     output.properties["Elongation"] = cap
+
+        # === EVIDENCE ENVELOPE (YS/UTS may not float free of the anchors) ===
+        # The agents may pick any value they can justify, but nothing previously
+        # bounded the magnitude of Yield Strength or Tensile Strength. The
+        # UTS/YS ratio check passes any internally consistent pair, so a wholly
+        # invented pair survives: HASTELLOY X at 21C returned YS 1310 / UTS 1520
+        # against ML 394 / physics 354 and a measured 360.
+        #
+        # A gate-rejected knowledge-graph match is deliberately NOT part of the
+        # envelope. Including it would let the very value that caused that
+        # failure define its own ceiling and the guard would pass it.
+        _preds = (analysis_anchors or {}).get("predictions") or {}
+        _ml = _preds.get("ml") if isinstance(_preds.get("ml"), dict) else {}
+        _phys = _preds.get("physics") if isinstance(_preds.get("physics"), dict) else {}
+        envelope_sources = [d for d in (_ml, _phys) if d]
+        kg_anchor = _preds.get("kg")
+        kg_gate_state = (analysis_anchors or {}).get("kg_gate") or {}
+        if kg_anchor and kg_gate_state.get("allowed") is True:
+            envelope_sources.append(kg_anchor.get("properties") or {})
+
+        for prop in ("Yield Strength", "Tensile Strength"):
+            agent_val = output.properties.get(prop)
+            if not isinstance(agent_val, (int, float)) or agent_val <= 0:
+                continue
+            anchors = [s.get(prop) for s in envelope_sources
+                       if isinstance(s.get(prop), (int, float)) and s.get(prop) > 0]
+            if not anchors:
+                continue
+            lo, hi = min(anchors), max(anchors)
+            if lo * (1 - ENVELOPE_TOLERANCE) <= agent_val <= hi * (1 + ENVELOPE_TOLERANCE):
+                continue
+
+            fallback = None
+            for src in (_ml, _phys):
+                if isinstance(src, dict) and isinstance(src.get(prop), (int, float)) and src[prop] > 0:
+                    fallback = float(src[prop])
+                    break
+            if fallback is None:
+                continue
+
+            logger.warning(
+                "[ENVELOPE] %s=%.1f outside anchor envelope [%.1f, %.1f] "
+                "+/-%.0f%% — falling back to %.1f",
+                prop, agent_val, lo, hi, ENVELOPE_TOLERANCE * 100, fallback,
+            )
+            output.properties[prop] = round(fallback, 1)
+            output.corrections_applied.append(PropertyCorrection(
+                property_name=prop,
+                original_value=float(agent_val),
+                corrected_value=round(fallback, 1),
+                correction_reason=(
+                    f"Agent value {agent_val:.0f} lies outside the evidence envelope "
+                    f"[{lo:.0f}, {hi:.0f}] by more than {ENVELOPE_TOLERANCE:.0%}; "
+                    f"reverted to the ML/physics anchor."
+                ),
+                physics_constraint=ENVELOPE_CORRECTION_TYPE,
+            ))
 
         # === EM ENFORCEMENT (override if >15% from VRH bound) ===
         # Not applied to single crystals or DS alloys: Voigt-Reuss-Hill averages
