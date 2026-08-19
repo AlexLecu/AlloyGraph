@@ -146,6 +146,8 @@ class _CacheBreakpointSafeLLM(LLM):
 #: A value that fails this is treated as absent rather than passed to the API,
 #: so provider selection can never be hijacked by a placeholder such as "sk-".
 _KEY_SHAPES = {
+    # DeepInfra keys carry no distinctive prefix, so length is the only check.
+    "DEEPINFRA_API_KEY": ("", 24),
     "TOGETHER_API_KEY": ("tgp_", 30),
     "GROQ_API_KEY": ("gsk_", 20),
     "OPENAI_API_KEY": ("sk-", 20),
@@ -179,11 +181,12 @@ def valid_api_key(env_var: str) -> str:
 
 
 def _resolve_llm(llm=None, temperature=0.1):
-    """Resolve the agent LLM. Priority: Together AI > Groq > OpenAI > Ollama.
+    """Resolve the agent LLM. Priority: DeepInfra > Together > Groq > OpenAI > Ollama.
 
     The published configuration is Llama 3.3 70B. Groq decommissioned that
-    model on 2026-08-16, so Together AI is the primary provider; Groq remains
-    in the chain for other models and for anyone still holding access.
+    model on 2026-08-16. DeepInfra and Together both serve the same weights as
+    meta-llama/Llama-3.3-70B-Instruct-Turbo; DeepInfra is preferred on cost.
+    Groq remains in the chain for other models and for accounts holding access.
 
     Only keys passing valid_api_key() are considered, so a malformed value is
     skipped rather than selected and then rejected by the provider.
@@ -196,13 +199,23 @@ def _resolve_llm(llm=None, temperature=0.1):
     if llm is not None:
         return llm
 
+    deepinfra_key = valid_api_key("DEEPINFRA_API_KEY")
     together_key = valid_api_key("TOGETHER_API_KEY")
     groq_key = valid_api_key("GROQ_API_KEY")
     openai_key = valid_api_key("OPENAI_API_KEY")
 
     override = (os.getenv("ALLOYGRAPH_LLM_MODEL") or "").strip()
 
-    if together_key:
+    if deepinfra_key:
+        model = override or "meta-llama/Llama-3.3-70B-Instruct-Turbo"
+        logger.info("LLM provider: DeepInfra — %s (T=%.1f)", model, temperature)
+        return _CacheBreakpointSafeLLM(
+            model=f"deepinfra/{model}",
+            api_key=deepinfra_key,
+            temperature=temperature,
+            num_retries=3,
+        )
+    elif together_key:
         model = override or "meta-llama/Llama-3.3-70B-Instruct-Turbo"
         logger.info("LLM provider: Together AI — %s (T=%.1f)", model, temperature)
         return _CacheBreakpointSafeLLM(
