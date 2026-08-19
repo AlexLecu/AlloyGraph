@@ -266,3 +266,6 @@ QUICK_START.md
 backend/scrape/*.py
 backend/alloy_crew/*.jsonl
 backend/alloy_crew/README.md
+
+# Paper source (authoritative copy lives in Overleaf; never commit)
+paper_src/
