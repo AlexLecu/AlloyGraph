@@ -226,10 +226,24 @@ def run_full_system(composition, processing, temperature, max_retries=3, base_wa
             is_rate_limit = any(x in error_str for x in [
                 'rate', 'limit', '429', 'quota', 'too many', 'throttl'
             ])
+            # A provider outage or dropped connection is transient and affects
+            # every worker at once, so it must close the shared gate exactly like
+            # a 429. Treating it as a generic per-row error is what turned a
+            # DeepInfra blip into 159 consecutive failures: each row burned its
+            # retries against a dead endpoint and the pool shredded the queue in
+            # minutes instead of waiting for recovery.
+            is_transient_provider = any(x in error_str for x in [
+                'connection error', 'connection reset', 'connection aborted',
+                'internalservererror', 'internal server error', 'service unavailable',
+                'bad gateway', 'timeout', 'timed out', 'temporarily unavailable',
+                '500', '502', '503', '504',
+            ])
             is_event_stack = 'event stack' in error_str or 'depth limit' in error_str
 
-            if is_rate_limit:
+            if is_rate_limit or is_transient_provider:
                 # Close the shared gate so every worker backs off together.
+                if is_transient_provider and not is_rate_limit:
+                    print(f"  Provider error ({str(e)[:60]}...), pausing all workers")
                 RATE_GATE.trip()
             elif is_event_stack:
                 print(f"  Event stack overflow, performing deep reset...")
