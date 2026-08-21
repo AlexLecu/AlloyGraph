@@ -56,23 +56,34 @@ elastic modulus). Superseded by change 2; replaced by
 `seed42_v2prod_ml_deterministic_*`. The profile itself is still defined in
 `backend/alloy_crew/physics_corrections.py` so these numbers stay reproducible.
 
-## The three LLM baselines have not been re-run
+## The three LLM baselines cannot be regenerated
 
 `gpt4.1`, `gpt4.1_ft` and `llm_only` exist **only** in this directory. Every
-one of them was scored on NIMONIC PE16's incorrect composition, and re-running
-them requires an OpenAI key that is not present in the working tree.
+one was scored on NIMONIC PE16's incorrect composition.
 
-This matters most for `gpt4.1_ft`, the strongest baseline. On elastic modulus
-it reaches 8.26 GPa MAE with the defective rows included and 8.17 GPa without,
-against 8.22 / 8.26 for ML+physics — so **which method wins that property
-depends entirely on whether the known data error is left in the baseline's
-input.** Until the re-run happens, no elastic-modulus ranking against this
-baseline should be published.
+`gpt4.1_ft` **was re-run** on the corrected data in August 2026, and the re-run
+did not reproduce it. Same model id, same prompt, same harness: the hosted
+fine-tuned model now returns a null answer on 30% of rows and collapses to 13
+distinct yield-strength values across the whole evaluation set, against 93 in
+February. MAE roughly doubles. See
+`../../results/ft_baseline_reproducibility.md` for the measurement, and for the
+control run that rules out our own seeding and decoding changes as the cause.
 
-`evaluation/prediction/results/ft_baseline_analysis.md` reads
-`results/all/gpt4.1_ft.csv` from this directory and excludes the PE16 rows for
-that reason. Re-point `ft_baseline_analysis.py --ft-results` at a fresh run and
-pass `--keep-erratum-rows` once the baseline has been re-executed.
+The consequence is that **neither figure is publishable as the fine-tuned
+baseline**: February cannot be reproduced and carries the PE16 defect, and
+August measures a degraded endpoint that would flatter this system for the
+wrong reason. The route to a reproducible baseline is to re-fine-tune from
+`backend/superalloy_preprocess/output_data/finetuned_data/`, which is under
+version control.
+
+The re-run output is kept at `output/seed42_ft_{sss,precip,sc_ds}.csv` as the
+evidence for that conclusion, not as a baseline.
+
+`evaluation/prediction/results/ft_baseline_analysis.md` still reads
+`results/all/gpt4.1_ft.csv` from this directory, because the February model is
+the one the overlap analysis is about. It excludes the PE16 rows for the reason
+above. The train/test overlap finding reproduces on the August model too, so it
+does not depend on which snapshot is used.
 
 ### Re-run command
 

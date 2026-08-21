@@ -1,0 +1,42 @@
+alloy,temperature,error,stage
+MAR-M* 247,982.0,model returned a null answer on every attempt,unknown
+MAR-M* 200,316.0,model returned a null answer on every attempt,unknown
+MAR-M* 200,427.0,model returned a null answer on every attempt,unknown
+MAR-M* 200,871.0,model returned a null answer on every attempt,unknown
+MAR-M* 200,982.0,model returned a null answer on every attempt,unknown
+TRW-NASA VI A,982.0,model returned a null answer on every attempt,unknown
+TRW-NASA VI A,1093.0,model returned a null answer on every attempt,unknown
+IN-731,982.0,model returned a null answer on every attempt,unknown
+IN-731,1093.0,model returned a null answer on every attempt,unknown
+WASPALOY*,982.0,model returned a null answer on every attempt,unknown
+NIMONIC* 901,538.0,model returned a null answer on every attempt,unknown
+NIMONIC* 901,649.0,model returned a null answer on every attempt,unknown
+NIMONIC* 901,760.0,model returned a null answer on every attempt,unknown
+NIMONIC* 901,871.0,model returned a null answer on every attempt,unknown
+NIMONIC* 90,982.0,model returned a null answer on every attempt,unknown
+UDIMET* 520,982.0,model returned a null answer on every attempt,unknown
+NIMONIC* 81,871.0,model returned a null answer on every attempt,unknown
+NIMONIC* 81,982.0,model returned a null answer on every attempt,unknown
+ASTROLOY,982.0,model returned a null answer on every attempt,unknown
+NIMONIC* PE16,982.0,model returned a null answer on every attempt,unknown
+GTD-262,20.0,model returned a null answer on every attempt,unknown
+Haynes 214® alloy,982.0,model returned a null answer on every attempt,unknown
+Haynes 214® alloy,1038.0,model returned a null answer on every attempt,unknown
+Haynes 214® alloy,1093.0,model returned a null answer on every attempt,unknown
+Haynes 214® alloy,1095.0,model returned a null answer on every attempt,unknown
+Haynes 214® alloy,1149.0,model returned a null answer on every attempt,unknown
+Haynes 214® alloy,1204.0,model returned a null answer on every attempt,unknown
+Haynes 263® alloy,927.0,model returned a null answer on every attempt,unknown
+Haynes 263® alloy,980.0,model returned a null answer on every attempt,unknown
+Haynes 263® alloy,982.0,model returned a null answer on every attempt,unknown
+Haynes 263® alloy,1000.0,model returned a null answer on every attempt,unknown
+Haynes 263® alloy,1093.0,model returned a null answer on every attempt,unknown
+Haynes 263® alloy,1095.0,model returned a null answer on every attempt,unknown
+Haynes R-41 alloy,149.0,model returned a null answer on every attempt,unknown
+Haynes R-41 alloy,260.0,model returned a null answer on every attempt,unknown
+Haynes R-41 alloy,371.0,model returned a null answer on every attempt,unknown
+Haynes R-41 alloy,482.0,model returned a null answer on every attempt,unknown
+Haynes R-41 alloy,760.0,model returned a null answer on every attempt,unknown
+Haynes R-41 alloy,843.0,model returned a null answer on every attempt,unknown
+Haynes R-41 alloy,871.0,model returned a null answer on every attempt,unknown
+Special Metals INCONEL® alloy 740 Precipitation-Hardenable Ni-Cr-Co Superalloy,20.0,model returned a null answer on every attempt,unknown

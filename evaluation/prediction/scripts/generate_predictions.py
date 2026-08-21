@@ -509,7 +509,82 @@ LLM_SYSTEM_PROMPT = (
 )
 
 
-def run_llm_only(composition, processing, temperature, model_key=None, max_retries=3,
+#: Counts how often a temperature series had to be resolved by nearest match
+#: rather than an exact hit. Read after a run for the reporting caveat.
+SERIES_RESOLUTION = {"scalar": 0, "series_exact": 0, "series_nearest": 0}
+
+#: Rows that needed a re-draw because the model returned a null answer, and
+#: rows that never produced one. Read after a run for the reporting caveat.
+DEGENERATE_RESPONSES = {"retried": 0, "unrecovered": 0}
+
+
+def _is_degenerate(preds):
+    """True when a response carries no non-zero number for any property.
+
+    The fine-tuned model intermittently answers
+    ``{"yield_strength": 0.0, "uts": 0.0, "elongation": 0.0, "elasticity": 0.0}``
+    or the same shape filled with nulls. A yield strength of exactly zero
+    alongside a zero modulus is not a physical claim, it is the model failing
+    to answer, and scoring it as a prediction of 0 MPa would measure a decoding
+    failure rather than the model's knowledge. These are treated like an
+    unparseable response and re-drawn.
+
+    The rate is not a quirk of our settings: the February protocol reproduced
+    exactly -- same prompt, temperature 0.3, no seed -- now returns this on 38%
+    of sampled rows, against none in the archived run. The behaviour of this
+    fine-tuned model as served has changed since the archived baseline was
+    collected.
+    """
+    for value in preds.values():
+        if isinstance(value, (int, float)) and not isinstance(value, bool) and value != 0:
+            return False
+    return True
+
+
+def _scalar_at_temperature(value, temperature):
+    """Reduce a model answer to one number at the requested temperature.
+
+    The fine-tuned model was trained on targets shaped as
+    ``{"yield_strength": [{"temp_c": "21", "value": 740.0}, ...]}``, so at
+    sampling temperature 0.0 it frequently reproduces that whole series
+    instead of the single value the prompt asks for. Writing the list straight
+    into the CSV would silently corrupt the column, so the series is resolved
+    here.
+
+    Exact temperature match wins. Failing that the nearest entry is taken --
+    reading the model's own answer at the closest point it reported, which is
+    what a person scoring the response by hand would do. Nothing is
+    interpolated: no number is produced that the model did not state.
+    """
+    if not isinstance(value, list):
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            SERIES_RESOLUTION["scalar"] += 1
+        return value
+
+    points = []
+    for entry in value:
+        if not isinstance(entry, dict):
+            continue
+        try:
+            t = float(entry.get("temp_c", entry.get("temperature", "nan")))
+            v = float(entry.get("value", entry.get("val", "nan")))
+        except (TypeError, ValueError):
+            continue
+        if v == v and t == t:  # both non-NaN
+            points.append((t, v))
+    if not points:
+        return None
+
+    target = float(temperature)
+    exact = [v for t, v in points if abs(t - target) < 1e-6]
+    if exact:
+        SERIES_RESOLUTION["series_exact"] += 1
+        return exact[0]
+    SERIES_RESOLUTION["series_nearest"] += 1
+    return min(points, key=lambda tv: abs(tv[0] - target))[1]
+
+
+def run_llm_only(composition, processing, temperature, model_key=None, max_retries=6,
                  seed=None, sampling_temperature=0.3):
     """Run LLM-only prediction: prompt an LLM with composition, no ML/KG/agents.
 
@@ -540,11 +615,13 @@ Predict the following properties. Reason briefly about the alloy class and expec
         "temperature": sampling_temperature,
         "max_tokens": 512,
     }
-    if seed is not None:
-        # Best-effort: honoured by OpenAI/Groq, silently ignored elsewhere.
-        completion_kwargs["seed"] = seed
-
     for attempt in range(max_retries):
+        if seed is not None:
+            # Best-effort: honoured by OpenAI/Groq, silently ignored elsewhere.
+            # Re-draws walk the seed deterministically, so a run is still
+            # reproducible while a null answer can be retried at all -- at a
+            # fixed seed the model returns the identical null every time.
+            completion_kwargs["seed"] = seed + 1000 * attempt
         try:
             response = llm_completion(
                 model=model_name,
@@ -579,10 +656,14 @@ Predict the following properties. Reason briefly about the alloy class and expec
                     return None
 
                 preds = {
-                    'Yield Strength': find_val(parsed, 'yield', 'ys'),
-                    'Tensile Strength': find_val(parsed, 'uts', 'tensile', 'ultimate'),
-                    'Elongation': find_val(parsed, 'elong', 'el'),
-                    'Elastic Modulus': find_val(parsed, 'elastic', 'modulus', 'em'),
+                    'Yield Strength': _scalar_at_temperature(
+                        find_val(parsed, 'yield', 'ys'), temperature),
+                    'Tensile Strength': _scalar_at_temperature(
+                        find_val(parsed, 'uts', 'tensile', 'ultimate'), temperature),
+                    'Elongation': _scalar_at_temperature(
+                        find_val(parsed, 'elong', 'el'), temperature),
+                    'Elastic Modulus': _scalar_at_temperature(
+                        find_val(parsed, 'elastic', 'modulus', 'em'), temperature),
                 }
             else:
                 # Fallback: extract numbers in order
@@ -596,6 +677,14 @@ Predict the following properties. Reason briefly about the alloy class and expec
                     }
                 else:
                     raise ValueError(f"Could not parse LLM response: {content[:200]}")
+
+            if _is_degenerate(preds):
+                if attempt < max_retries - 1:
+                    DEGENERATE_RESPONSES["retried"] += 1
+                    continue
+                DEGENERATE_RESPONSES["unrecovered"] += 1
+                return {'status': 'FAIL',
+                        'error': 'model returned a null answer on every attempt'}
 
             return {
                 'properties': preds,
