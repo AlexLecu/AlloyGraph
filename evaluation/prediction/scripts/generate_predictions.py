@@ -44,6 +44,8 @@ os.environ['OTEL_SDK_DISABLED'] = 'true'
 os.environ['LITELLM_LOG'] = 'ERROR'
 
 # Suppress noisy logs
+logger = logging.getLogger(__name__)
+
 logging.getLogger('LiteLLM').setLevel(logging.CRITICAL)
 logging.getLogger('httpx').setLevel(logging.WARNING)
 logging.getLogger('crewai').setLevel(logging.WARNING)
@@ -132,6 +134,14 @@ class RateLimitGate:
         self._max = max_wait
         self._consecutive = 0
         self.trips = 0
+
+    def configure(self, base_wait=None, max_wait=None):
+        """Apply CLI-supplied backoff bounds to the already-constructed gate."""
+        with self._lock:
+            if base_wait is not None:
+                self._base = float(base_wait)
+            if max_wait is not None:
+                self._max = float(max_wait)
 
     def wait(self):
         """Block while the gate is closed."""
@@ -246,11 +256,15 @@ def run_full_system(composition, processing, temperature, max_retries=3, base_wa
                     print(f"  Provider error ({str(e)[:60]}...), pausing all workers")
                 RATE_GATE.trip()
             elif is_event_stack:
+                # reset_event_context(), not reset_crewai_state(): this runs on a
+                # pool worker, and flushing the process-wide crewai_event_bus from
+                # here would discard other workers' in-flight events (and with them
+                # their token_usage and pipeline_stage bookkeeping).
                 print(f"  Event stack overflow, performing deep reset...")
-                reset_crewai_state()
+                reset_event_context()
                 gc.collect()
                 time.sleep(2)
-                reset_crewai_state()
+                reset_event_context()
                 time.sleep(3)
             else:
                 if attempt < max_retries - 1:
@@ -259,8 +273,8 @@ def run_full_system(composition, processing, temperature, max_retries=3, base_wa
                 else:
                     raise
 
-    # Final attempt
-    reset_crewai_state()
+    # Final attempt — still on a worker thread, so thread-local reset only.
+    reset_event_context()
     evaluator = AlloyEvaluationCrew(llm_config=llm_config)
     return evaluator.run(composition=composition, processing=processing, temperature=temperature)
 
@@ -304,8 +318,10 @@ def _ml_plus_physics(composition, processing, temperature):
     """ML ensemble prediction followed by the deterministic physics corrections.
 
     Shared by --ml-deterministic and --ml-physics-kg so the two modes cannot
-    drift apart. Returns ``(properties, gamma_prime_pct)``, or ``(None, 0.0)``
-    when the predictor yields nothing.
+    drift apart. Returns ``(properties, gamma_prime_pct, correction_notes)``,
+    or ``(None, 0.0, [])`` when the predictor yields nothing. All three
+    branches must keep the same arity: callers unpack three names, so a
+    short tuple raises before the ``props is None`` guard can run.
     """
     from alloy_crew.models.predictor import AlloyPredictor
     from alloy_crew.models.feature_engineering import compute_alloy_features
@@ -317,7 +333,7 @@ def _ml_plus_physics(composition, processing, temperature):
         composition, extra_params={'processing': processing}, temperatures=[temperature]
     )
     if result_df.empty:
-        return None, 0.0
+        return None, 0.0, []
 
     row = result_df.iloc[0]
     features = compute_alloy_features(composition)
@@ -473,11 +489,17 @@ def run_ml_physics_kg(composition, processing, temperature):
 
 
 LLM_ONLY_MODELS = {
+    # Retired by Groq on 2026-08-16; kept for accounts that still have access.
     "groq": "groq/llama-3.3-70b-versatile",
+    "deepinfra": "deepinfra/meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    "together": "together_ai/meta-llama/Llama-3.3-70B-Instruct-Turbo",
     "openai-mini": "openai/gpt-4.1-mini",
     "openai-ft": "openai/ft:gpt-4.1-mini-2025-04-14:digital-science-dimensions::CoGgLDPB",
 }
-LLM_ONLY_DEFAULT = "groq"
+#: Groq decommissioned llama-3.3-70b-versatile on 2026-08-16, so the "groq"
+#: alias above no longer resolves. Default to a provider that still serves a
+#: model, and keep the dead alias only for accounts that retain access.
+LLM_ONLY_DEFAULT = "openai-mini"
 
 
 LLM_SYSTEM_PROMPT = (
@@ -837,6 +859,18 @@ def _evaluate_row(item, method, args, llm_only_model_key, llm_sampling_temp, llm
 
 def main():
     args = parse_args()
+
+    # RATE_GATE is a module-level singleton built before argparse runs, so the
+    # tuning flags have to be applied here or they are silently inert.
+    RATE_GATE.configure(base_wait=args.rate_base_wait, max_wait=args.rate_max_wait)
+
+    # The default output name embeds a fresh timestamp, so it can never match a
+    # previous run's file and --resume would quietly restart from zero.
+    if args.resume and not args.output:
+        raise SystemExit(
+            "error: --resume requires --output. The default filename embeds a "
+            "timestamp, so there is no prior file for resume to match."
+        )
 
     # Reproducibility: seed before anything else touches an RNG
     if args.seed is not None:

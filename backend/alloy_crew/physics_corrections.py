@@ -1,12 +1,19 @@
 """Deterministic physics corrections shared by the evaluator and the ablations.
 
-This is the single implementation of the post-prediction enforcement rules:
-UTS floor, UTS/YS ratio ceiling, elongation caps, and elastic-modulus override.
-It was previously written twice -- once inline in ``alloy_evaluator`` (the
-production path, applied after the agents) and once copied into
-``evaluation/prediction/scripts/generate_predictions.py`` for the
-``--ml-deterministic`` ablation, whose comment claimed to mirror the evaluator
-but had drifted on three rules.
+The post-prediction enforcement rules -- UTS floor, UTS/YS ratio ceiling,
+elongation caps, elastic-modulus override -- used by the ablation harness in
+``evaluation/prediction/scripts/generate_predictions.py``.
+
+NOT yet the single implementation. ``alloy_evaluator`` still applies these
+four rules from its own inline copy and does not call this module; its
+evidence-envelope step sits between the ratio check and the EM override, so
+consolidating means splitting this function or lifting the envelope out, and
+that changes production behaviour. Until it is done, a change to a rule here
+must be mirrored there by hand -- exactly the drift this module was created to
+end. The two copies agree today; nothing enforces that they stay in step.
+
+The ablation previously carried a third copy whose comment claimed to mirror
+the evaluator but had drifted on three rules.
 
 The ``LEGACY_ABLATION`` profile preserves that drift bit-for-bit so previously
 published ablation numbers stay reproducible. ``PRODUCTION`` is what the
