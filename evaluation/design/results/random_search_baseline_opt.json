@@ -5,400 +5,1266 @@
   "arms": [
     {
       "label": "designer (LLM pipeline)",
-      "hits": 40,
-      "goals": 76,
       "hit_rate": 52.6,
-      "designs_fully_met": 3,
-      "n_designs": 20,
-      "critical_tcp": 0,
       "usable": 3,
+      "credible": 3,
+      "n_designs": 20,
       "usable_rate": 15.0,
+      "credible_rate": 15.0,
+      "filtered_out": 1,
+      "rules_tripped": {
+        "R1_element_count": 1
+      },
+      "median_major_elements": 6,
+      "median_refractory": 7.95,
+      "frac_trace_violation": 0.0,
       "per_target": [
         {
           "id": "Alloy_A",
           "hits": 1,
           "goals": 3,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": true,
+          "failed_rules": [],
+          "processing": "wrought",
+          "n_major": 6,
+          "refractory": 5.8,
+          "has_cu_mn_si": false
         },
         {
           "id": "Alloy_B",
           "hits": 2,
           "goals": 3,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": true,
+          "failed_rules": [],
+          "processing": "wrought",
+          "n_major": 6,
+          "refractory": 6.5,
+          "has_cu_mn_si": false
         },
         {
           "id": "Alloy_C",
           "hits": 2,
           "goals": 3,
-          "tcp_risk": "Moderate"
+          "tcp_risk": "Moderate",
+          "plausible": true,
+          "failed_rules": [],
+          "processing": "wrought",
+          "n_major": 6,
+          "refractory": 9.0,
+          "has_cu_mn_si": false
         },
         {
           "id": "Alloy_D",
           "hits": 2,
           "goals": 3,
-          "tcp_risk": "Moderate"
+          "tcp_risk": "Moderate",
+          "plausible": true,
+          "failed_rules": [],
+          "processing": "wrought",
+          "n_major": 6,
+          "refractory": 9.5,
+          "has_cu_mn_si": false
         },
         {
           "id": "Alloy_E",
           "hits": 2,
           "goals": 3,
-          "tcp_risk": "Moderate"
+          "tcp_risk": "Moderate",
+          "plausible": true,
+          "failed_rules": [],
+          "processing": "wrought",
+          "n_major": 6,
+          "refractory": 8.5,
+          "has_cu_mn_si": false
         },
         {
           "id": "Alloy_F",
           "hits": 2,
           "goals": 3,
-          "tcp_risk": "Moderate"
+          "tcp_risk": "Moderate",
+          "plausible": true,
+          "failed_rules": [],
+          "processing": "wrought",
+          "n_major": 7,
+          "refractory": 8.82,
+          "has_cu_mn_si": false
         },
         {
           "id": "Alloy_G",
           "hits": 2,
           "goals": 3,
-          "tcp_risk": "Moderate"
+          "tcp_risk": "Moderate",
+          "plausible": true,
+          "failed_rules": [],
+          "processing": "wrought",
+          "n_major": 6,
+          "refractory": 9.0,
+          "has_cu_mn_si": false
         },
         {
           "id": "Alloy_H",
           "hits": 3,
           "goals": 3,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": true,
+          "failed_rules": [],
+          "processing": "wrought",
+          "n_major": 6,
+          "refractory": 7.5,
+          "has_cu_mn_si": false
         },
         {
           "id": "Alloy_I",
           "hits": 2,
           "goals": 4,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": true,
+          "failed_rules": [],
+          "processing": "wrought",
+          "n_major": 6,
+          "refractory": 7.5,
+          "has_cu_mn_si": false
         },
         {
           "id": "Alloy_J",
           "hits": 4,
           "goals": 4,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": true,
+          "failed_rules": [],
+          "processing": "wrought",
+          "n_major": 6,
+          "refractory": 8.5,
+          "has_cu_mn_si": false
         },
         {
           "id": "Alloy_K",
           "hits": 4,
           "goals": 4,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": true,
+          "failed_rules": [],
+          "processing": "wrought",
+          "n_major": 6,
+          "refractory": 8.0,
+          "has_cu_mn_si": false
         },
         {
           "id": "Alloy_L",
           "hits": 1,
           "goals": 4,
-          "tcp_risk": "Moderate"
+          "tcp_risk": "Moderate",
+          "plausible": true,
+          "failed_rules": [],
+          "processing": "cast",
+          "n_major": 8,
+          "refractory": 7.7,
+          "has_cu_mn_si": false
         },
         {
           "id": "Alloy_M",
           "hits": 1,
           "goals": 4,
-          "tcp_risk": "Moderate"
+          "tcp_risk": "Moderate",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count"
+          ],
+          "processing": "cast",
+          "n_major": 9,
+          "refractory": 11.7,
+          "has_cu_mn_si": false
         },
         {
           "id": "Alloy_N",
           "hits": 1,
           "goals": 4,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": true,
+          "failed_rules": [],
+          "processing": "cast",
+          "n_major": 7,
+          "refractory": 7.0,
+          "has_cu_mn_si": false
         },
         {
           "id": "Alloy_O",
           "hits": 1,
           "goals": 4,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": true,
+          "failed_rules": [],
+          "processing": "wrought",
+          "n_major": 5,
+          "refractory": 7.0,
+          "has_cu_mn_si": false
         },
         {
           "id": "Alloy_P",
           "hits": 3,
           "goals": 4,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": true,
+          "failed_rules": [],
+          "processing": "wrought",
+          "n_major": 6,
+          "refractory": 7.0,
+          "has_cu_mn_si": false
         },
         {
           "id": "Alloy_Q",
           "hits": 1,
           "goals": 5,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": true,
+          "failed_rules": [],
+          "processing": "wrought",
+          "n_major": 4,
+          "refractory": 3.0,
+          "has_cu_mn_si": false
         },
         {
           "id": "Alloy_R",
           "hits": 2,
           "goals": 5,
-          "tcp_risk": "Moderate"
+          "tcp_risk": "Moderate",
+          "plausible": true,
+          "failed_rules": [],
+          "processing": "wrought",
+          "n_major": 8,
+          "refractory": 9.0,
+          "has_cu_mn_si": false
         },
         {
           "id": "Alloy_S",
           "hits": 1,
           "goals": 5,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": true,
+          "failed_rules": [],
+          "processing": "cast",
+          "n_major": 5,
+          "refractory": 5.5,
+          "has_cu_mn_si": false
         },
         {
           "id": "Alloy_T",
           "hits": 3,
           "goals": 5,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": true,
+          "failed_rules": [],
+          "processing": "wrought",
+          "n_major": 7,
+          "refractory": 7.95,
+          "has_cu_mn_si": false
         }
       ]
     },
     {
       "label": "random best-of-5",
-      "hits": 54,
-      "goals": 76,
       "hit_rate": 71.1,
-      "designs_fully_met": 7,
-      "n_designs": 20,
-      "critical_tcp": 4,
       "usable": 7,
+      "credible": 0,
+      "n_designs": 20,
       "usable_rate": 35.0,
+      "credible_rate": 0.0,
+      "filtered_out": 20,
+      "rules_tripped": {
+        "R1_element_count": 20,
+        "R2_refractory_budget": 14,
+        "R3_trace_elements": 20,
+        "R4_gamma_prime_formers": 5
+      },
+      "median_major_elements": 11,
+      "median_refractory": 21.65,
+      "frac_trace_violation": 1.0,
       "per_target": [
         {
           "id": "Alloy_A",
           "hits": 3,
           "goals": 3,
-          "tcp_risk": "Elevated"
+          "tcp_risk": "Elevated",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 12,
+          "refractory": 22.46,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_B",
           "hits": 3,
           "goals": 3,
-          "tcp_risk": "Elevated"
+          "tcp_risk": "Elevated",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 10,
+          "refractory": 12.74,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_C",
           "hits": 1,
           "goals": 3,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 11,
+          "refractory": 11.88,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_D",
           "hits": 3,
           "goals": 3,
-          "tcp_risk": "Moderate"
+          "tcp_risk": "Moderate",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements",
+            "R4_gamma_prime_formers"
+          ],
+          "processing": "wrought",
+          "n_major": 12,
+          "refractory": 22.03,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_E",
           "hits": 3,
           "goals": 3,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 12,
+          "refractory": 23.58,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_F",
           "hits": 3,
           "goals": 3,
-          "tcp_risk": "Moderate"
+          "tcp_risk": "Moderate",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 11,
+          "refractory": 17.27,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_G",
           "hits": 1,
           "goals": 3,
-          "tcp_risk": "Moderate"
+          "tcp_risk": "Moderate",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 11,
+          "refractory": 11.99,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_H",
           "hits": 3,
           "goals": 3,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 11,
+          "refractory": 25.65,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_I",
           "hits": 3,
           "goals": 4,
-          "tcp_risk": "Critical"
+          "tcp_risk": "Critical",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 9,
+          "refractory": 9.35,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_J",
           "hits": 4,
           "goals": 4,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 10,
+          "refractory": 21.65,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_K",
           "hits": 3,
           "goals": 4,
-          "tcp_risk": "Elevated"
+          "tcp_risk": "Elevated",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements",
+            "R4_gamma_prime_formers"
+          ],
+          "processing": "wrought",
+          "n_major": 12,
+          "refractory": 23.12,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_L",
           "hits": 3,
           "goals": 4,
-          "tcp_risk": "Elevated"
+          "tcp_risk": "Elevated",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "cast",
+          "n_major": 12,
+          "refractory": 14.87,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_M",
           "hits": 3,
           "goals": 4,
-          "tcp_risk": "Critical"
+          "tcp_risk": "Critical",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "cast",
+          "n_major": 11,
+          "refractory": 26.86,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_N",
           "hits": 3,
           "goals": 4,
-          "tcp_risk": "Moderate"
+          "tcp_risk": "Moderate",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "cast",
+          "n_major": 13,
+          "refractory": 24.21,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_O",
           "hits": 3,
           "goals": 4,
-          "tcp_risk": "Elevated"
+          "tcp_risk": "Elevated",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements",
+            "R4_gamma_prime_formers"
+          ],
+          "processing": "wrought",
+          "n_major": 10,
+          "refractory": 23.39,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_P",
           "hits": 3,
           "goals": 4,
-          "tcp_risk": "Critical"
+          "tcp_risk": "Critical",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements",
+            "R4_gamma_prime_formers"
+          ],
+          "processing": "wrought",
+          "n_major": 12,
+          "refractory": 17.91,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_Q",
           "hits": 2,
           "goals": 5,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements",
+            "R4_gamma_prime_formers"
+          ],
+          "processing": "wrought",
+          "n_major": 11,
+          "refractory": 18.55,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_R",
           "hits": 3,
           "goals": 5,
-          "tcp_risk": "Elevated"
+          "tcp_risk": "Elevated",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 11,
+          "refractory": 20.49,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_S",
           "hits": 2,
           "goals": 5,
-          "tcp_risk": "Critical"
+          "tcp_risk": "Critical",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "cast",
+          "n_major": 12,
+          "refractory": 21.89,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_T",
           "hits": 2,
           "goals": 5,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 9,
+          "refractory": 9.7,
+          "has_cu_mn_si": true
+        }
+      ]
+    },
+    {
+      "label": "random best-of-5 (plaus-aware)",
+      "hit_rate": 71.1,
+      "usable": 7,
+      "credible": 0,
+      "n_designs": 20,
+      "usable_rate": 35.0,
+      "credible_rate": 0.0,
+      "filtered_out": 20,
+      "rules_tripped": {
+        "R1_element_count": 20,
+        "R2_refractory_budget": 14,
+        "R3_trace_elements": 20,
+        "R4_gamma_prime_formers": 5
+      },
+      "median_major_elements": 11,
+      "median_refractory": 21.65,
+      "frac_trace_violation": 1.0,
+      "per_target": [
+        {
+          "id": "Alloy_A",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Elevated",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 12,
+          "refractory": 22.46,
+          "has_cu_mn_si": true
+        },
+        {
+          "id": "Alloy_B",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Elevated",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 10,
+          "refractory": 12.74,
+          "has_cu_mn_si": true
+        },
+        {
+          "id": "Alloy_C",
+          "hits": 1,
+          "goals": 3,
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 11,
+          "refractory": 11.88,
+          "has_cu_mn_si": true
+        },
+        {
+          "id": "Alloy_D",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Moderate",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements",
+            "R4_gamma_prime_formers"
+          ],
+          "processing": "wrought",
+          "n_major": 12,
+          "refractory": 22.03,
+          "has_cu_mn_si": true
+        },
+        {
+          "id": "Alloy_E",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 12,
+          "refractory": 23.58,
+          "has_cu_mn_si": true
+        },
+        {
+          "id": "Alloy_F",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Moderate",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 11,
+          "refractory": 17.27,
+          "has_cu_mn_si": true
+        },
+        {
+          "id": "Alloy_G",
+          "hits": 1,
+          "goals": 3,
+          "tcp_risk": "Moderate",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 11,
+          "refractory": 11.99,
+          "has_cu_mn_si": true
+        },
+        {
+          "id": "Alloy_H",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 11,
+          "refractory": 25.65,
+          "has_cu_mn_si": true
+        },
+        {
+          "id": "Alloy_I",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Critical",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 9,
+          "refractory": 9.35,
+          "has_cu_mn_si": true
+        },
+        {
+          "id": "Alloy_J",
+          "hits": 4,
+          "goals": 4,
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 10,
+          "refractory": 21.65,
+          "has_cu_mn_si": true
+        },
+        {
+          "id": "Alloy_K",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Elevated",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements",
+            "R4_gamma_prime_formers"
+          ],
+          "processing": "wrought",
+          "n_major": 12,
+          "refractory": 23.12,
+          "has_cu_mn_si": true
+        },
+        {
+          "id": "Alloy_L",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Elevated",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "cast",
+          "n_major": 12,
+          "refractory": 14.87,
+          "has_cu_mn_si": true
+        },
+        {
+          "id": "Alloy_M",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Critical",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "cast",
+          "n_major": 11,
+          "refractory": 26.86,
+          "has_cu_mn_si": true
+        },
+        {
+          "id": "Alloy_N",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Moderate",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "cast",
+          "n_major": 13,
+          "refractory": 24.21,
+          "has_cu_mn_si": true
+        },
+        {
+          "id": "Alloy_O",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Elevated",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements",
+            "R4_gamma_prime_formers"
+          ],
+          "processing": "wrought",
+          "n_major": 10,
+          "refractory": 23.39,
+          "has_cu_mn_si": true
+        },
+        {
+          "id": "Alloy_P",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Critical",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements",
+            "R4_gamma_prime_formers"
+          ],
+          "processing": "wrought",
+          "n_major": 12,
+          "refractory": 17.91,
+          "has_cu_mn_si": true
+        },
+        {
+          "id": "Alloy_Q",
+          "hits": 2,
+          "goals": 5,
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements",
+            "R4_gamma_prime_formers"
+          ],
+          "processing": "wrought",
+          "n_major": 11,
+          "refractory": 18.55,
+          "has_cu_mn_si": true
+        },
+        {
+          "id": "Alloy_R",
+          "hits": 3,
+          "goals": 5,
+          "tcp_risk": "Elevated",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 11,
+          "refractory": 20.49,
+          "has_cu_mn_si": true
+        },
+        {
+          "id": "Alloy_S",
+          "hits": 2,
+          "goals": 5,
+          "tcp_risk": "Critical",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "cast",
+          "n_major": 12,
+          "refractory": 21.89,
+          "has_cu_mn_si": true
+        },
+        {
+          "id": "Alloy_T",
+          "hits": 2,
+          "goals": 5,
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 9,
+          "refractory": 9.7,
+          "has_cu_mn_si": true
         }
       ]
     },
     {
       "label": "random+Guard+Tuner best-of-5",
-      "hits": 55,
-      "goals": 76,
       "hit_rate": 72.4,
-      "designs_fully_met": 9,
-      "n_designs": 20,
-      "critical_tcp": 0,
       "usable": 9,
+      "credible": 0,
+      "n_designs": 20,
       "usable_rate": 45.0,
+      "credible_rate": 0.0,
+      "filtered_out": 20,
+      "rules_tripped": {
+        "R1_element_count": 20,
+        "R3_trace_elements": 20,
+        "R2_refractory_budget": 5
+      },
+      "median_major_elements": 12,
+      "median_refractory": 13.78,
+      "frac_trace_violation": 1.0,
       "per_target": [
         {
           "id": "Alloy_A",
           "hits": 3,
           "goals": 3,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 10,
+          "refractory": 10.19,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_B",
           "hits": 2,
           "goals": 3,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 10,
+          "refractory": 16.47,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_C",
           "hits": 3,
           "goals": 3,
-          "tcp_risk": "Moderate"
+          "tcp_risk": "Moderate",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 13,
+          "refractory": 17.37,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_D",
           "hits": 3,
           "goals": 3,
-          "tcp_risk": "Moderate"
+          "tcp_risk": "Moderate",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 13,
+          "refractory": 15.25,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_E",
           "hits": 3,
           "goals": 3,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 10,
+          "refractory": 10.02,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_F",
           "hits": 3,
           "goals": 3,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 10,
+          "refractory": 16.23,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_G",
           "hits": 3,
           "goals": 3,
-          "tcp_risk": "Moderate"
+          "tcp_risk": "Moderate",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 13,
+          "refractory": 12.14,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_H",
           "hits": 3,
           "goals": 3,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 12,
+          "refractory": 15.93,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_I",
           "hits": 3,
           "goals": 4,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 10,
+          "refractory": 4.8,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_J",
           "hits": 4,
           "goals": 4,
-          "tcp_risk": "Moderate"
+          "tcp_risk": "Moderate",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 12,
+          "refractory": 10.69,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_K",
           "hits": 4,
           "goals": 4,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 13,
+          "refractory": 14.89,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_L",
           "hits": 1,
           "goals": 4,
-          "tcp_risk": "Elevated"
+          "tcp_risk": "Elevated",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "cast",
+          "n_major": 11,
+          "refractory": 13.57,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_M",
           "hits": 3,
           "goals": 4,
-          "tcp_risk": "Elevated"
+          "tcp_risk": "Elevated",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "cast",
+          "n_major": 12,
+          "refractory": 23.36,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_N",
           "hits": 3,
           "goals": 4,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R2_refractory_budget",
+            "R3_trace_elements"
+          ],
+          "processing": "cast",
+          "n_major": 13,
+          "refractory": 22.3,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_O",
           "hits": 3,
           "goals": 4,
-          "tcp_risk": "Moderate"
+          "tcp_risk": "Moderate",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 12,
+          "refractory": 13.1,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_P",
           "hits": 3,
           "goals": 4,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 11,
+          "refractory": 13.59,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_Q",
           "hits": 2,
           "goals": 5,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 11,
+          "refractory": 7.57,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_R",
           "hits": 2,
           "goals": 5,
-          "tcp_risk": "Moderate"
+          "tcp_risk": "Moderate",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 12,
+          "refractory": 13.78,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_S",
           "hits": 0,
           "goals": 5,
-          "tcp_risk": "Moderate"
+          "tcp_risk": "Moderate",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "cast",
+          "n_major": 10,
+          "refractory": 14.4,
+          "has_cu_mn_si": true
         },
         {
           "id": "Alloy_T",
           "hits": 4,
           "goals": 5,
-          "tcp_risk": "Low"
+          "tcp_risk": "Low",
+          "plausible": false,
+          "failed_rules": [
+            "R1_element_count",
+            "R3_trace_elements"
+          ],
+          "processing": "wrought",
+          "n_major": 10,
+          "refractory": 8.79,
+          "has_cu_mn_si": true
         }
       ]
     }

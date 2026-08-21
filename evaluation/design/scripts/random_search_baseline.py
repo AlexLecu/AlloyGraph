@@ -40,9 +40,11 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(SCRIPT_DIR)                       # evaluation/design
 PROJECT_ROOT = os.path.dirname(os.path.dirname(BASE_DIR))
 sys.path.insert(0, os.path.join(PROJECT_ROOT, "backend"))
+sys.path.insert(0, SCRIPT_DIR)
 
 from alloy_crew.deterministic_optimizer import ELEMENT_BOUNDS, optimize  # noqa: E402
 from alloy_crew.tools.quick_check_tool import QuickCheckTool  # noqa: E402
+from plausibility_filter import check_plausibility, composition_stats  # noqa: E402
 
 #: Property key in the targets -> QuickCheck output key.
 PROP_KEYS = {
@@ -112,12 +114,12 @@ def score(composition, target, processing, temperature_c):
     return hits, len(target), r.get("tcp_risk", "Unknown"), preds
 
 
-def run_random(targets, n, rng, with_optimizer=False):
+def run_random(targets, n, rng, with_optimizer=False, plausible_aware=False):
     """Best-of-N random search over every target spec."""
     per_target, total_hits, total_goals, tcp = [], 0, 0, []
     for t in targets:
         tgt, proc, temp = t["target_props"], t["processing"], t["temperature"]
-        best = (-1, None, "Critical")
+        best = (-1, None, "Critical", (-1, -1, -1))
         draws = 0
         while draws < n:
             comp = sample_composition(rng)
@@ -135,14 +137,19 @@ def run_random(targets, n, rng, with_optimizer=False):
             # search would discard a Critical-TCP candidate before counting its
             # property hits, so selecting on hits alone would understate the
             # baseline. This makes it the harder comparison.
-            cand = (0 if str(risk).lower().startswith("crit") else 1, h)
-            if cand > (0 if str(best[2]).lower().startswith("crit") else 1, best[0]) or best[1] is None:
-                best = (h, comp, risk)
+            ok, _, _ = check_plausibility(comp, proc)
+            cand = ((1 if ok else 0) if plausible_aware else 1,
+                    0 if str(risk).lower().startswith("crit") else 1, h)
+            if best[1] is None or cand > best[3]:
+                best = (h, comp, risk, cand)
         total_hits += best[0]
         total_goals += len(tgt)
         tcp.append(best[2])
+        ok, failed, _ = check_plausibility(best[1], proc)
         per_target.append({"id": t["id"], "hits": best[0], "goals": len(tgt),
-                           "tcp_risk": best[2]})
+                           "tcp_risk": best[2], "plausible": ok,
+                           "failed_rules": failed, "processing": proc,
+                           **composition_stats(best[1])})
     return per_target, total_hits, total_goals, tcp
 
 
@@ -170,35 +177,51 @@ def run_designer(targets):
         total_hits += h
         total_goals += len(t["target_props"])
         tcp.append(risk)
+        ok, failed, _ = check_plausibility(comp, t["processing"])
         per_target.append({"id": t["id"], "hits": h, "goals": len(t["target_props"]),
-                           "tcp_risk": risk})
+                           "tcp_risk": risk, "plausible": ok,
+                           "failed_rules": failed, "processing": t["processing"],
+                           **composition_stats(comp)})
     return per_target, total_hits, total_goals, tcp
 
 
 def summarise(label, res):
-    """Report the property criterion and the usable criterion side by side.
+    """Report property, TCP and plausibility criteria side by side.
 
-    Hitting property targets is not sufficient for a design to be worth
-    anything: a composition with Critical TCP risk will precipitate brittle
-    topologically-close-packed phases and is not a candidate alloy at all.
-    "usable" counts only designs that meet every property target AND avoid
-    Critical TCP, which is the number an inverse-design method should be
-    judged on.
+    "usable" = every property target met AND no Critical TCP.
+    "credible" = usable AND inside the metallurgical plausibility envelope.
+    The last column is the one an inverse-design method should be judged on:
+    a composition that scores well but could not be manufactured is not a
+    design result.
     """
+    import collections
     per, hits, goals, tcp = res
     crit = sum(1 for r in tcp if str(r).lower().startswith("crit"))
     full = sum(1 for p in per if p["hits"] == p["goals"])
-    usable = sum(1 for p in per
-                 if p["hits"] == p["goals"]
+    usable = sum(1 for p in per if p["hits"] == p["goals"]
                  and not str(p["tcp_risk"]).lower().startswith("crit"))
-    print(f"  {label:34s} {hits:3d}/{goals:3d} goals = {100*hits/goals:5.1f}%   "
-          f"all-met {full:2d}/{len(per):2d}   Critical TCP {crit:2d}/{len(per):2d}   "
-          f"USABLE {usable:2d}/{len(per):2d} = {100*usable/len(per):5.1f}%")
-    return {"label": label, "hits": hits, "goals": goals,
-            "hit_rate": round(100 * hits / goals, 1),
-            "designs_fully_met": full, "n_designs": len(per),
-            "critical_tcp": crit, "usable": usable,
-            "usable_rate": round(100 * usable / len(per), 1),
+    credible = sum(1 for p in per if p["hits"] == p["goals"]
+                   and not str(p["tcp_risk"]).lower().startswith("crit")
+                   and p.get("plausible"))
+    lost = sum(1 for p in per if not p.get("plausible"))
+    rules = collections.Counter(r for p in per for r in p.get("failed_rules", []))
+    n = len(per)
+    print(f"  {label:32s} {100*hits/goals:5.1f}%  usable {usable:2d}/{n:2d}={100*usable/n:5.1f}%  "
+          f"CREDIBLE {credible:2d}/{n:2d}={100*credible/n:5.1f}%  filtered-out {lost:2d}")
+    if rules:
+        print(f"      rules tripped: {dict(rules)}")
+    med_maj = sorted(p["n_major"] for p in per)[n // 2]
+    med_ref = sorted(p["refractory"] for p in per)[n // 2]
+    frac_tr = sum(1 for p in per if p["has_cu_mn_si"]) / n
+    print(f"      median elements>1wt%: {med_maj}   median refractory: {med_ref:.1f} wt%   "
+          f"Cu/Mn/Si above trace: {100*frac_tr:.0f}%")
+    return {"label": label, "hit_rate": round(100 * hits / goals, 1),
+            "usable": usable, "credible": credible, "n_designs": n,
+            "usable_rate": round(100 * usable / n, 1),
+            "credible_rate": round(100 * credible / n, 1),
+            "filtered_out": lost, "rules_tripped": dict(rules),
+            "median_major_elements": med_maj, "median_refractory": med_ref,
+            "frac_trace_violation": round(frac_tr, 3),
             "per_target": per}
 
 
@@ -232,6 +255,9 @@ def main():
         print(f"N = {n} candidates per target:")
         rng = np.random.default_rng(args.seed)
         out["arms"].append(summarise(f"random best-of-{n}", run_random(targets, n, rng)))
+        rng = np.random.default_rng(args.seed)
+        out["arms"].append(summarise(f"random best-of-{n} (plaus-aware)",
+                                     run_random(targets, n, rng, plausible_aware=True)))
         if not args.skip_optimizer:
             rng = np.random.default_rng(args.seed)
             out["arms"].append(summarise(
