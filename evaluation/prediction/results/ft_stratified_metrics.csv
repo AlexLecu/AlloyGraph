@@ -1,0 +1,37 @@
+method,overlap_class,property,unit,n_rows,mae
+GPT-4.1-mini FT,SEEN_BY_FT,YS,MPa,85,88.8
+GPT-4.1-mini FT,UNSEEN_BY_FT,YS,MPa,190,105.39
+GPT-4.1-mini FT,ALL,YS,MPa,275,100.26
+GPT-4.1-mini FT,SEEN_BY_FT,UTS,MPa,88,97.48
+GPT-4.1-mini FT,UNSEEN_BY_FT,UTS,MPa,191,116.94
+GPT-4.1-mini FT,ALL,UTS,MPa,279,110.8
+GPT-4.1-mini FT,SEEN_BY_FT,EL,%,78,9.79
+GPT-4.1-mini FT,UNSEEN_BY_FT,EL,%,196,15.36
+GPT-4.1-mini FT,ALL,EL,%,274,13.77
+GPT-4.1-mini FT,SEEN_BY_FT,EM,GPa,85,9.99
+GPT-4.1-mini FT,UNSEEN_BY_FT,EM,GPa,208,7.43
+GPT-4.1-mini FT,ALL,EM,GPa,293,8.17
+ML+physics+KG,SEEN_BY_FT,YS,MPa,90,85.21
+ML+physics+KG,UNSEEN_BY_FT,YS,MPa,190,96.08
+ML+physics+KG,ALL,YS,MPa,280,92.59
+ML+physics+KG,SEEN_BY_FT,UTS,MPa,93,98.0
+ML+physics+KG,UNSEEN_BY_FT,UTS,MPa,191,116.27
+ML+physics+KG,ALL,UTS,MPa,284,110.29
+ML+physics+KG,SEEN_BY_FT,EL,%,83,8.12
+ML+physics+KG,UNSEEN_BY_FT,EL,%,196,14.72
+ML+physics+KG,ALL,EL,%,279,12.76
+ML+physics+KG,SEEN_BY_FT,EM,GPa,85,8.86
+ML+physics+KG,UNSEEN_BY_FT,EM,GPa,209,8.0
+ML+physics+KG,ALL,EM,GPa,294,8.25
+full system (5-seed mean),SEEN_BY_FT,YS,MPa,90,94.06
+full system (5-seed mean),UNSEEN_BY_FT,YS,MPa,190,74.06
+full system (5-seed mean),ALL,YS,MPa,280,80.48
+full system (5-seed mean),SEEN_BY_FT,UTS,MPa,93,105.87
+full system (5-seed mean),UNSEEN_BY_FT,UTS,MPa,191,89.7
+full system (5-seed mean),ALL,UTS,MPa,284,95.0
+full system (5-seed mean),SEEN_BY_FT,EL,%,83,7.49
+full system (5-seed mean),UNSEEN_BY_FT,EL,%,196,14.6
+full system (5-seed mean),ALL,EL,%,279,12.48
+full system (5-seed mean),SEEN_BY_FT,EM,GPa,85,13.34
+full system (5-seed mean),UNSEEN_BY_FT,EM,GPa,209,7.16
+full system (5-seed mean),ALL,EM,GPa,294,8.95
