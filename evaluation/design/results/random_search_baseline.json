@@ -1,0 +1,539 @@
+{
+  "seed": 42,
+  "n_targets": 20,
+  "hit_fraction": 0.9,
+  "arms": [
+    {
+      "label": "designer (LLM pipeline)",
+      "hits": 40,
+      "goals": 76,
+      "hit_rate": 52.6,
+      "designs_fully_met": 3,
+      "n_designs": 20,
+      "critical_tcp": 0,
+      "usable": 3,
+      "usable_rate": 15.0,
+      "per_target": [
+        {
+          "id": "Alloy_A",
+          "hits": 1,
+          "goals": 3,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_B",
+          "hits": 2,
+          "goals": 3,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_C",
+          "hits": 2,
+          "goals": 3,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_D",
+          "hits": 2,
+          "goals": 3,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_E",
+          "hits": 2,
+          "goals": 3,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_F",
+          "hits": 2,
+          "goals": 3,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_G",
+          "hits": 2,
+          "goals": 3,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_H",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_I",
+          "hits": 2,
+          "goals": 4,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_J",
+          "hits": 4,
+          "goals": 4,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_K",
+          "hits": 4,
+          "goals": 4,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_L",
+          "hits": 1,
+          "goals": 4,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_M",
+          "hits": 1,
+          "goals": 4,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_N",
+          "hits": 1,
+          "goals": 4,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_O",
+          "hits": 1,
+          "goals": 4,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_P",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_Q",
+          "hits": 1,
+          "goals": 5,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_R",
+          "hits": 2,
+          "goals": 5,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_S",
+          "hits": 1,
+          "goals": 5,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_T",
+          "hits": 3,
+          "goals": 5,
+          "tcp_risk": "Low"
+        }
+      ]
+    },
+    {
+      "label": "random best-of-5",
+      "hits": 54,
+      "goals": 76,
+      "hit_rate": 71.1,
+      "designs_fully_met": 7,
+      "n_designs": 20,
+      "critical_tcp": 4,
+      "usable": 7,
+      "usable_rate": 35.0,
+      "per_target": [
+        {
+          "id": "Alloy_A",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_B",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_C",
+          "hits": 1,
+          "goals": 3,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_D",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_E",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_F",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_G",
+          "hits": 1,
+          "goals": 3,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_H",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_I",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Critical"
+        },
+        {
+          "id": "Alloy_J",
+          "hits": 4,
+          "goals": 4,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_K",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_L",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_M",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Critical"
+        },
+        {
+          "id": "Alloy_N",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_O",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_P",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Critical"
+        },
+        {
+          "id": "Alloy_Q",
+          "hits": 2,
+          "goals": 5,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_R",
+          "hits": 3,
+          "goals": 5,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_S",
+          "hits": 2,
+          "goals": 5,
+          "tcp_risk": "Critical"
+        },
+        {
+          "id": "Alloy_T",
+          "hits": 2,
+          "goals": 5,
+          "tcp_risk": "Low"
+        }
+      ]
+    },
+    {
+      "label": "random best-of-100",
+      "hits": 61,
+      "goals": 76,
+      "hit_rate": 80.3,
+      "designs_fully_met": 10,
+      "n_designs": 20,
+      "critical_tcp": 0,
+      "usable": 10,
+      "usable_rate": 50.0,
+      "per_target": [
+        {
+          "id": "Alloy_A",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_B",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_C",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_D",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_E",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_F",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_G",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_H",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_I",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_J",
+          "hits": 4,
+          "goals": 4,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_K",
+          "hits": 4,
+          "goals": 4,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_L",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_M",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_N",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_O",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_P",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_Q",
+          "hits": 2,
+          "goals": 5,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_R",
+          "hits": 3,
+          "goals": 5,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_S",
+          "hits": 2,
+          "goals": 5,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_T",
+          "hits": 4,
+          "goals": 5,
+          "tcp_risk": "Low"
+        }
+      ]
+    },
+    {
+      "label": "random best-of-1000",
+      "hits": 61,
+      "goals": 76,
+      "hit_rate": 80.3,
+      "designs_fully_met": 10,
+      "n_designs": 20,
+      "critical_tcp": 0,
+      "usable": 10,
+      "usable_rate": 50.0,
+      "per_target": [
+        {
+          "id": "Alloy_A",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_B",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_C",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_D",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_E",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_F",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_G",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_H",
+          "hits": 3,
+          "goals": 3,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_I",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_J",
+          "hits": 4,
+          "goals": 4,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_K",
+          "hits": 4,
+          "goals": 4,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_L",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_M",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_N",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_O",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_P",
+          "hits": 3,
+          "goals": 4,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_Q",
+          "hits": 2,
+          "goals": 5,
+          "tcp_risk": "Low"
+        },
+        {
+          "id": "Alloy_R",
+          "hits": 3,
+          "goals": 5,
+          "tcp_risk": "Elevated"
+        },
+        {
+          "id": "Alloy_S",
+          "hits": 2,
+          "goals": 5,
+          "tcp_risk": "Moderate"
+        },
+        {
+          "id": "Alloy_T",
+          "hits": 4,
+          "goals": 5,
+          "tcp_risk": "Low"
+        }
+      ]
+    }
+  ]
+}
