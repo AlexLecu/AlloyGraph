@@ -1,0 +1,17 @@
+arm,property,unit,n_seeds,n_rows,mae,mae_sd,r2,pre_erratum
+ML-only,YS,MPa,1,286,101.16,,0.828,False
+ML-only,UTS,MPa,1,290,112.96,,0.846,False
+ML-only,EL,%,1,284,13.84,,0.246,False
+ML-only,EM,GPa,1,304,12.86,,0.48,False
+ML+physics,YS,MPa,1,286,101.16,,0.828,False
+ML+physics,UTS,MPa,1,290,113.25,,0.846,False
+ML+physics,EL,%,1,284,13.8,,0.246,False
+ML+physics,EM,GPa,1,304,8.21,,0.83,False
+ML+physics+KG,YS,MPa,1,286,94.83,,0.841,False
+ML+physics+KG,UTS,MPa,1,290,112.75,,0.848,False
+ML+physics+KG,EL,%,1,284,12.82,,0.403,False
+ML+physics+KG,EM,GPa,1,304,8.21,,0.83,False
+Full system (5 seeds),YS,MPa,5,286,80.89,1.12,0.862,False
+Full system (5 seeds),UTS,MPa,5,290,96.44,0.93,0.863,False
+Full system (5 seeds),EL,%,5,284,12.56,0.12,0.412,False
+Full system (5 seeds),EM,GPa,5,304,8.94,0.06,0.775,False

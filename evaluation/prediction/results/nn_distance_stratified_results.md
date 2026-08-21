@@ -83,19 +83,19 @@ measurement, not alloys.
 
 | property | n | ML-only | ML+physics | ML+physics+KG |
 |---|---|---|---|---|
-| YS (MPa) | 139 | 122.83 / 0.656 | 122.83 / 0.656 | 122.83 / 0.656 |
-| UTS (MPa) | 142 | 149.38 / 0.644 | 148.81 / 0.644 | 148.81 / 0.644 |
-| EL (%) | 141 | 11.25 / 0.550 | 11.23 / 0.548 | 11.23 / 0.548 |
-| EM (GPa) | 184 | 13.32 / 0.413 | 7.78 / 0.819 | 7.78 / 0.819 |
+| YS (MPa) | 139 | 115.02 / 0.715 | 115.02 / 0.715 | 115.02 / 0.715 |
+| UTS (MPa) | 142 | 138.41 / 0.728 | 137.84 / 0.728 | 137.84 / 0.728 |
+| EL (%) | 141 | 10.93 / 0.577 | 10.89 / 0.577 | 10.89 / 0.577 |
+| EM (GPa) | 184 | 13.38 / 0.413 | 7.84 / 0.818 | 7.84 / 0.818 |
 
 ### ALL — 88 alloys
 
 | property | n | ML-only | ML+physics | ML+physics+KG |
 |---|---|---|---|---|
-| YS (MPa) | 286 | 104.95 / 0.805 | 104.95 / 0.805 | 98.62 / 0.818 |
-| UTS (MPa) | 290 | 118.33 / 0.816 | 118.62 / 0.816 | 118.12 / 0.818 |
-| EL (%) | 284 | 14.00 / 0.239 | 13.97 / 0.239 | 12.99 / 0.395 |
-| EM (GPa) | 304 | 12.82 / 0.481 | 8.17 / 0.830 | 8.17 / 0.830 |
+| YS (MPa) | 286 | 101.16 / 0.828 | 101.16 / 0.828 | **94.83 / 0.841** |
+| UTS (MPa) | 290 | 112.96 / 0.846 | 113.25 / 0.846 | 112.75 / 0.848 |
+| EL (%) | 284 | 13.84 / 0.246 | 13.80 / 0.246 | **12.82 / 0.403** |
+| EM (GPa) | 304 | 12.86 / 0.480 | 8.21 / 0.830 | 8.21 / 0.830 |
 
 ## What the strata show
 
@@ -113,13 +113,15 @@ so no proposal can be generated. The informative stratum is MID, where
 anchoring *is* permitted and the neighbours are genuinely different alloys.
 There the effect is −0.2% on YS and −0.4% on EL: not distinguishable from zero.
 
-The pooled −6.0% YS improvement is therefore carried almost entirely by 13
+The pooled −6.3% YS improvement is therefore carried almost entirely by 13
 alloys the knowledge graph already contains. The mechanism is retrieval of a
 stored measurement, not calibration by compositional analogy.
 
-**Physics corrections behave in the opposite way** — they help most where the
-system has least knowledge. EM MAE falls from 13.32 to 7.78 GPa on FAR (−42%)
-and from 14.60 to 6.75 on NEAR. It still rises slightly on MID (9.92 → 10.48,
+**Physics corrections help where the ML modulus is worst, not where the system
+knows least.** EM MAE falls from 13.38 to 7.84 GPa on FAR (−41%) and from
+14.60 to 6.75 on NEAR (−54%). The gain is therefore **largest on NEAR, not on
+FAR** — physics helps wherever the ML modulus is badly wrong, and that is not
+monotonic in distance. It still rises on MID (9.92 → 10.48,
 +5.6%), down from +35% before the VRH override was gated off for single
 crystals; see *Elastic modulus and the SC/DS gate* below. The residual is four
 rows of Haynes 230, where VRH overshoots a W-rich solid-solution alloy
@@ -127,7 +129,7 @@ rows of Haynes 230, where VRH overshoots a W-rich solid-solution alloy
 wrong way.
 
 **Generalisation gap.** R² for the strength properties drops sharply on FAR
-(YS 0.875 NEAR / 0.895 MID / 0.656 FAR; UTS 0.930 / 0.886 / 0.644). Whatever
+(YS 0.875 NEAR / 0.895 MID / 0.715 FAR; UTS 0.930 / 0.886 / 0.728). Whatever
 the MAE comparison says, the models order test alloys much less well once they
 are compositionally far from the training set.
 
@@ -165,7 +167,7 @@ The override is therefore skipped for SC/DS alloys
 - 29 rows across 17 alloys carry the skip flag, but only 2 of those alloys have
   measured EM, so the rest change no metric. They are flagged in the evaluation
   CSVs as `em_override_skipped_sc_ds`.
-- Overall EM improves from 8.79 to 8.17 GPa MAE and R² from 0.766 to 0.830.
+- Overall EM improves from 8.83 to 8.21 GPa MAE and R² from 0.766 to 0.830.
   No other property moves.
 
 One hypothesis was tested and rejected: the SSS overshoot does not track
@@ -182,24 +184,24 @@ seen in training):
 
 | scope | property | n NEAR | MAE NEAR | n FAR | MAE FAR | NEAR − FAR |
 |---|---|---|---|---|---|---|
-| all classes | YS | 56 | 107.56 | 139 | 122.83 | −12.4% |
-| all classes | UTS | 57 | 96.55 | 142 | 149.38 | −35.4% |
-| all classes | EL | 61 | 28.53 | 141 | 11.25 | +153.5% |
-| all classes | EM | 55 | 14.60 | 184 | 13.32 | +9.7% |
+| all classes | YS | 56 | 107.56 | 139 | 115.02 | −6.5% |
+| all classes | UTS | 57 | 96.55 | 142 | 138.41 | −30.2% |
+| all classes | EL | 61 | 28.53 | 141 | 10.93 | +161.1% |
+| all classes | EM | 55 | 14.60 | 184 | 13.38 | +9.1% |
 | SSS | YS | 18 | 125.75 | 84 | 111.77 | +12.5% |
 | SSS | UTS | 18 | 93.57 | 88 | 137.01 | −31.7% |
 | SSS | EL | 18 | 4.17 | 87 | 12.79 | −67.4% |
 | SSS | EM | 22 | 4.76 | 121 | 15.15 | −68.5% |
-| Precip | YS | 38 | 98.94 | 39 | 152.31 | −35.0% |
-| Precip | UTS | 39 | 97.92 | 41 | 178.91 | −45.3% |
-| Precip | EL | 43 | 38.73 | 38 | 10.18 | +280.5% |
-| Precip | EM | 33 | 21.16 | 58 | 7.49 | +182.7% |
+| Precip | YS | 38 | 98.94 | 39 | 124.48 | −20.5% |
+| Precip | UTS | 39 | 97.92 | 41 | 140.93 | −30.5% |
+| Precip | EL | 43 | 38.73 | 38 | 8.96 | +332.3% |
+| Precip | EM | 33 | 21.16 | 58 | 7.69 | +175.4% |
 
 The pooled row is confounded — NEAR has no SC/DS alloys and FAR is 55% SSS — so
 the per-class rows carry the argument.
 
 **Tensile strength shows a consistent training-overlap advantage**: UTS is 32%
-better on NEAR for SSS and 45% better for Precip, and Precip YS is 35% better.
+better on NEAR for SSS and 31% better for Precip, and Precip YS is 21% better.
 So the ML baselines in the pooled table are optimistic, and the caveat is real,
 not hypothetical.
 
@@ -207,11 +209,11 @@ not hypothetical.
 against it.** Precip EL is worse on NEAR (+280%) because of 14 points from two
 alloys — Haynes 214 and Haynes 263 above 927 °C, with measured elongation of
 95–159% in the super-plastic ductility-recovery regime the model systematically
-under-predicts. Excluding those 14 points, NEAR EL MAE is 8.78 against 10.18 on
-FAR, i.e. NEAR is better, consistent with the strength result. Likewise 74% of
-the Precip EM error on NEAR comes from MAR-M 200 alone (10 points, predicted
-≈146 GPa against a reported 218 GPa); excluding that alloy gives 7.92 against
-7.49 on FAR, essentially equal.
+under-predicts. Excluding those 14 points, NEAR EL MAE is 8.78 against 8.96 on FAR, i.e.
+NEAR is still the better of the two, consistent with the strength result.
+Likewise 74% of the Precip EM error on NEAR comes from MAR-M 200 alone (10
+points, predicted ≈146 GPa against a reported 218 GPa); excluding that alloy
+gives 7.92 against 7.69 on FAR, essentially equal.
 
 SSS YS (+12.5%) has no such explanation and rests on 18 rows from 5 alloys; it
 is the one cell that does not fit the pattern, and is too small to lean on.

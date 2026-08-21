@@ -48,6 +48,7 @@ Rene N500,SC/DS,cast,CMSX-4*(SC),4.947,FAR
 NIMONIC* 90,Precip,wrought,UDIMET* 400,5.285,FAR
 Haynes 233,Precip,wrought,RENÉ* 88DT (forged),5.544,FAR
 RGT* 13,Precip,wrought,NIMONIC* 263,6.084,FAR
+NIMONIC* PE16,Precip,wrought,NIMONIC* PE11,6.147,FAR
 Haynes R-41 alloy,Precip,wrought,RENÉ* 41,6.229,FAR
 DD9,SC/DS,cast,PWA*1484*(SC),6.354,FAR
 TMS-138,SC/DS,cast,TAZ-8B(DS),6.511,FAR
@@ -73,7 +74,6 @@ HASTELLOY* X,SSS,wrought,UDIMET* 630,9.142,FAR
 Haynes Hastelloy® C-2000® alloy,SSS,wrought,INCONEL* 625,9.621,FAR
 Haynes Hastelloy® N,SSS,wrought,HASTELLOY* S,9.866,FAR
 Special Metals INCONEL® Alloy 686 Nickel Superalloy Sheet (UNS N06686),SSS,wrought,INCONEL* 625,9.915,FAR
-NIMONIC* PE16,Precip,wrought,NIMONIC* 942,10.068,FAR
 Special Metals INCONEL® G-3 Nickel Superalloy (UNS N06985),SSS,wrought,UDIMET* 630,10.09,FAR
 Special Metals INCONEL® C276 Nickel Superalloy Sheet,SSS,wrought,HASTELLOY* S,10.134,FAR
 TMS-162,SC/DS,cast,TAZ-8B(DS),10.205,FAR
