@@ -19,6 +19,7 @@ worst alloy for every ML arm.
 | ML+physics | 471 | 0 |
 | ML+physics+KG | 471 | 0 |
 | Full system (5 seeds) | 471 | 0 |
+| GPT-4.1-mini (stock) | 471 | 0 |
 
 ## MAE (lower is better)
 
@@ -28,6 +29,7 @@ worst alloy for every ML arm.
 | ML+physics | 101.16 ± nan | 113.25 ± nan | 13.80 ± nan | 8.21 ± nan |
 | ML+physics+KG | 94.83 ± nan | 112.75 ± nan | 12.82 ± nan | 8.21 ± nan |
 | Full system (5 seeds) | 80.89 ± 1.12 | 96.44 ± 0.93 | 12.56 ± 0.12 | 8.94 ± 0.06 |
+| GPT-4.1-mini (stock) | 200.34 ± nan | 176.06 ± nan | 23.69 ± nan | 16.12 ± nan |
 
 ## R²
 
@@ -37,6 +39,7 @@ worst alloy for every ML arm.
 | ML+physics | 0.828 | 0.846 | 0.246 | 0.830 |
 | ML+physics+KG | 0.841 | 0.848 | 0.403 | 0.830 |
 | Full system (5 seeds) | 0.862 | 0.863 | 0.412 | 0.775 |
+| GPT-4.1-mini (stock) | 0.353 | 0.606 | -0.360 | 0.260 |
 
 ## Reading
 

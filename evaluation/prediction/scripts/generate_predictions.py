@@ -518,6 +518,32 @@ SERIES_RESOLUTION = {"scalar": 0, "series_exact": 0, "series_nearest": 0}
 DEGENERATE_RESPONSES = {"retried": 0, "unrecovered": 0}
 
 
+#: No solid is stiffer than about 1220 GPa (diamond); superalloys sit near 200.
+#: A value above this can only be MPa, so it is converted rather than scored.
+EM_MPA_THRESHOLD_GPA = 1000.0
+
+#: Counts unit conversions applied, for the reporting caveat.
+UNIT_NORMALISATIONS = {"em_mpa_to_gpa": 0}
+
+
+def _normalise_elastic_modulus(value):
+    """Convert an elastic modulus quoted in MPa to GPa.
+
+    The prompt asks for ``{"elastic_modulus": <number>}`` and never states a
+    unit, so a model answering 210000 is answering in MPa and is not wrong --
+    reading it as 210000 GPa is our parsing error. Two of 471 rows in the
+    August stock run and four of 466 in the February archive do this, and left
+    unconverted they move the baseline's elastic-modulus MAE from 16 GPa to
+    1397. Scoring that would misreport a unit convention as a modelling
+    failure, in the same way that scoring a null answer as 0 MPa would.
+    """
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if value > EM_MPA_THRESHOLD_GPA:
+            UNIT_NORMALISATIONS["em_mpa_to_gpa"] += 1
+            return value / 1000.0
+    return value
+
+
 def _is_degenerate(preds):
     """True when a response carries no non-zero number for any property.
 
@@ -662,8 +688,9 @@ Predict the following properties. Reason briefly about the alloy class and expec
                         find_val(parsed, 'uts', 'tensile', 'ultimate'), temperature),
                     'Elongation': _scalar_at_temperature(
                         find_val(parsed, 'elong', 'el'), temperature),
-                    'Elastic Modulus': _scalar_at_temperature(
-                        find_val(parsed, 'elastic', 'modulus', 'em'), temperature),
+                    'Elastic Modulus': _normalise_elastic_modulus(
+                        _scalar_at_temperature(
+                            find_val(parsed, 'elastic', 'modulus', 'em'), temperature)),
                 }
             else:
                 # Fallback: extract numbers in order
@@ -673,7 +700,7 @@ Predict the following properties. Reason briefly about the alloy class and expec
                         'Yield Strength': float(numbers[0]),
                         'Tensile Strength': float(numbers[1]),
                         'Elongation': float(numbers[2]),
-                        'Elastic Modulus': float(numbers[3]),
+                        'Elastic Modulus': _normalise_elastic_modulus(float(numbers[3])),
                     }
                 else:
                     raise ValueError(f"Could not parse LLM response: {content[:200]}")

@@ -55,6 +55,30 @@ On the 324 rows both runs answered:
 | EL (%) | 10.71 | 21.74 | 2.03x |
 | EM (GPa) | 8.22 | 12.95 | 1.58x |
 
+## The fine-tune cannot be rebuilt either
+
+The obvious remedy -- re-fine-tune from the training data committed at
+`backend/superalloy_preprocess/output_data/finetuned_data/` -- was
+attempted on 22 August 2026 and is not available. Creating a fine-tuning
+job returns:
+
+```
+403 training_not_available
+OpenAI is winding down the fine-tuning platform and your organization is
+no longer able to create new fine-tuning training jobs.
+```
+
+The refusal is at the platform level, not in our request: read access to
+`fine_tuning.jobs` still works, and the error is identical with default
+hyperparameters and with an explicit epoch count. OpenAI's deprecation
+notice gives 6 January 2027 as the date active existing customers lose
+job creation; inference on already-trained models continues until the base
+model is deprecated. This organisation is already past that cutoff.
+
+So the fine-tuned baseline is not merely drifted. It is unreproducible in
+principle: the artefact cannot be regenerated, and the service that
+produced it no longer accepts the job.
+
 ## What this means for the paper
 
 **Neither number is publishable as the fine-tuned baseline.**
@@ -66,13 +90,17 @@ On the 324 rows both runs answered:
   and for the wrong reason -- the same failure mode as scoring a
   competitor on a composition we had already corrected for ourselves.
 
-The fix is to re-fine-tune from the training data committed at
-`backend/superalloy_preprocess/output_data/finetuned_data/`, which is
-under version control, and evaluate that model. It is the only route to a
-baseline a reader can reproduce. Until then the paper should either omit
-the fine-tuned baseline or report the February figures with an explicit
-statement that the hosted model has since changed and the numbers cannot
-be regenerated.
+The fine-tuned baseline is therefore withdrawn. In its place the paper
+carries **stock GPT-4.1-mini**, re-run on the corrected data at seed 42
+and temperature 0.0: 471/471 rows answered, 37 distinct yield strengths
+against 33 in the February archive, no null responses. That baseline is
+reproducible by any reader with an API key, which the fine-tuned one is
+not. Its numbers are in `headline_metrics.csv` and `stratified_metrics.csv`
+alongside every other arm.
+
+The February fine-tune figures may still be quoted as a historical
+datapoint provided they are labelled as unreproducible and their PE16
+defect is stated. They cannot be used to rank methods.
 
 ## The control that rules out our own settings
 

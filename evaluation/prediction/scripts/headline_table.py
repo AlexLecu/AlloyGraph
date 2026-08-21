@@ -61,11 +61,17 @@ CURRENT_ARMS = (
     ("ML+physics", ("seed42_v2prod_ml_deterministic",)),
     ("ML+physics+KG", ("seed42_v2prod_ml_physics_kg",)),
     ("Full system (5 seeds)", tuple(f"stageb_seed{s}_full_system" for s in SEEDS)),
+    # Stock gpt-4.1-mini on the corrected data, seeded at temperature 0.0.
+    # This is the only commercial LLM baseline that is both current and
+    # reproducible: the fine-tuned model cannot be regenerated (OpenAI has
+    # closed self-serve fine-tuning) and the Llama baseline's provider
+    # decommissioned the model. See ft_baseline_reproducibility.md.
+    ("GPT-4.1-mini (stock)", ("seed42_gpt41mini",)),
 )
 
 #: Pre-erratum baselines, off by default. See module docstring.
 ARCHIVED_BASELINES = (
-    ("GPT-4.1 zero-shot [stale]", "gpt4.1.csv"),
+    ("GPT-4.1-mini Feb [stale]", "gpt4.1.csv"),
     ("GPT-4.1-mini fine-tuned [stale]", "gpt4.1_ft.csv"),
     ("LLM-only [stale]", "llm_only.csv"),
 )

@@ -56,6 +56,10 @@ METHODS = [
     ("ML-only", "seed42_v2_ml_only_{ds}.csv"),
     ("ML+physics", "seed42_v2prod_ml_deterministic_{ds}.csv"),
     ("ML+physics+KG", "seed42_v2prod_ml_physics_kg_{ds}.csv"),
+    # Commercial LLM baseline, same corrected data and same seed. Included so
+    # the strata answer the obvious question: does a general-purpose model also
+    # do better on the alloys that are near-duplicates of our training set?
+    ("GPT-4.1-mini", "seed42_gpt41mini_{ds}.csv"),
 ]
 
 PROPERTIES = [("ys", "YS", "MPa"), ("uts", "UTS", "MPa"),

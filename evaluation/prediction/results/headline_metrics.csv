@@ -15,3 +15,7 @@ Full system (5 seeds),YS,MPa,5,286,80.89,1.12,0.862,False
 Full system (5 seeds),UTS,MPa,5,290,96.44,0.93,0.863,False
 Full system (5 seeds),EL,%,5,284,12.56,0.12,0.412,False
 Full system (5 seeds),EM,GPa,5,304,8.94,0.06,0.775,False
+GPT-4.1-mini (stock),YS,MPa,1,286,200.34,,0.353,False
+GPT-4.1-mini (stock),UTS,MPa,1,290,176.06,,0.606,False
+GPT-4.1-mini (stock),EL,%,1,284,23.69,,-0.36,False
+GPT-4.1-mini (stock),EM,GPa,1,304,16.12,,0.26,False
