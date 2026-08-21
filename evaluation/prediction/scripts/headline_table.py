@@ -67,6 +67,12 @@ CURRENT_ARMS = (
     # closed self-serve fine-tuning) and the Llama baseline's provider
     # decommissioned the model. See ft_baseline_reproducibility.md.
     ("GPT-4.1-mini (stock)", ("seed42_gpt41mini",)),
+    # Llama-3.3-70B-Instruct-Turbo via DeepInfra, the open-weight baseline.
+    # Temperature 0.0 but NOT seeded: DeepInfra rejects the seed parameter
+    # outright, so this arm is near-deterministic rather than bit-reproducible.
+    # Groq, the provider used in February, decommissioned the model on
+    # 2026-08-16. See ft_baseline_reproducibility.md.
+    ("Llama-3.3-70B (DeepInfra)", ("seed42_llama70b",)),
 )
 
 #: Pre-erratum baselines, off by default. See module docstring.

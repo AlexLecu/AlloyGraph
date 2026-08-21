@@ -60,6 +60,7 @@ METHODS = [
     # the strata answer the obvious question: does a general-purpose model also
     # do better on the alloys that are near-duplicates of our training set?
     ("GPT-4.1-mini", "seed42_gpt41mini_{ds}.csv"),
+    ("Llama-3.3-70B", "seed42_llama70b_{ds}.csv"),
 ]
 
 PROPERTIES = [("ys", "YS", "MPa"), ("uts", "UTS", "MPa"),

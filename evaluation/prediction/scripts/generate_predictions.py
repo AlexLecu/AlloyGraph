@@ -517,6 +517,15 @@ SERIES_RESOLUTION = {"scalar": 0, "series_exact": 0, "series_nearest": 0}
 #: rows that never produced one. Read after a run for the reporting caveat.
 DEGENERATE_RESPONSES = {"retried": 0, "unrecovered": 0}
 
+#: Providers that reject ``seed`` outright. litellm raises UnsupportedParamsError
+#: rather than dropping it, so the parameter cannot simply be sent hopefully.
+#: DeepInfra is one: its Llama endpoint exposes no seed control at all.
+#:
+#: A run against such a provider is therefore NOT seeded. Temperature 0.0 still
+#: makes it near-deterministic, but bit-identical reproduction is not available
+#: and the report must say so rather than implying a seed was honoured.
+SEED_UNSUPPORTED = {"seed_dropped": False, "provider": None}
+
 
 #: No solid is stiffer than about 1220 GPa (diamond); superalloys sit near 200.
 #: A value above this can only be MPa, so it is converted rather than scored.
@@ -642,12 +651,16 @@ Predict the following properties. Reason briefly about the alloy class and expec
         "max_tokens": 512,
     }
     for attempt in range(max_retries):
-        if seed is not None:
-            # Best-effort: honoured by OpenAI/Groq, silently ignored elsewhere.
-            # Re-draws walk the seed deterministically, so a run is still
-            # reproducible while a null answer can be retried at all -- at a
-            # fixed seed the model returns the identical null every time.
+        if seed is not None and not SEED_UNSUPPORTED["seed_dropped"]:
+            # Honoured by OpenAI; rejected outright by DeepInfra (see
+            # SEED_UNSUPPORTED). Re-draws walk the seed deterministically, so a
+            # run stays reproducible while a null answer can still be retried --
+            # at a fixed seed the model returns the identical null every time.
             completion_kwargs["seed"] = seed + 1000 * attempt
+        elif seed is not None:
+            # Seed unavailable: vary nothing, but a re-draw is still worth
+            # making because sampling is not perfectly deterministic upstream.
+            completion_kwargs.pop("seed", None)
         try:
             response = llm_completion(
                 model=model_name,
@@ -721,6 +734,16 @@ Predict the following properties. Reason briefly about the alloy class and expec
 
         except Exception as e:
             error_str = str(e).lower()
+            if "does not support parameters" in error_str and "seed" in error_str:
+                # Drop the seed for the rest of the run and retry immediately.
+                # Recorded so the report can state the run was not seeded.
+                if not SEED_UNSUPPORTED["seed_dropped"]:
+                    SEED_UNSUPPORTED["seed_dropped"] = True
+                    SEED_UNSUPPORTED["provider"] = model_name.split("/")[0]
+                    print(f"  [seed] {model_name.split('/')[0]} rejects seed; "
+                          f"continuing unseeded at temperature {sampling_temperature}")
+                completion_kwargs.pop("seed", None)
+                continue
             print(f"  [DEBUG] Error (attempt {attempt+1}): {str(e)[:200]}")
             if 'rate' in error_str or '429' in error_str or 'too many' in error_str:
                 wait_time = 30 * (attempt + 1)

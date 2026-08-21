@@ -20,6 +20,7 @@ worst alloy for every ML arm.
 | ML+physics+KG | 471 | 0 |
 | Full system (5 seeds) | 471 | 0 |
 | GPT-4.1-mini (stock) | 471 | 0 |
+| Llama-3.3-70B (DeepInfra) | 471 | 0 |
 
 ## MAE (lower is better)
 
@@ -30,6 +31,7 @@ worst alloy for every ML arm.
 | ML+physics+KG | 94.83 ± nan | 112.75 ± nan | 12.82 ± nan | 8.21 ± nan |
 | Full system (5 seeds) | 80.89 ± 1.12 | 96.44 ± 0.93 | 12.56 ± 0.12 | 8.94 ± 0.06 |
 | GPT-4.1-mini (stock) | 200.34 ± nan | 176.06 ± nan | 23.69 ± nan | 16.12 ± nan |
+| Llama-3.3-70B (DeepInfra) | 267.56 ± nan | 290.36 ± nan | 24.12 ± nan | 22.55 ± nan |
 
 ## R²
 
@@ -40,6 +42,7 @@ worst alloy for every ML arm.
 | ML+physics+KG | 0.841 | 0.848 | 0.403 | 0.830 |
 | Full system (5 seeds) | 0.862 | 0.863 | 0.412 | 0.775 |
 | GPT-4.1-mini (stock) | 0.353 | 0.606 | -0.360 | 0.260 |
+| Llama-3.3-70B (DeepInfra) | -0.096 | 0.131 | -0.376 | -0.185 |
 
 ## Reading
 

@@ -112,6 +112,30 @@ none in 466 archived rows. Sampling at temperature 0.0 with a seed gives
 42%, and temperature 0.3 with a seed 24%. Every configuration fails; the
 archived one fails too.
 
+## All three commercial baselines, August 2026
+
+| baseline | February | August | verdict |
+|---|---|---|---|
+| GPT-4.1-mini, stock | 466 rows, 33 distinct YS | 471 rows, 37 distinct YS | **reproduces** |
+| GPT-4.1-mini, fine-tuned | 466 rows, 93 distinct YS | 329 rows, 13 distinct YS | **drifted beyond use; cannot be rebuilt** |
+| Llama-3.3-70B | 466 rows via Groq | 471 rows via DeepInfra | **re-hosted; provider decommissioned the model** |
+
+Two caveats attach to the Llama row. Groq withdrew
+`llama-3.3-70b-versatile` on 16 August 2026, so the February endpoint no
+longer exists and the model had to be re-hosted on DeepInfra -- the same
+weights, a different serving stack, which is not the same thing as a
+reproduction. And DeepInfra rejects the `seed` parameter outright, so that
+arm runs at temperature 0.0 but **unseeded**: near-deterministic, not
+bit-reproducible. Both facts belong in the paper next to its numbers.
+
+The re-hosted run is healthy -- 471/471 rows, no null answers, elastic
+modulus peaking at a physical 230 GPa. That last number is worth dwelling
+on: the February archive records a maximum of 230000, because the model
+answers in MPa and the harness read it as GPa. The archived Llama baseline's
+elastic-modulus MAE of 112764 was therefore never a modelling result at
+all, only a unit-parsing failure, and any table carrying it was reporting
+our bug as the baseline's error.
+
 ## One finding survives the drift
 
 The train/test overlap result in `ft_baseline_analysis.md` reproduces on

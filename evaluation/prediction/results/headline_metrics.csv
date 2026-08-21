@@ -19,3 +19,7 @@ GPT-4.1-mini (stock),YS,MPa,1,286,200.34,,0.353,False
 GPT-4.1-mini (stock),UTS,MPa,1,290,176.06,,0.606,False
 GPT-4.1-mini (stock),EL,%,1,284,23.69,,-0.36,False
 GPT-4.1-mini (stock),EM,GPa,1,304,16.12,,0.26,False
+Llama-3.3-70B (DeepInfra),YS,MPa,1,286,267.56,,-0.096,False
+Llama-3.3-70B (DeepInfra),UTS,MPa,1,290,290.36,,0.131,False
+Llama-3.3-70B (DeepInfra),EL,%,1,284,24.12,,-0.376,False
+Llama-3.3-70B (DeepInfra),EM,GPa,1,304,22.55,,-0.185,False
