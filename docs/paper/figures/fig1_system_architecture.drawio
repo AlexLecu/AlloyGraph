@@ -1,0 +1,164 @@
+<mxfile host="65bd71144e">
+    <diagram name="AlloyGraph Architecture" id="alloygraph-arch-v11">
+        <mxGraphModel dx="900" dy="1200" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="900" pageHeight="1200" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+
+                <!-- LAYER 1 — User Interface -->
+                <mxCell id="L1" value="&lt;b&gt;User Interface&lt;/b&gt;  (Vue.js)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#023d7b;fontSize=24;verticalAlign=top;align=left;spacingLeft=18;spacingTop=10;arcSize=2;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="10" width="820" height="170" as="geometry"/>
+                </mxCell>
+                <mxCell id="L1_c1" value="&lt;b&gt;Research&lt;br&gt;Assistant&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:16px'&gt;RAG-based alloy&lt;br&gt;knowledge retrieval&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eef5fc;strokeColor=#6c8ebf;fontColor=#023d7b;fontSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="56" width="240" height="108" as="geometry"/>
+                </mxCell>
+                <mxCell id="L1_c2" value="&lt;b&gt;Property&lt;br&gt;Evaluator&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:16px'&gt;Composition →&lt;br&gt;predicted properties&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eef5fc;strokeColor=#6c8ebf;fontColor=#023d7b;fontSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="320" y="56" width="240" height="108" as="geometry"/>
+                </mxCell>
+                <mxCell id="L1_c3" value="&lt;b&gt;Alloy&lt;br&gt;Designer&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:16px'&gt;Target properties →&lt;br&gt;new composition&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eef5fc;strokeColor=#6c8ebf;fontColor=#023d7b;fontSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="580" y="56" width="240" height="108" as="geometry"/>
+                </mxCell>
+
+                <!-- LAYER 2 — Multi-Agent Orchestration -->
+                <mxCell id="L2" value="&lt;b&gt;Multi-Agent Orchestration&lt;/b&gt;  (CrewAI · Llama 3.3-70B)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#3d1a78;fontSize=24;verticalAlign=top;align=left;spacingLeft=18;spacingTop=10;arcSize=2;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="204" width="820" height="176" as="geometry"/>
+                </mxCell>
+                <mxCell id="L2_c1" value="&lt;b&gt;Reviewer&lt;br&gt;Agent&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:16px'&gt;Metallurgical bounds&lt;br&gt;TCP · Coherency&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f4eefb;strokeColor=#9673a6;fontColor=#3d1a78;fontSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="256" width="240" height="108" as="geometry"/>
+                </mxCell>
+                <mxCell id="L2_c2" value="&lt;b&gt;Analyst&lt;br&gt;Agent&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:16px'&gt;ML + Physics + KG&lt;br&gt;triangulation&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f4eefb;strokeColor=#9673a6;fontColor=#3d1a78;fontSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="320" y="256" width="240" height="108" as="geometry"/>
+                </mxCell>
+                <mxCell id="L2_c3" value="&lt;b&gt;Designer&lt;br&gt;Agent&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:16px'&gt;Composition&lt;br&gt;synthesis&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f4eefb;strokeColor=#9673a6;fontColor=#3d1a78;fontSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="580" y="256" width="240" height="108" as="geometry"/>
+                </mxCell>
+
+                <!-- Analyst → Reviewer -->
+                <mxCell id="e_a2r" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#7952a8;strokeWidth=4;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;" parent="1" source="L2_c2" target="L2_c1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <!-- LAYER 3 — Prediction Engine -->
+                <mxCell id="L3" value="&lt;b&gt;Prediction Engine&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#1a5e20;fontSize=24;verticalAlign=top;align=left;spacingLeft=18;spacingTop=10;arcSize=2;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="406" width="820" height="196" as="geometry"/>
+                </mxCell>
+                <mxCell id="L3_c1" value="&lt;b&gt;ML Ensemble&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:16px'&gt;XGBoost + RF&lt;br&gt;4 models: YS, UTS,&lt;br&gt;EL, EM&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eaf5e9;strokeColor=#82b366;fontColor=#1a5e20;fontSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="456" width="240" height="126" as="geometry"/>
+                </mxCell>
+                <mxCell id="L3_c2" value="&lt;b&gt;Physics Models&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:16px'&gt;γ′ fraction · Md&lt;br&gt;Lattice mismatch&lt;br&gt;SSS · VRH · T-deg.&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eaf5e9;strokeColor=#82b366;fontColor=#1a5e20;fontSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="320" y="456" width="240" height="126" as="geometry"/>
+                </mxCell>
+                <mxCell id="L3_c3" value="&lt;b&gt;Deterministic&lt;br&gt;Optimizer&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:16px'&gt;Guard + Tuner&lt;br&gt;±3 wt% adjustments&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eaf5e9;strokeColor=#82b366;fontColor=#1a5e20;fontSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="580" y="456" width="240" height="126" as="geometry"/>
+                </mxCell>
+
+                <!-- LAYER 4 — Knowledge Layer -->
+                <mxCell id="L4" value="&lt;b&gt;Knowledge Layer&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#7a3f00;fontSize=24;verticalAlign=top;align=left;spacingLeft=18;spacingTop=10;arcSize=2;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="628" width="820" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="L4_c1" value="&lt;b&gt;Weaviate&lt;br&gt;Vector DB&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:16px'&gt;Hybrid search&lt;br&gt;dense + BM25&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff5e6;strokeColor=#d79b00;fontColor=#7a3f00;fontSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="680" width="240" height="108" as="geometry"/>
+                </mxCell>
+                <mxCell id="L4_c2" value="&lt;b&gt;GraphDB&lt;br&gt;Triplestore&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:16px'&gt;RDF triples&lt;br&gt;SPARQL · RDFS&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff5e6;strokeColor=#d79b00;fontColor=#7a3f00;fontSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="320" y="680" width="240" height="108" as="geometry"/>
+                </mxCell>
+                <mxCell id="L4_c3" value="&lt;b&gt;OWL Ontology&lt;br&gt;+ HermiT&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:16px'&gt;32 classes · DL axioms&lt;br&gt;EMMO · ChEBI · QUDT&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff5e6;strokeColor=#d79b00;fontColor=#7a3f00;fontSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="580" y="680" width="240" height="108" as="geometry"/>
+                </mxCell>
+
+                <!-- LAYER 5 — Data Sources -->
+                <mxCell id="L5" value="&lt;b&gt;Data Sources&lt;/b&gt;  Literature and manufacturer datasheets" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=24;verticalAlign=top;align=left;spacingLeft=18;spacingTop=10;arcSize=2;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="834" width="820" height="126" as="geometry"/>
+                </mxCell>
+                <mxCell id="L5_c2" value="&lt;b&gt;Evaluation Set&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:16px'&gt;88 Ni superalloys · Test data&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#aaaaaa;fontColor=#333333;fontSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="886" width="380" height="58" as="geometry"/>
+                </mxCell>
+                <mxCell id="L5_c1" value="&lt;b&gt;Knowledge Graph Data&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:16px'&gt;77 Ni superalloys · ML training&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#aaaaaa;fontColor=#333333;fontSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="460" y="886" width="380" height="58" as="geometry"/>
+                </mxCell>
+
+                <!-- ════════════════════════════════════════ -->
+                <!-- CONNECTIONS                              -->
+                <!-- ════════════════════════════════════════ -->
+
+                <!-- Property Evaluator → Analyst -->
+                <mxCell id="e_eval" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#9673a6;strokeWidth=3;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;" parent="1" source="L1_c2" target="L2_c2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <!-- Alloy Designer → Designer Agent -->
+                <mxCell id="e_design" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#9673a6;strokeWidth=3;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;" parent="1" source="L1_c3" target="L2_c3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <!-- Analyst → ML Ensemble -->
+                <mxCell id="e_a2ml" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82b366;strokeWidth=3;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.65;entryY=0;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;" parent="1" source="L2_c2" target="L3_c1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="368" y="394"/>
+                            <mxPoint x="216" y="394"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+
+                <!-- Analyst → Physics -->
+                <mxCell id="e_a2phys" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82b366;strokeWidth=3;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;" parent="1" source="L2_c2" target="L3_c2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <!-- Designer Agent → Optimizer -->
+                <mxCell id="e_d2opt" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82b366;strokeWidth=3;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;" parent="1" source="L2_c3" target="L3_c3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <!-- Optimizer → Analyst feedback -->
+                <mxCell id="e_opt2a" value="&lt;font style='font-size:16px'&gt;optimised&lt;br&gt;composition&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#9673a6;strokeWidth=2;dashed=1;dashPattern=10 6;exitX=0;exitY=0.3;exitDx=0;exitDy=0;entryX=0.64;entryY=1;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;fontColor=#9673a6;labelBackgroundColor=#e1d5e7;align=center;" parent="1" source="L3_c3" target="L2_c2" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="568" y="494"/>
+                            <mxPoint x="568" y="390"/>
+                            <mxPoint x="474" y="390"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+
+                <!-- Within Knowledge Layer -->
+                <mxCell id="e_ont2gdb" value="&lt;font style='font-size:16px'&gt;schema + axioms&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;dashed=1;dashPattern=8 5;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;fontColor=#b35a00;labelBackgroundColor=#ffe6cc;" parent="1" source="L4_c3" target="L4_c2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_gdb2w" value="&lt;font style='font-size:16px'&gt;ETL pipeline&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;dashed=1;dashPattern=8 5;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;fontColor=#b35a00;labelBackgroundColor=#ffe6cc;" parent="1" source="L4_c2" target="L4_c1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <!-- Research Assistant → Weaviate RAG bypass -->
+                <mxCell id="e_rag" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=3;dashed=1;dashPattern=10 6;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;" parent="1" source="L1_c1" target="L4_c1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="20" y="110"/>
+                            <mxPoint x="20" y="734"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+
+                <!-- Data Sources → Knowledge Layer -->
+                <mxCell id="e_data2g" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#666666;strokeWidth=3;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;" parent="1" source="L5_c1" target="L4_c2" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="650" y="826"/>
+                            <mxPoint x="440" y="826"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e_data2ont" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#666666;strokeWidth=3;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;" parent="1" source="L5_c1" target="L4_c3" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="650" y="826"/>
+                            <mxPoint x="700" y="826"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

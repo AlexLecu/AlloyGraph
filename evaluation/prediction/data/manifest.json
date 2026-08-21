@@ -1,0 +1,57 @@
+{
+  "created": "2026-01-31T23:02:45.366741",
+  "description": "Categorized evaluation datasets for AlloyGraph",
+  "categories": {
+    "precip_poly": {
+      "name": "Precipitation-hardened Polycrystalline",
+      "description": "Primary target: \u03b3'/\u03b3'' strengthened, polycrystalline Ni-base superalloys",
+      "criteria": "Ni > 40%, Al+Ti >= 2%, not SC/DS",
+      "count": 41
+    },
+    "precip_sc_ds": {
+      "name": "Precipitation-hardened SC/DS",
+      "description": "Single crystal and directionally solidified superalloys",
+      "criteria": "Ni > 40%, Al+Ti >= 2%, SC/DS processing",
+      "count": 16
+    },
+    "solid_solution": {
+      "name": "Solid-Solution Strengthened",
+      "description": "Corrosion-resistant alloys without significant precipitation",
+      "criteria": "Ni > 40%, Al+Ti < 2%",
+      "count": 43
+    },
+    "other": {
+      "name": "Other Nickel Alloys",
+      "description": "Pure Ni, Monel, Co-base, Fe-Ni base alloys",
+      "criteria": "Ni < 40% or Cu > 20% or Ni > 95%",
+      "count": 11
+    }
+  },
+  "sources": {
+    "test_split_30": {
+      "solid_solution": 8,
+      "precip_sc_ds": 3,
+      "precip_poly": 15,
+      "other": 1
+    },
+    "matweb_original": {
+      "precip_poly": 19,
+      "solid_solution": 3,
+      "other": 5,
+      "precip_sc_ds": 13
+    },
+    "matweb_alloys": {
+      "other": 5,
+      "solid_solution": 32,
+      "precip_poly": 7
+    }
+  },
+  "files": {
+    "precip_poly.jsonl": "Primary evaluation set",
+    "precip_sc_ds.jsonl": "SC/DS alloys (different physics)",
+    "solid_solution.jsonl": "Out-of-scope test (different mechanism)",
+    "other.jsonl": "Non-Ni-base alloys",
+    "all_categorized.jsonl": "Combined file with _category field"
+  },
+  "total_alloys": 111
+}

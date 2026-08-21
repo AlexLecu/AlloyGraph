@@ -269,3 +269,30 @@ backend/alloy_crew/README.md
 
 # Paper source (authoritative copy lives in Overleaf; never commit)
 paper_src/
+
+# Local virtualenv (1.6 GB, 53k files)
+.new/
+
+# Stale duplicate of the canonical ontology/alloygraph.owl — the two have
+# diverged; ontology/ is the tracked source of truth. Root-anchored: git has
+# core.ignorecase=true on macOS, so a bare "Data/" also swallows
+# evaluation/prediction/data/, which holds the live evaluation sets.
+/Data/
+
+# Superseded evaluation data, mirrors the existing backend/_archive rule
+evaluation/_archive/
+
+# Staging bundle for the figshare upload. Every file duplicates something
+# already tracked under evaluation/ or ontology/, and the published copy
+# lives at doi.org/10.6084/m9.figshare.31860466.
+figshare-data/
+alloygraph-data.zip
+
+# Stale paper copies — paper_src/ (Overleaf) is authoritative. The .drawio
+# figure sources under docs/paper/figures are tracked; only the rendered
+# PNGs are ignored, since paper_src/images carries its own copies.
+docs/paper.tex
+docs/paper-acta.tex
+docs/cover-letter.tex
+docs/paper/*.md
+docs/paper/figures/*.png

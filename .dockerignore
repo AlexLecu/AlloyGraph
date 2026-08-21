@@ -1,0 +1,50 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+*.egg-info/
+
+# Node.js
+node_modules/
+npm-debug.log*
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Documentation
+*.md
+!README.md
+!DOCKER_DEPLOY.md
+
+# Logs and temp files
+*.log
+logs/
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Weaviate data
+backend/docker/weaviate_alloy_data/
+
+# Scripts (not needed in containers)
+scripts/
+
+# Notebooks
+Notebooks/
+
+# Local Python installs
+.local/
+
+# Archive
+backend/_archive/
