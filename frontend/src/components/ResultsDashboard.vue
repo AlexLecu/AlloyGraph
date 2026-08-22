@@ -22,7 +22,7 @@ const props = defineProps({
   maxRetries: { type: Number, default: 3 },
 })
 
-const emit = defineEmits(['retry', 'dismiss-error', 'copy-to-evaluation'])
+const emit = defineEmits(['retry', 'dismiss-error', 'copy-to-evaluation', 'cancel'])
 
 // --- HELPERS ---
 const parseVal = (v) => {
@@ -316,6 +316,7 @@ const copyToEvaluation = () => {
       </div>
       <div class="pipeline-footer">
         <span class="elapsed-time">{{ elapsedSeconds }}s elapsed</span>
+        <button class="pipeline-cancel" @click="emit('cancel')" title="Stop this run">Stop</button>
       </div>
       <div v-if="logs.length > 0" class="logs-scroll">
         <div v-for="(log, i) in logs" :key="i" class="log-line">{{ log }}</div>
@@ -546,8 +547,24 @@ const copyToEvaluation = () => {
 .pipeline-track { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; }
 .pipeline-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-subtle); transition: all 0.3s ease; }
 .pipeline-dot.active { width: 10px; height: 10px; background: var(--primary, #00d4ff); box-shadow: 0 0 8px rgba(0, 212, 255, 0.5); }
-.pipeline-footer { display: flex; align-items: center; justify-content: center; padding-top: 0.5rem; border-top: 1px solid var(--border-subtle); }
-.pipeline-footer .elapsed-time { font-size: 0.8rem; color: var(--text-muted); font-family: monospace; }
+.pipeline-footer { display: flex; align-items: center; justify-content: center; gap: 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--border-subtle); }
+.pipeline-footer .pipeline-cancel {
+  background: transparent;
+  border: 1px solid var(--border-color, rgba(128, 128, 128, 0.35));
+  color: var(--text-secondary, #888);
+  border-radius: 6px;
+  padding: 3px 12px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.pipeline-cancel:hover {
+  background: rgba(220, 80, 80, 0.12);
+  border-color: rgba(220, 80, 80, 0.5);
+  color: #d9534f;
+}
+
+.elapsed-time { font-size: 0.8rem; color: var(--text-muted); font-family: monospace; }
 .logs-scroll { max-height: 150px; overflow-y: auto; text-align: left; font-family: monospace; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-subtle); padding-top: 10px; }
 
 /* Results Dashboard */

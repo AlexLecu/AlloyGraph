@@ -23,6 +23,19 @@ const loading = ref(false)
 const logs = ref([])
 const result = ref(null)
 
+// --- REQUEST LIFETIME ---
+// Agent runs are slow but not unbounded. Without an explicit timeout axios waits
+// forever, so a backend that stalls leaves the UI spinning with no way out.
+// Design scales with the iteration count; evaluation is a single pass.
+const VALIDATE_TIMEOUT_MS = 6 * 60 * 1000
+const DESIGN_TIMEOUT_BASE_MS = 5 * 60 * 1000
+const DESIGN_TIMEOUT_PER_ITER_MS = 5 * 60 * 1000
+let inFlight = null
+
+const cancelRun = () => {
+  if (inFlight) { inFlight.abort(); inFlight = null }
+}
+
 // --- ERROR STATE ---
 const error = ref(null)
 const errorType = ref(null)
@@ -152,14 +165,17 @@ const startLoading = () => {
 const stopLoading = () => {
   loading.value = false
   loadingStep.value = 0
+  inFlight = null
   if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null }
 }
 
 // --- ERROR HELPERS ---
 const classifyError = (err) => {
-  if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) return 'timeout'
-  if (err.code === 'ERR_NETWORK' || err.message.includes('Network Error')) return 'network'
-  if (!err.response) return 'no_response'
+  const msg = String(err?.message || '')
+  if (err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError' || msg === 'canceled') return 'cancelled'
+  if (err?.code === 'ECONNABORTED' || msg.includes('timeout')) return 'timeout'
+  if (err?.code === 'ERR_NETWORK' || msg.includes('Network Error')) return 'network'
+  if (!err?.response) return 'no_response'
   if (err.response?.status >= 400 && err.response?.status < 500) return 'validation'
   if (err.response?.status >= 500) return 'server'
   return 'unknown'
@@ -172,6 +188,7 @@ const getErrorMessage = (type, err) => {
     timeout: 'Request timed out. The server took too long to respond.',
     validation: `Invalid request: ${err.response?.data?.error || err.message}`,
     server: `Server error: ${err.response?.data?.error || err.message}`,
+    cancelled: 'Run cancelled.',
     unknown: `Unexpected error: ${err.message}`
   }
   return messages[type] || messages.unknown
@@ -239,9 +256,10 @@ const runValidation = async (isRetry = false) => {
   logs.value.push(`Validating Composition at ${manualTemp.value}\u00B0C (${manualProcessing.value})...`)
 
   try {
+    inFlight = new AbortController()
     const res = await axios.post(`${API_BASE_URL}/api/validate`, {
       composition: manualComp.value, temp: manualTemp.value, processing: manualProcessing.value
-    })
+    }, { timeout: VALIDATE_TIMEOUT_MS, signal: inFlight.signal })
     if (res.data?.result?.error) {
       stopLoading(); errorType.value = 'validation'; error.value = res.data.result.error; return
     }
@@ -250,8 +268,11 @@ const runValidation = async (isRetry = false) => {
     if (res.data.result?.properties) saveToHistory(res.data.result)
     stopLoading(); retryCount.value = 0
   } catch (err) {
-    stopLoading(); console.error('Validation error:', err)
-    errorType.value = classifyError(err); error.value = getErrorMessage(errorType.value, err)
+    stopLoading()
+    const kind = classifyError(err)
+    if (kind === 'cancelled') { logs.value.push('Evaluation cancelled.'); return }
+    console.error('Validation error:', err)
+    errorType.value = kind; error.value = getErrorMessage(kind, err)
   }
 }
 
@@ -279,8 +300,12 @@ const runDesign = async (isRetry = false) => {
     if (targets.value.density < 99) target_props['Density'] = targets.value.density
     if (targets.value.gamma_prime > 0) target_props['Gamma Prime'] = targets.value.gamma_prime
 
+    inFlight = new AbortController()
     const response = await axios.post(`${API_BASE_URL}/api/design`, {
       target_props, processing: autoProcessing.value, temp: autoTemp.value, max_iter: autoIterations.value
+    }, {
+      timeout: DESIGN_TIMEOUT_BASE_MS + DESIGN_TIMEOUT_PER_ITER_MS * Math.max(1, Number(autoIterations.value) || 1),
+      signal: inFlight.signal,
     })
     const designResult = response.data.result
     result.value = designResult
@@ -296,8 +321,11 @@ const runDesign = async (isRetry = false) => {
     if (designResult.composition) saveToHistory(designResult)
     stopLoading(); retryCount.value = 0
   } catch (err) {
-    stopLoading(); console.error('Design error:', err)
-    errorType.value = classifyError(err); error.value = getErrorMessage(errorType.value, err)
+    stopLoading()
+    const kind = classifyError(err)
+    if (kind === 'cancelled') { logs.value.push('Design cancelled.'); return }
+    console.error('Design error:', err)
+    errorType.value = kind; error.value = getErrorMessage(kind, err)
   }
 }
 
@@ -425,6 +453,7 @@ onUnmounted(() => {
       :manualComp="manualComp"
       :retryCount="retryCount"
       :maxRetries="maxRetries"
+      @cancel="cancelRun"
       @retry="mode === 'manual' ? retryValidation() : retryDesign()"
       @dismiss-error="clearError"
       @copy-to-evaluation="copyToEvaluation"
