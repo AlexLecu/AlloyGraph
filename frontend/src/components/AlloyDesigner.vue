@@ -181,17 +181,33 @@ const classifyError = (err) => {
   return 'unknown'
 }
 
+// The backend returns str(exception) in its 500 handler, so `data.error` can be
+// a raw Python message ("KeyError: 'Yield Strength'", a litellm traceback line).
+// Surface a short technical detail for the curious, never the raw string as the
+// primary message, and never anything that looks like a stack trace.
+const MAX_DETAIL_CHARS = 160
+
+const technicalDetail = (err) => {
+  const raw = err?.response?.data?.error || err?.message || ''
+  const first = String(raw).split('\n').find(l => l.trim()) || ''
+  if (!first) return ''
+  if (/Traceback|File "|  at /.test(first)) return ''
+  return first.length > MAX_DETAIL_CHARS ? `${first.slice(0, MAX_DETAIL_CHARS)}\u2026` : first
+}
+
 const getErrorMessage = (type, err) => {
   const messages = {
-    network: 'Network error: Unable to connect to backend. Check if backend is running.',
-    no_response: 'Connection error: Request sent but no response received.',
-    timeout: 'Request timed out. The server took too long to respond.',
-    validation: `Invalid request: ${err.response?.data?.error || err.message}`,
-    server: `Server error: ${err.response?.data?.error || err.message}`,
+    network: 'Could not reach the backend. Check that it is running, then try again.',
+    no_response: 'The backend accepted the request but never replied. It may still be starting up.',
+    timeout: 'This run took longer than expected and was stopped. Try fewer iterations, or run it again.',
+    validation: 'The backend rejected this request. Check the composition and target values.',
+    server: 'The backend hit an error while running this analysis.',
     cancelled: 'Run cancelled.',
-    unknown: `Unexpected error: ${err.message}`
+    unknown: 'Something went wrong while running this analysis.'
   }
-  return messages[type] || messages.unknown
+  const base = messages[type] || messages.unknown
+  const detail = type === 'cancelled' ? '' : technicalDetail(err)
+  return detail ? `${base} (${detail})` : base
 }
 
 const clearError = () => { error.value = null; errorType.value = null }

@@ -66,6 +66,23 @@ const hasUsefulPredictionInfo = (results) => {
   return hasMatch || hasTcpWarning
 }
 
+// A run can return HTTP 200 with a result object that carries nothing usable:
+// the agent pipeline failed, status is FAIL/UNKNOWN and properties is empty.
+// Reproduced against the live backend. Every panel below is guarded on its own
+// content, so such a result previously rendered a dashboard containing only a
+// status chip -- an apparently successful run with no output.
+const hasNoUsableOutput = (results) => {
+  if (!results) return false
+  return results.formattedProps.length === 0
+    && !results.comp
+    && results.physicsMetrics.length === 0
+    && results.issues.length === 0
+    && !results.explanation
+    && !results.summary
+    && !results.analystReasoning
+    && !results.reviewerAssessment
+}
+
 const formatMetricLabel = (key) => {
   const labelMap = {
     'md_average': 'Md Temperature (avg)', 'sss_wt_pct': 'Solid Solution Strengthening (wt%)',
@@ -324,7 +341,24 @@ const copyToEvaluation = () => {
     </div>
 
     <!-- RESULTS DASHBOARD -->
-    <div v-if="parsedResults" class="results-dashboard">
+    <div v-if="parsedResults && hasNoUsableOutput(parsedResults)" class="empty-result glass-card" role="status">
+      <div class="empty-result-icon">⚠️</div>
+      <h3 class="empty-result-title">The run finished without producing a prediction</h3>
+      <p class="empty-result-body">
+        The request reached the backend and returned, but the analysis pipeline
+        came back empty<span v-if="parsedResults.status && parsedResults.status !== 'UNKNOWN'">
+        (status: {{ parsedResults.status }})</span>. This usually means the
+        agent stage could not complete.
+      </p>
+      <div class="empty-result-actions">
+        <button class="retry-btn" @click="emit('retry')">Try again</button>
+      </div>
+      <div v-if="logs.length > 0" class="logs-scroll">
+        <div v-for="(log, i) in logs" :key="i" class="log-line">{{ log }}</div>
+      </div>
+    </div>
+
+    <div v-else-if="parsedResults" class="results-dashboard">
       <div class="dashboard-header">
         <h3>Analysis Complete at {{ result.temperature || temperature }}°C</h3>
         <p class="summary-text">{{ parsedResults.summary }}</p>
@@ -568,6 +602,13 @@ const copyToEvaluation = () => {
 .logs-scroll { max-height: 150px; overflow-y: auto; text-align: left; font-family: monospace; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-subtle); padding-top: 10px; }
 
 /* Results Dashboard */
+.empty-result { text-align: center; padding: 2rem 1.5rem; }
+.empty-result-icon { font-size: 2rem; line-height: 1; margin-bottom: 0.6rem; }
+.empty-result-title { font-size: 1.05rem; margin: 0 0 0.5rem; color: var(--text-primary); }
+.empty-result-body { font-size: 0.9rem; color: var(--text-secondary); max-width: 46ch; margin: 0 auto 1rem; line-height: 1.6; }
+.empty-result-actions { display: flex; justify-content: center; gap: 0.6rem; }
+.empty-result-actions .retry-btn { flex: 0 0 auto; min-width: 140px; }
+
 .results-dashboard { color: var(--text-primary); }
 .dashboard-header { border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; margin-bottom: 1.5rem; }
 .summary-text { font-style: italic; color: var(--text-secondary); margin-top: 0.5rem; font-size: 1.1rem; line-height: 1.4; }
