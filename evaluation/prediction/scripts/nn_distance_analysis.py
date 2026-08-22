@@ -64,6 +64,7 @@ METHODS = [
     ("GBM raw", "seed42_gbm_raw_{ds}.csv"),
     ("RF raw", "seed42_rf_raw_{ds}.csv"),
     ("GPR raw", "seed42_gpr_raw_{ds}.csv"),
+    ("GPR physics", "seed42_gpr_physics_{ds}.csv"),
 ]
 
 #: Arms whose value is a mean over seeds rather than a single deterministic run.

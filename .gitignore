@@ -296,3 +296,6 @@ docs/paper-acta.tex
 docs/cover-letter.tex
 docs/paper/*.md
 docs/paper/figures/*.png
+
+# Generated manuscript assets — regenerate with evaluation/paper_assets/*.py
+paper_assets/

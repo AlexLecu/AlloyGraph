@@ -55,6 +55,8 @@ import os
 import sys
 import warnings
 
+import math
+
 import numpy as np
 import pandas as pd
 
@@ -119,6 +121,30 @@ def element_vocabulary():
     return sorted(els - NOT_AN_ELEMENT)
 
 
+#: Engineered features, as computed by the production feature layer and stored
+#: on every record. Training and evaluation files carry the identical 25 keys,
+#: verified before use. Combined with the temperature derivatives below this is
+#: the feature space the production models actually learn on.
+def engineered_features(record, temperature):
+    """Physics features + temperature, matching train_ml_models.load_data."""
+    # Numeric features only. computed_features also carries categorical
+    # descriptors (tcp_risk = "Low", alloy class), which the median imputer
+    # cannot take and which the production pipeline one-hot encodes separately.
+    feats = {k: float(v) for k, v in (record.get("computed_features") or {}).items()
+             if isinstance(v, (int, float)) and not isinstance(v, bool)}
+    t = float(temperature)
+    tk = max(1.0, t + 273.15)
+    feats.update({
+        "test_temperature_c": t,
+        "temp_c_sq": t ** 2,
+        "temp_c_cube": t ** 3,
+        "log_temp_k": math.log(tk),
+        "inv_temp_k": 1.0 / tk,
+        "temp_normalized": (t - 20) / 1080,
+    })
+    return feats
+
+
 def raw_features(composition, temperature, vocab):
     """The entire raw feature vector: weight percents plus temperature."""
     row = {f"wt_{el}": float(composition.get(el) or 0.0) for el in vocab}
@@ -126,8 +152,8 @@ def raw_features(composition, temperature, vocab):
     return row
 
 
-def load_training(target_id, vocab):
-    """Training rows for one property, raw features only."""
+def load_training(target_id, vocab, engineered=False):
+    """Training rows for one property."""
     cfg = TARGETS[target_id]
     lo, hi = cfg["bounds"]
     rows = []
@@ -142,15 +168,16 @@ def load_training(target_id, vocab):
                 continue
             if not (-270 <= temp <= 1500) or not (lo <= val <= hi):
                 continue
-            row = raw_features(comp, temp, vocab)
+            row = (engineered_features(rec, temp) if engineered
+                   else raw_features(comp, temp, vocab))
             row["target"] = val
             row["alloy_name"] = rec.get("alloy", "unknown")
             rows.append(row)
     return pd.DataFrame(rows)
 
 
-def load_evaluation(vocab):
-    """The 471 evaluation rows, one per (alloy, temperature), raw features."""
+def load_evaluation(vocab, engineered=False):
+    """The 471 evaluation rows, one per (alloy, temperature)."""
     frames = {}
     for ds, fn in DATASETS.items():
         path = os.path.join(DATA_DIR, fn)
@@ -172,7 +199,8 @@ def load_evaluation(vocab):
                     temps.add(t)
                     actual.setdefault(t, {})[tid] = v
             for t in sorted(temps):
-                row = raw_features(comp, t, vocab)
+                row = (engineered_features(rec, t) if engineered
+                       else raw_features(comp, t, vocab))
                 row["alloy"] = rec.get("alloy")
                 row["temperature"] = t
                 row["processing"] = rec.get("processing", "unknown")
@@ -315,22 +343,32 @@ def main():
     from sklearn.model_selection import GroupShuffleSplit, GroupKFold
     from sklearn.metrics import mean_absolute_error, r2_score
 
+    ARMS = ("gbm_raw", "rf_raw", "gpr_raw", "gpr_physics")
+
     vocab = element_vocabulary()
     print(f"Raw feature set: {len(vocab)} element weight percents + temperature "
           f"= {len(vocab) + 1} features")
     print(f"(production models use 50-80 engineered features)\n")
 
     eval_frames = load_evaluation(vocab)
+    eval_frames_eng = load_evaluation(vocab, engineered=True)
     n_eval = sum(len(v) for v in eval_frames.values())
     print(f"Evaluation rows: {n_eval}")
 
     feature_cols = [f"wt_{e}" for e in vocab] + ["test_temperature_c"]
+    eng_cols = sorted(set(next(iter(eval_frames_eng.values())).columns)
+                      - {"alloy", "temperature", "processing"}
+                      - {t["actual"] for t in TARGETS.values()})
+    print(f"Engineered feature set: {len(eng_cols)} features "
+          f"(physics + temperature derivatives)")
     metric_rows = []
-    predictions = {name: {ds: df.copy() for ds, df in eval_frames.items()}
-                   for name in ("gbm_raw", "rf_raw", "gpr_raw")}
+    predictions = {name: {ds: (eval_frames_eng if name.endswith("physics") else eval_frames)[ds].copy()
+                          for ds in eval_frames}
+                   for name in ARMS}
 
     for tid, cfg in TARGETS.items():
         df = load_training(tid, vocab)
+        df_eng = load_training(tid, vocab, engineered=True)
         gss = GroupShuffleSplit(n_splits=1, test_size=HOLDOUT_FRACTION, random_state=SEED)
         tr_idx, te_idx = next(gss.split(df, groups=df["alloy_name"]))
         train_df, test_df = df.iloc[tr_idx].copy(), df.iloc[te_idx].copy()
@@ -342,9 +380,25 @@ def main():
         print(f"  train {len(train_df)} rows / {groups.nunique()} alloys, "
               f"holdout {len(test_df)} rows")
 
-        for name in ("gbm_raw", "rf_raw", "gpr_raw"):
-            if name == "gpr_raw":
-                model, params = gpr_model(), {"kernel": "C * Matern(nu=2.5) + White"}
+        for name in ARMS:
+            physics = name.endswith("physics")
+            if physics:
+                tr_eng = df_eng.iloc[tr_idx].copy()
+                te_eng = df_eng.iloc[te_idx].copy()
+                X, y = tr_eng[eng_cols].reset_index(drop=True), tr_eng["target"].reset_index(drop=True)
+                groups = tr_eng["alloy_name"].reset_index(drop=True)
+                w = sample_weights(groups)
+                cols, test_df_use = eng_cols, te_eng
+            else:
+                X = train_df[feature_cols].reset_index(drop=True)
+                y = train_df["target"].reset_index(drop=True)
+                groups = train_df["alloy_name"].reset_index(drop=True)
+                w = sample_weights(groups)
+                cols, test_df_use = feature_cols, test_df
+
+            if name.startswith("gpr"):
+                model, params = gpr_model(), {"kernel": "C * Matern(nu=2.5) + White",
+                                             "features": "engineered" if physics else "raw"}
             else:
                 model, params = tune_tree_model(X, y, groups, w,
                                                 "gbm" if name == "gbm_raw" else "rf",
@@ -354,7 +408,7 @@ def main():
             cv_mae, cv_r2 = [], []
             for a, b in gkf.split(X, y, groups=groups):
                 pipe = build_pipeline(model)
-                if name == "gpr_raw":
+                if name.startswith("gpr"):
                     pipe.fit(X.iloc[a], y.iloc[a])
                 else:
                     pipe.fit(X.iloc[a], y.iloc[a], model__sample_weight=w[a])
@@ -363,18 +417,18 @@ def main():
                 cv_r2.append(r2_score(y.iloc[b], p))
 
             pipe = build_pipeline(model)
-            if name == "gpr_raw":
+            if name.startswith("gpr"):
                 pipe.fit(X, y)
             else:
                 pipe.fit(X, y, model__sample_weight=w)
-            ho_mae, ho_r2 = evaluate(pipe, test_df[feature_cols], test_df["target"])
+            ho_mae, ho_r2 = evaluate(pipe, test_df_use[cols], test_df_use["target"])
 
             print(f"  {name:8s} CV MAE {np.mean(cv_mae):8.2f} R2 {np.mean(cv_r2):6.3f} | "
                   f"holdout MAE {ho_mae:8.2f} R2 {ho_r2:6.3f}")
             metric_rows.append({
                 "model": name, "target": tid, "property": cfg["name"], "unit": cfg["unit"],
-                "n_train_rows": len(train_df), "n_train_alloys": int(groups.nunique()),
-                "n_features": len(feature_cols),
+                "n_train_rows": len(X), "n_train_alloys": int(groups.nunique()),
+                "n_features": len(cols),
                 "cv_mae": round(float(np.mean(cv_mae)), 2),
                 "cv_r2": round(float(np.mean(cv_r2)), 3),
                 "holdout_mae": round(ho_mae, 2), "holdout_r2": round(ho_r2, 3),
@@ -382,7 +436,7 @@ def main():
             })
 
             for ds, frame in predictions[name].items():
-                frame[cfg["pred"]] = pipe.predict(frame[feature_cols])
+                frame[cfg["pred"]] = pipe.predict(frame[cols])
 
     for name, frames in predictions.items():
         for ds, frame in frames.items():

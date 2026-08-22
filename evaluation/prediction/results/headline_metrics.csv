@@ -1,37 +1,41 @@
-arm,property,unit,n_seeds,n_rows,mae,mae_sd,r2,pre_erratum
-ML-only,YS,MPa,1,286,101.16,,0.828,False
-ML-only,UTS,MPa,1,290,112.96,,0.846,False
-ML-only,EL,%,1,284,13.84,,0.246,False
-ML-only,EM,GPa,1,304,12.86,,0.48,False
-ML+physics,YS,MPa,1,286,101.16,,0.828,False
-ML+physics,UTS,MPa,1,290,113.25,,0.846,False
-ML+physics,EL,%,1,284,13.8,,0.246,False
-ML+physics,EM,GPa,1,304,8.21,,0.83,False
-ML+physics+KG,YS,MPa,1,286,94.83,,0.841,False
-ML+physics+KG,UTS,MPa,1,290,112.75,,0.848,False
-ML+physics+KG,EL,%,1,284,12.82,,0.403,False
-ML+physics+KG,EM,GPa,1,304,8.21,,0.83,False
-Full system (5 seeds),YS,MPa,5,286,80.89,1.12,0.862,False
-Full system (5 seeds),UTS,MPa,5,290,96.44,0.93,0.863,False
-Full system (5 seeds),EL,%,5,284,12.56,0.12,0.412,False
-Full system (5 seeds),EM,GPa,5,304,8.94,0.06,0.775,False
-GPT-4.1-mini (stock),YS,MPa,1,286,200.34,,0.353,False
-GPT-4.1-mini (stock),UTS,MPa,1,290,176.06,,0.606,False
-GPT-4.1-mini (stock),EL,%,1,284,23.69,,-0.36,False
-GPT-4.1-mini (stock),EM,GPa,1,304,16.12,,0.26,False
-Llama-3.3-70B (DeepInfra),YS,MPa,1,286,267.56,,-0.096,False
-Llama-3.3-70B (DeepInfra),UTS,MPa,1,290,290.36,,0.131,False
-Llama-3.3-70B (DeepInfra),EL,%,1,284,24.12,,-0.376,False
-Llama-3.3-70B (DeepInfra),EM,GPa,1,304,22.55,,-0.185,False
-GBM raw features,YS,MPa,1,263,105.02,,0.794,False
-GBM raw features,UTS,MPa,1,267,111.79,,0.827,False
-GBM raw features,EL,%,1,260,12.73,,0.346,False
-GBM raw features,EM,GPa,1,291,14.87,,0.354,False
-RF raw features,YS,MPa,1,263,95.01,,0.825,False
-RF raw features,UTS,MPa,1,267,111.33,,0.825,False
-RF raw features,EL,%,1,260,12.77,,0.34,False
-RF raw features,EM,GPa,1,291,18.67,,0.007,False
-GPR raw features,YS,MPa,1,263,123.89,,0.732,False
-GPR raw features,UTS,MPa,1,267,134.96,,0.758,False
-GPR raw features,EL,%,1,260,12.66,,0.369,False
-GPR raw features,EM,GPa,1,291,16.63,,0.265,False
+arm,property,unit,n_seeds,n_rows,n_common_rows,mae,mae_sd,r2,pre_erratum
+ML-only,YS,MPa,1,286,471,101.16,,0.828,False
+ML-only,UTS,MPa,1,290,471,112.96,,0.846,False
+ML-only,EL,%,1,284,471,13.84,,0.246,False
+ML-only,EM,GPa,1,304,471,12.86,,0.48,False
+ML+physics,YS,MPa,1,286,471,101.16,,0.828,False
+ML+physics,UTS,MPa,1,290,471,113.25,,0.846,False
+ML+physics,EL,%,1,284,471,13.8,,0.246,False
+ML+physics,EM,GPa,1,304,471,8.21,,0.83,False
+ML+physics+KG,YS,MPa,1,286,471,94.83,,0.841,False
+ML+physics+KG,UTS,MPa,1,290,471,112.75,,0.848,False
+ML+physics+KG,EL,%,1,284,471,12.82,,0.403,False
+ML+physics+KG,EM,GPa,1,304,471,8.21,,0.83,False
+Full system (5 seeds),YS,MPa,5,286,471,80.89,1.12,0.862,False
+Full system (5 seeds),UTS,MPa,5,290,471,96.44,0.93,0.863,False
+Full system (5 seeds),EL,%,5,284,471,12.56,0.12,0.412,False
+Full system (5 seeds),EM,GPa,5,304,471,8.94,0.06,0.775,False
+GPT-4.1-mini (stock),YS,MPa,1,286,471,200.34,,0.353,False
+GPT-4.1-mini (stock),UTS,MPa,1,290,471,176.06,,0.606,False
+GPT-4.1-mini (stock),EL,%,1,284,471,23.69,,-0.36,False
+GPT-4.1-mini (stock),EM,GPa,1,304,471,16.12,,0.26,False
+Llama-3.3-70B (DeepInfra),YS,MPa,1,286,471,267.56,,-0.096,False
+Llama-3.3-70B (DeepInfra),UTS,MPa,1,290,471,290.36,,0.131,False
+Llama-3.3-70B (DeepInfra),EL,%,1,284,471,24.12,,-0.376,False
+Llama-3.3-70B (DeepInfra),EM,GPa,1,304,471,22.55,,-0.185,False
+GBM raw features,YS,MPa,1,263,471,105.02,,0.794,False
+GBM raw features,UTS,MPa,1,267,471,111.79,,0.827,False
+GBM raw features,EL,%,1,260,471,12.73,,0.346,False
+GBM raw features,EM,GPa,1,291,471,14.87,,0.354,False
+RF raw features,YS,MPa,1,263,471,95.01,,0.825,False
+RF raw features,UTS,MPa,1,267,471,111.33,,0.825,False
+RF raw features,EL,%,1,260,471,12.77,,0.34,False
+RF raw features,EM,GPa,1,291,471,18.67,,0.007,False
+GPR raw features,YS,MPa,1,263,471,123.89,,0.732,False
+GPR raw features,UTS,MPa,1,267,471,134.96,,0.758,False
+GPR raw features,EL,%,1,260,471,12.66,,0.369,False
+GPR raw features,EM,GPa,1,291,471,16.63,,0.265,False
+GPR physics features,YS,MPa,1,263,471,228.13,,0.121,False
+GPR physics features,UTS,MPa,1,267,471,271.11,,0.09,False
+GPR physics features,EL,%,1,260,471,21.32,,-0.104,False
+GPR physics features,EM,GPa,1,291,471,39.56,,-3.28,False

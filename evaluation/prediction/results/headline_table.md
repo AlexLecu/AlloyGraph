@@ -24,6 +24,7 @@ worst alloy for every ML arm.
 | GBM raw features | 471 | 0 |
 | RF raw features | 471 | 0 |
 | GPR raw features | 471 | 0 |
+| GPR physics features | 471 | 0 |
 
 ## MAE (lower is better)
 
@@ -38,6 +39,7 @@ worst alloy for every ML arm.
 | GBM raw features | 105.02 ± nan | 111.79 ± nan | 12.73 ± nan | 14.87 ± nan |
 | RF raw features | 95.01 ± nan | 111.33 ± nan | 12.77 ± nan | 18.67 ± nan |
 | GPR raw features | 123.89 ± nan | 134.96 ± nan | 12.66 ± nan | 16.63 ± nan |
+| GPR physics features | 228.13 ± nan | 271.11 ± nan | 21.32 ± nan | 39.56 ± nan |
 
 ## R²
 
@@ -52,6 +54,7 @@ worst alloy for every ML arm.
 | GBM raw features | 0.794 | 0.827 | 0.346 | 0.354 |
 | RF raw features | 0.825 | 0.825 | 0.340 | 0.007 |
 | GPR raw features | 0.732 | 0.758 | 0.369 | 0.265 |
+| GPR physics features | 0.121 | 0.090 | -0.104 | -3.280 |
 
 ## Reading
 

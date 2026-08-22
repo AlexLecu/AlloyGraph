@@ -80,6 +80,9 @@ CURRENT_ARMS = (
     ("GBM raw features", ("seed42_gbm_raw",)),
     ("RF raw features", ("seed42_rf_raw",)),
     ("GPR raw features", ("seed42_gpr_raw",)),
+    # Same citable GPR configuration on the engineered physics features, so the
+    # feature contribution is isolated inside one model family.
+    ("GPR physics features", ("seed42_gpr_physics",)),
 )
 
 #: Pre-erratum baselines, off by default. See module docstring.
@@ -161,7 +164,7 @@ def main():
                 r2s.append(r2)
             rows.append({
                 "arm": label, "property": prop, "unit": unit,
-                "n_seeds": len(frames), "n_rows": ns[0],
+                "n_seeds": len(frames), "n_rows": ns[0], "n_common_rows": len(common),
                 "mae": round(float(np.mean(maes)), 2),
                 "mae_sd": round(float(np.std(maes, ddof=1)), 2) if len(maes) > 1 else None,
                 "r2": round(float(np.mean(r2s)), 3),

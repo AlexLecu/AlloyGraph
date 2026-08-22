@@ -127,6 +127,22 @@ GPR raw,ALL,YS,MPa,263,123.89,,0.732,1
 GPR raw,ALL,UTS,MPa,267,134.96,,0.758,1
 GPR raw,ALL,EL,%,260,12.66,,0.369,1
 GPR raw,ALL,EM,GPa,291,16.63,,0.265,1
+GPR physics,NEAR,YS,MPa,44,195.38,,0.623,1
+GPR physics,NEAR,UTS,MPa,45,207.28,,0.671,1
+GPR physics,NEAR,EL,%,48,24.95,,0.024,1
+GPR physics,NEAR,EM,GPa,53,39.02,,-3.272,1
+GPR physics,MID,YS,MPa,88,145.13,,0.545,1
+GPR physics,MID,UTS,MPa,88,191.79,,0.537,1
+GPR physics,MID,EL,%,79,14.03,,0.239,1
+GPR physics,MID,EM,GPa,62,29.02,,-0.727,1
+GPR physics,FAR,YS,MPa,131,294.88,,-0.644,1
+GPR physics,FAR,UTS,MPa,134,344.63,,-0.729,1
+GPR physics,FAR,EL,%,133,24.33,,-0.628,1
+GPR physics,FAR,EM,GPa,176,43.43,,-4.502,1
+GPR physics,ALL,YS,MPa,263,228.13,,0.121,1
+GPR physics,ALL,UTS,MPa,267,271.11,,0.09,1
+GPR physics,ALL,EL,%,260,21.32,,-0.104,1
+GPR physics,ALL,EM,GPa,291,39.56,,-3.28,1
 Full system (5 seeds),NEAR,YS,MPa,56,63.15,3.41,0.931,5
 Full system (5 seeds),NEAR,UTS,MPa,57,77.71,3.65,0.949,5
 Full system (5 seeds),NEAR,EL,%,61,24.25,0.26,0.148,5
