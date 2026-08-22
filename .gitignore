@@ -297,5 +297,9 @@ docs/cover-letter.tex
 docs/paper/*.md
 docs/paper/figures/*.png
 
-# Generated manuscript assets — regenerate with evaluation/paper_assets/*.py
-paper_assets/
+# Generated manuscript assets — regenerate with evaluation/paper_assets/*.py.
+# Anchored: an unanchored "paper_assets/" also matches evaluation/paper_assets,
+# which holds the generators and must stay tracked. Same trap that previously
+# hid evaluation/*/scripts/ behind "scripts/" and evaluation/prediction/data
+# behind "Data/".
+/paper_assets/
