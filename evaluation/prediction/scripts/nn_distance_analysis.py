@@ -66,6 +66,18 @@ METHODS = [
     ("GPR raw", "seed42_gpr_raw_{ds}.csv"),
 ]
 
+#: Arms whose value is a mean over seeds rather than a single deterministic run.
+#: The full agent system is stochastic, so its stratified numbers are a 5-seed
+#: mean with the seed standard deviation reported alongside. Kept separate from
+#: METHODS because the loader has to average across files rather than read one.
+#:
+#: This exists because the paper's headline agent result -- FAR yield strength --
+#: was previously computed ad hoc and appeared in no generated table.
+SEEDED_METHODS = [
+    ("Full system (5 seeds)", "stageb_seed{seed}_full_system_{ds}.csv",
+     (42, 43, 44, 45, 46)),
+]
+
 PROPERTIES = [("ys", "YS", "MPa"), ("uts", "UTS", "MPa"),
               ("el", "EL", "%"), ("em", "EM", "GPa")]
 
@@ -138,6 +150,16 @@ def load_method(pattern, outdir_note):
     return pd.concat(frames, ignore_index=True)
 
 
+def load_seeded(pattern, seed, note):
+    frames = []
+    for ds in DATASETS:
+        path = os.path.join(BASE_DIR, "output", pattern.format(ds=ds, seed=seed))
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"missing prediction CSV: {path}\n{note}")
+        frames.append(pd.read_csv(path))
+    return pd.concat(frames, ignore_index=True)
+
+
 def stratified_metrics(dist_df):
     strat_by_alloy = dist_df.set_index("alloy")["stratum"]
     note = "Run generate_predictions.py for the missing mode/dataset first."
@@ -157,7 +179,32 @@ def stratified_metrics(dist_df):
                     "method": method, "stratum": stratum, "property": label, "unit": unit,
                     "n_rows": n,
                     "mae": None if np.isnan(mae) else round(mae, 2),
+                    "mae_sd": None,
                     "r2": None if np.isnan(r2) else round(r2, 3),
+                    "n_seeds": 1,
+                })
+
+    for method, pattern, seeds in SEEDED_METHODS:
+        per_seed = []
+        for seed in seeds:
+            df = load_seeded(pattern, seed, note).copy()
+            df["stratum"] = df["alloy"].map(strat_by_alloy)
+            per_seed.append(df)
+        for stratum in [s[0] for s in STRATA] + ["ALL"]:
+            for key, label, unit in PROPERTIES:
+                maes, r2s, n = [], [], 0
+                for df in per_seed:
+                    sub = df if stratum == "ALL" else df[df["stratum"] == stratum]
+                    n, mae, r2 = metrics(sub.get(f"actual_{key}"), sub.get(f"pred_{key}"))
+                    maes.append(mae)
+                    r2s.append(r2)
+                records.append({
+                    "method": method, "stratum": stratum, "property": label, "unit": unit,
+                    "n_rows": n,
+                    "mae": None if np.isnan(np.mean(maes)) else round(float(np.mean(maes)), 2),
+                    "mae_sd": None if np.isnan(np.mean(maes)) else round(float(np.std(maes, ddof=1)), 2),
+                    "r2": None if np.isnan(np.mean(r2s)) else round(float(np.mean(r2s)), 3),
+                    "n_seeds": len(seeds),
                 })
     return pd.DataFrame(records)
 
