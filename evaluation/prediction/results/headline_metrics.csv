@@ -23,3 +23,15 @@ Llama-3.3-70B (DeepInfra),YS,MPa,1,286,267.56,,-0.096,False
 Llama-3.3-70B (DeepInfra),UTS,MPa,1,290,290.36,,0.131,False
 Llama-3.3-70B (DeepInfra),EL,%,1,284,24.12,,-0.376,False
 Llama-3.3-70B (DeepInfra),EM,GPa,1,304,22.55,,-0.185,False
+GBM raw features,YS,MPa,1,263,105.02,,0.794,False
+GBM raw features,UTS,MPa,1,267,111.79,,0.827,False
+GBM raw features,EL,%,1,260,12.73,,0.346,False
+GBM raw features,EM,GPa,1,291,14.87,,0.354,False
+RF raw features,YS,MPa,1,263,95.01,,0.825,False
+RF raw features,UTS,MPa,1,267,111.33,,0.825,False
+RF raw features,EL,%,1,260,12.77,,0.34,False
+RF raw features,EM,GPa,1,291,18.67,,0.007,False
+GPR raw features,YS,MPa,1,263,123.89,,0.732,False
+GPR raw features,UTS,MPa,1,267,134.96,,0.758,False
+GPR raw features,EL,%,1,260,12.66,,0.369,False
+GPR raw features,EM,GPa,1,291,16.63,,0.265,False

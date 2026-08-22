@@ -21,6 +21,9 @@ worst alloy for every ML arm.
 | Full system (5 seeds) | 471 | 0 |
 | GPT-4.1-mini (stock) | 471 | 0 |
 | Llama-3.3-70B (DeepInfra) | 471 | 0 |
+| GBM raw features | 471 | 0 |
+| RF raw features | 471 | 0 |
+| GPR raw features | 471 | 0 |
 
 ## MAE (lower is better)
 
@@ -32,6 +35,9 @@ worst alloy for every ML arm.
 | Full system (5 seeds) | 80.89 ± 1.12 | 96.44 ± 0.93 | 12.56 ± 0.12 | 8.94 ± 0.06 |
 | GPT-4.1-mini (stock) | 200.34 ± nan | 176.06 ± nan | 23.69 ± nan | 16.12 ± nan |
 | Llama-3.3-70B (DeepInfra) | 267.56 ± nan | 290.36 ± nan | 24.12 ± nan | 22.55 ± nan |
+| GBM raw features | 105.02 ± nan | 111.79 ± nan | 12.73 ± nan | 14.87 ± nan |
+| RF raw features | 95.01 ± nan | 111.33 ± nan | 12.77 ± nan | 18.67 ± nan |
+| GPR raw features | 123.89 ± nan | 134.96 ± nan | 12.66 ± nan | 16.63 ± nan |
 
 ## R²
 
@@ -43,12 +49,15 @@ worst alloy for every ML arm.
 | Full system (5 seeds) | 0.862 | 0.863 | 0.412 | 0.775 |
 | GPT-4.1-mini (stock) | 0.353 | 0.606 | -0.360 | 0.260 |
 | Llama-3.3-70B (DeepInfra) | -0.096 | 0.131 | -0.376 | -0.185 |
+| GBM raw features | 0.794 | 0.827 | 0.346 | 0.354 |
+| RF raw features | 0.825 | 0.825 | 0.340 | 0.007 |
+| GPR raw features | 0.732 | 0.758 | 0.369 | 0.265 |
 
 ## Reading
 
 - **YS**: best is Full system (5 seeds) at 80.89 MPa, ahead of ML+physics+KG at 94.83.
-- **UTS**: best is Full system (5 seeds) at 96.44 MPa, ahead of ML+physics+KG at 112.75.
-- **EL**: best is Full system (5 seeds) at 12.56 %, ahead of ML+physics+KG at 12.82.
+- **UTS**: best is Full system (5 seeds) at 96.44 MPa, ahead of RF raw features at 111.33.
+- **EL**: best is Full system (5 seeds) at 12.56 %, ahead of GPR raw features at 12.66.
 - **EM**: best is ML+physics at 8.21 GPa, ahead of ML+physics+KG at 8.21.
 
 ML-only and ML+physics are identical on YS by construction -- no

@@ -73,6 +73,13 @@ CURRENT_ARMS = (
     # Groq, the provider used in February, decommissioned the model on
     # 2026-08-16. See ft_baseline_reproducibility.md.
     ("Llama-3.3-70B (DeepInfra)", ("seed42_llama70b",)),
+    # Method-level external baselines: standard regressors on raw composition
+    # and temperature only, no engineered physics features. Same splits, seeds
+    # and Optuna budget as the production models, so the gap against ML-only is
+    # the contribution of the feature engineering. See external_baselines.md.
+    ("GBM raw features", ("seed42_gbm_raw",)),
+    ("RF raw features", ("seed42_rf_raw",)),
+    ("GPR raw features", ("seed42_gpr_raw",)),
 )
 
 #: Pre-erratum baselines, off by default. See module docstring.
