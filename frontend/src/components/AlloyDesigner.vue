@@ -4,6 +4,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import { API_BASE_URL } from '../config'
 import { useToast } from '../composables/useToast'
+import { BUILTIN_PRESETS, DEFAULT_PRESET } from '../presets'
 import CompositionEditor from './CompositionEditor.vue'
 import TargetPropertyForm from './TargetPropertyForm.vue'
 import ResultsDashboard from './ResultsDashboard.vue'
@@ -68,9 +69,13 @@ const designSteps = [
 const currentSteps = computed(() => mode.value === 'manual' ? evaluationSteps : designSteps)
 
 // --- MANUAL MODE STATE ---
-const manualComp = ref({ Ni: 60, Cr: 20, Al: 10, Ti: 5, Co: 5 })
+// Open on a real alloy rather than a synthetic one. The previous default
+// (Ni 60 / Cr 20 / Al 10 / Ti 5 / Co 5) summed to 100 but carried 15 wt% of
+// gamma-prime formers -- above anything that can actually be produced -- so the
+// first thing a visitor evaluated was a composition the system would reject.
+const manualComp = ref({ ...BUILTIN_PRESETS[DEFAULT_PRESET].composition })
 const manualTemp = ref(20)
-const manualProcessing = ref('cast')
+const manualProcessing = ref(BUILTIN_PRESETS[DEFAULT_PRESET].processing)
 
 // --- AUTO MODE STATE ---
 const targets = ref({ yield: 0, tensile: 0, elongation: 0, elastic_modulus: 0, density: 0, gamma_prime: 0 })
