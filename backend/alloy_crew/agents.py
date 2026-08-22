@@ -178,8 +178,12 @@ _KEY_SHAPES = {
 }
 
 
-def valid_api_key(env_var: str) -> str:
-    """Return the key if it looks real, otherwise an empty string.
+def _sanitised_key(env_var: str) -> str:
+    """The key value if it looks real, otherwise an empty string.
+
+    Private on purpose. It returns secret material, so it is named to make that
+    obvious at the call site and is only used where the value is actually
+    needed -- constructing the LLM client. Use ``valid_api_key`` for checks.
 
     Placeholder values are common in checked-in .env templates ("sk-",
     "your-key-here", ""). Left unchecked they are truthy, so a bare "sk-" will
@@ -202,6 +206,17 @@ def valid_api_key(env_var: str) -> str:
         )
         return ""
     return raw
+
+
+def valid_api_key(env_var: str) -> bool:
+    """True when the environment holds a plausibly real key for ``env_var``.
+
+    Returns a boolean and never the secret. It previously returned the key
+    itself, which reads as a predicate at every call site: writing
+    ``print(valid_api_key("DEEPINFRA_API_KEY"))`` to check configuration
+    printed the key. That happened, and the key had to be rotated.
+    """
+    return bool(_sanitised_key(env_var))
 
 
 def _resolve_llm(llm=None, temperature=0.1):
@@ -234,10 +249,10 @@ def _resolve_llm(llm=None, temperature=0.1):
         except ValueError:
             logger.warning("ALLOYGRAPH_LLM_TEMPERATURE=%r is not a number; ignoring.", _t_override)
 
-    deepinfra_key = valid_api_key("DEEPINFRA_API_KEY")
-    together_key = valid_api_key("TOGETHER_API_KEY")
-    groq_key = valid_api_key("GROQ_API_KEY")
-    openai_key = valid_api_key("OPENAI_API_KEY")
+    deepinfra_key = _sanitised_key("DEEPINFRA_API_KEY")
+    together_key = _sanitised_key("TOGETHER_API_KEY")
+    groq_key = _sanitised_key("GROQ_API_KEY")
+    openai_key = _sanitised_key("OPENAI_API_KEY")
 
     override = (os.getenv("ALLOYGRAPH_LLM_MODEL") or "").strip()
 
