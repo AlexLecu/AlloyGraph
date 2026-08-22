@@ -16,19 +16,19 @@ effect rather than a caveat sentence.
 
 | arm | property | with | without | delta | delta % |
 |---|---|---:|---:|---:|---:|
-| ML-only | YS | 101.16 | 101.79 | +0.63 | +0.62% |
+| ML-only | YS | 98.73 | 99.31 | +0.58 | +0.59% |
 | ML-only | UTS | 112.96 | 114.26 | +1.30 | +1.15% |
 | ML-only | EL | 13.84 | 13.92 | +0.08 | +0.61% |
 | ML-only | EM | 12.86 | 13.2 | +0.34 | +2.62% |
-| ML+physics | YS | 101.16 | 101.79 | +0.63 | +0.62% |
+| ML+physics | YS | 98.73 | 99.31 | +0.58 | +0.59% |
 | ML+physics | UTS | 113.25 | 114.56 | +1.31 | +1.15% |
 | ML+physics | EL | 13.8 | 13.89 | +0.08 | +0.61% |
 | ML+physics | EM | 8.21 | 8.39 | +0.18 | +2.18% |
-| ML+physics+KG | YS | 94.83 | 95.32 | +0.49 | +0.52% |
+| ML+physics+KG | YS | 92.37 | 92.82 | +0.44 | +0.48% |
 | ML+physics+KG | UTS | 112.75 | 114.04 | +1.30 | +1.15% |
 | ML+physics+KG | EL | 12.82 | 12.91 | +0.09 | +0.67% |
 | ML+physics+KG | EM | 8.21 | 8.39 | +0.18 | +2.18% |
-| full system | YS | 80.89 | 80.07 | -0.82 | -1.01% |
+| full system | YS | 78.84 | 77.97 | -0.87 | -1.10% |
 | full system | UTS | 96.44 | 97.55 | +1.10 | +1.15% |
 | full system | EL | 12.56 | 12.67 | +0.12 | +0.92% |
 | full system | EM | 8.94 | 9.09 | +0.15 | +1.68% |
@@ -47,7 +47,7 @@ that does not. They do not:
 
 | property | ML-only (no physics) | ML+physics | difference |
 |---|---:|---:|---:|
-| YS | +0.62% | +0.62% | +0.00 pp |
+| YS | +0.59% | +0.59% | +0.00 pp |
 | UTS | +1.15% | +1.15% | +0.00 pp |
 | EL | +0.61% | +0.61% | +0.00 pp |
 | EM | +2.62% | +2.18% | -0.44 pp |

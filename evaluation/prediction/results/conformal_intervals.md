@@ -20,8 +20,8 @@ The coverage guarantee is *marginal*: it holds on average over the exchangeable 
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | YS | NEAR | 99 | 56 | 75.0% | -15.0 pp | 368.2 MPa | 368.2 MPa | 69% |
 | YS | MID | 125 | 91 | 93.4% | +3.4 pp | 374.2 MPa | 374.2 MPa | 54% |
-| YS | FAR | 247 | 139 | 89.2% | -0.8 pp | 374.2 MPa | 374.2 MPa | 102% |
-| **YS** | **ALL** | 471 | 286 | **87.8%** | -2.2 pp | 373.4 MPa | 373.4 MPa | 85% |
+| YS | FAR | 247 | 138 | 89.9% | -0.1 pp | 374.2 MPa | 374.2 MPa | 103% |
+| **YS** | **ALL** | 471 | 285 | **88.1%** | -1.9 pp | 373.4 MPa | 373.4 MPa | 83% |
 | UTS | NEAR | 99 | 57 | 94.7% | +4.7 pp | 438.2 MPa | 438.2 MPa | 52% |
 | UTS | MID | 125 | 91 | 92.3% | +2.3 pp | 438.2 MPa | 437.6 MPa | 51% |
 | UTS | FAR | 247 | 142 | 83.8% | -6.2 pp | 436.2 MPa | 436.2 MPa | 60% |
@@ -58,7 +58,7 @@ The stratum table hides the real failure mode. Training data spans 21–1093 °C
 
 | property | < 0 °C | 0-400 °C | 400-700 °C | 700-900 °C | > 900 °C |
 |---|---|---|---|---|---|
-| YS | — | 86% (n=114) | 97% (n=71) | 88% (n=59) | 76% (n=42) |
+| YS | — | 86% (n=114) | 97% (n=71) | 90% (n=58) | 76% (n=42) |
 | UTS | 50% (n=2) | 85% (n=115) | 90% (n=70) | 90% (n=60) | 95% (n=43) |
 | EL | 100% (n=2) | 91% (n=115) | 96% (n=70) | 81% (n=58) | 49% (n=39) |
 | EM | — | 87% (n=135) | 87% (n=89) | 98% (n=50) | 100% (n=30) |
@@ -67,7 +67,7 @@ A constant-width interval cannot serve a property whose scale collapses with tem
 
 ## Honest reading
 
-- **YS** under-covers overall: 87.8% of 286 scored rows fall inside the 90% interval (-2.2 pp). Nothing was recalibrated to close that gap.
+- **YS** lands at nominal overall: 88.1% of 285 scored rows fall inside the 90% interval (-1.9 pp). Nothing was recalibrated to close that gap.
 - **UTS** lands at nominal overall: 88.6% of 290 scored rows fall inside the 90% interval (-1.4 pp). Nothing was recalibrated to close that gap.
 - **EL** under-covers overall: 84.5% of 284 scored rows fall inside the 90% interval (-5.5 pp). Nothing was recalibrated to close that gap.
 - **EM** lands at nominal overall: 89.8% of 304 scored rows fall inside the 90% interval (-0.2 pp). Nothing was recalibrated to close that gap.

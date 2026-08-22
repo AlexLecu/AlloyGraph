@@ -83,7 +83,7 @@ measurement, not alloys.
 
 | property | n | ML-only | ML+physics | ML+physics+KG |
 |---|---|---|---|---|
-| YS (MPa) | 139 | 115.02 / 0.715 | 115.02 / 0.715 | 115.02 / 0.715 |
+| YS (MPa) | 138 | 110.10 / 0.756 | 110.10 / 0.756 | 110.10 / 0.756 |
 | UTS (MPa) | 142 | 138.41 / 0.728 | 137.84 / 0.728 | 137.84 / 0.728 |
 | EL (%) | 141 | 10.93 / 0.577 | 10.89 / 0.577 | 10.89 / 0.577 |
 | EM (GPa) | 184 | 13.38 / 0.413 | 7.84 / 0.818 | 7.84 / 0.818 |
@@ -92,7 +92,7 @@ measurement, not alloys.
 
 | property | n | ML-only | ML+physics | ML+physics+KG |
 |---|---|---|---|---|
-| YS (MPa) | 286 | 101.16 / 0.828 | 101.16 / 0.828 | **94.83 / 0.841** |
+| YS (MPa) | 285 | 98.73 / 0.845 | 98.73 / 0.845 | **92.37 / 0.858** |
 | UTS (MPa) | 290 | 112.96 / 0.846 | 113.25 / 0.846 | 112.75 / 0.848 |
 | EL (%) | 284 | 13.84 / 0.246 | 13.80 / 0.246 | **12.82 / 0.403** |
 | EM (GPa) | 304 | 12.86 / 0.480 | 8.21 / 0.830 | 8.21 / 0.830 |
@@ -113,7 +113,7 @@ so no proposal can be generated. The informative stratum is MID, where
 anchoring *is* permitted and the neighbours are genuinely different alloys.
 There the effect is −0.2% on YS and −0.4% on EL: not distinguishable from zero.
 
-The pooled −6.3% YS improvement is therefore carried almost entirely by 13
+The pooled −6.4% YS improvement is therefore carried almost entirely by 13
 alloys the knowledge graph already contains. The mechanism is retrieval of a
 stored measurement, not calibration by compositional analogy.
 
@@ -129,7 +129,7 @@ rows of Haynes 230, where VRH overshoots a W-rich solid-solution alloy
 wrong way.
 
 **Generalisation gap.** R² for the strength properties drops sharply on FAR
-(YS 0.875 NEAR / 0.895 MID / 0.715 FAR; UTS 0.930 / 0.886 / 0.728). Whatever
+(YS 0.875 NEAR / 0.895 MID / 0.756 FAR; UTS 0.930 / 0.886 / 0.728). Whatever
 the MAE comparison says, the models order test alloys much less well once they
 are compositionally far from the training set.
 
@@ -184,7 +184,7 @@ seen in training):
 
 | scope | property | n NEAR | MAE NEAR | n FAR | MAE FAR | NEAR − FAR |
 |---|---|---|---|---|---|---|
-| all classes | YS | 56 | 107.56 | 139 | 115.02 | −6.5% |
+| all classes | YS | 56 | 107.56 | 138 | 110.10 | −2.3% |
 | all classes | UTS | 57 | 96.55 | 142 | 138.41 | −30.2% |
 | all classes | EL | 61 | 28.53 | 141 | 10.93 | +161.1% |
 | all classes | EM | 55 | 14.60 | 184 | 13.38 | +9.1% |
@@ -192,7 +192,7 @@ seen in training):
 | SSS | UTS | 18 | 93.57 | 88 | 137.01 | −31.7% |
 | SSS | EL | 18 | 4.17 | 87 | 12.79 | −67.4% |
 | SSS | EM | 22 | 4.76 | 121 | 15.15 | −68.5% |
-| Precip | YS | 38 | 98.94 | 39 | 124.48 | −20.5% |
+| Precip | YS | 38 | 98.94 | 38 | 106.85 | −7.4% |
 | Precip | UTS | 39 | 97.92 | 41 | 140.93 | −30.5% |
 | Precip | EL | 43 | 38.73 | 38 | 8.96 | +332.3% |
 | Precip | EM | 33 | 21.16 | 58 | 7.69 | +175.4% |
@@ -201,7 +201,9 @@ The pooled row is confounded — NEAR has no SC/DS alloys and FAR is 55% SSS —
 the per-class rows carry the argument.
 
 **Tensile strength shows a consistent training-overlap advantage**: UTS is 32%
-better on NEAR for SSS and 31% better for Precip, and Precip YS is 21% better.
+better on NEAR for SSS and 31% better for Precip. Precip YS is 7% better, down
+from 21% before erratum 2 withdrew a defective RGT* 13 measurement that had
+been inflating the FAR side of that comparison.
 So the ML baselines in the pooled table are optimistic, and the caveat is real,
 not hypothetical.
 
@@ -217,6 +219,25 @@ gives 7.92 against 7.69 on FAR, essentially equal.
 
 SSS YS (+12.5%) has no such explanation and rests on 18 rows from 5 alloys; it
 is the one cell that does not fit the pattern, and is too small to lean on.
+
+## Errata applied to this evaluation set
+
+Two measurements have been changed since the campaign ran. Both are recorded in
+the data files and applied to the committed prediction outputs by
+`evaluation/prediction/scripts/apply_errata.py`.
+
+1. **NIMONIC PE16**, titanium 12.0 -> 1.2 wt%. A transposed decimal; the
+   datasheet specification range is 1.0-1.8 wt%.
+2. **RGT\* 13, yield strength at 871 degC, withdrawn.** The annotated source
+   records the cell verbatim as `-435`, a negative yield strength. The source
+   does not settle what it should be, so the measurement is dropped rather than
+   guessed. It had inflated every arm's yield-strength MAE by 2.0-2.8 MPa and
+   the FAR stratum by roughly 5 MPa. Tensile strength and elongation at that
+   temperature are unaffected and are retained.
+
+`evaluation/prediction/scripts/data_sanity_sweep.py` now checks the whole corpus
+for physically impossible measurements and exits non-zero if any remain. It
+reports none.
 
 ## Caveats
 

@@ -95,6 +95,15 @@ SEED = 42
 HOLDOUT_FRACTION = 0.15
 CV_SPLITS = 5
 
+#: The production harness attaches a measurement to a row when the recorded
+#: temperature is within 5 C of it (generate_predictions.get_actual_values).
+#: Datasheets quote the same nominal condition inconsistently -- elongation at
+#: 650 C where yield strength is at 649, a room-temperature modulus at 20 where
+#: strength is at 21 -- so an exact match silently drops measurements the other
+#: arms keep. Matching exactly here cost these baselines 23 yield-strength rows
+#: and broke the identical-row-set property the headline table asserts.
+TEMP_MATCH_TOLERANCE_C = 5.0
+
 
 def sample_weights(alloy_names):
     """Inverse-square-root frequency weighting, as in train_ml_models."""
@@ -188,7 +197,7 @@ def load_evaluation(vocab, engineered=False):
             rec = json.loads(line)
             comp = rec.get("composition") or {}
             temps = set()
-            actual = {}
+            measured = {tid: [] for tid in TARGETS}
             for tid, cfg in TARGETS.items():
                 for point in (rec.get(cfg["key"]) or []):
                     try:
@@ -197,7 +206,13 @@ def load_evaluation(vocab, engineered=False):
                     except (TypeError, ValueError):
                         continue
                     temps.add(t)
-                    actual.setdefault(t, {})[tid] = v
+                    measured[tid].append((t, v))
+
+            def actual_at(tid, temp):
+                for t, v in measured[tid]:
+                    if abs(t - temp) < TEMP_MATCH_TOLERANCE_C:
+                        return v
+                return None
             for t in sorted(temps):
                 row = (engineered_features(rec, t) if engineered
                        else raw_features(comp, t, vocab))
@@ -205,7 +220,7 @@ def load_evaluation(vocab, engineered=False):
                 row["temperature"] = t
                 row["processing"] = rec.get("processing", "unknown")
                 for tid in TARGETS:
-                    row[TARGETS[tid]["actual"]] = actual.get(t, {}).get(tid)
+                    row[TARGETS[tid]["actual"]] = actual_at(tid, t)
                 rows.append(row)
         frames[ds] = pd.DataFrame(rows)
     return frames

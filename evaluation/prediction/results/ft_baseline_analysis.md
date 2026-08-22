@@ -60,9 +60,9 @@ so the comparison is like-for-like.
 
 | overlap class | n | GPT-4.1-mini FT | ML+physics+KG | full system (5-seed mean) |
 |---|---:|---:|---:|---:|
-| SEEN by fine-tune | 85 | 88.80 | 85.21 | 94.06 |
+| SEEN by fine-tune | 85 | 88.80 | 77.24 | 87.63 |
 | UNSEEN by fine-tune | 190 | 105.39 | 96.08 | 74.06 |
-| ALL | 275 | 100.26 | 92.59 | 80.48 |
+| ALL | 275 | 100.26 | 90.07 | 78.38 |
 
 ### UTS (MPa)
 
@@ -93,7 +93,7 @@ so the comparison is like-for-like.
 **The baseline's strength is concentrated on the alloys it memorised.** On
 yield strength the fine-tune scores 88.80 MPa on the alloys it was trained
 on against 105.39 MPa on the rest. On those same memorised alloys the full
-agent system scores 94.06 MPa -- it does not win there. On the alloys the
+agent system scores 87.63 MPa -- it does not win there. On the alloys the
 fine-tune never saw, the agent system scores 74.06 MPa against the
 baseline's 105.39.
 

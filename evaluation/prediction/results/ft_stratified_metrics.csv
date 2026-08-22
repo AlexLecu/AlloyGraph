@@ -11,9 +11,9 @@ GPT-4.1-mini FT,ALL,EL,%,274,13.77
 GPT-4.1-mini FT,SEEN_BY_FT,EM,GPa,85,9.99
 GPT-4.1-mini FT,UNSEEN_BY_FT,EM,GPa,208,7.43
 GPT-4.1-mini FT,ALL,EM,GPa,293,8.17
-ML+physics+KG,SEEN_BY_FT,YS,MPa,90,85.21
+ML+physics+KG,SEEN_BY_FT,YS,MPa,89,77.24
 ML+physics+KG,UNSEEN_BY_FT,YS,MPa,190,96.08
-ML+physics+KG,ALL,YS,MPa,280,92.59
+ML+physics+KG,ALL,YS,MPa,279,90.07
 ML+physics+KG,SEEN_BY_FT,UTS,MPa,93,98.0
 ML+physics+KG,UNSEEN_BY_FT,UTS,MPa,191,116.27
 ML+physics+KG,ALL,UTS,MPa,284,110.29
@@ -23,9 +23,9 @@ ML+physics+KG,ALL,EL,%,279,12.76
 ML+physics+KG,SEEN_BY_FT,EM,GPa,85,8.86
 ML+physics+KG,UNSEEN_BY_FT,EM,GPa,209,8.0
 ML+physics+KG,ALL,EM,GPa,294,8.25
-full system (5-seed mean),SEEN_BY_FT,YS,MPa,90,94.06
+full system (5-seed mean),SEEN_BY_FT,YS,MPa,89,87.63
 full system (5-seed mean),UNSEEN_BY_FT,YS,MPa,190,74.06
-full system (5-seed mean),ALL,YS,MPa,280,80.48
+full system (5-seed mean),ALL,YS,MPa,279,78.38
 full system (5-seed mean),SEEN_BY_FT,UTS,MPa,93,105.87
 full system (5-seed mean),UNSEEN_BY_FT,UTS,MPa,191,89.7
 full system (5-seed mean),ALL,UTS,MPa,284,95.0

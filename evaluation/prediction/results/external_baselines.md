@@ -29,12 +29,12 @@ rather than tuned.
 
 | arm | NEAR | MID | FAR | ALL | ALL R2 |
 |---|---:|---:|---:|---:|---:|
-| ML-only | 107.56 | 76.05 | 115.02 | 101.16 | 0.828 |
-| ML+physics | 107.56 | 76.05 | 115.02 | 101.16 | 0.828 |
-| ML+physics+KG | 75.42 | 75.93 | 115.02 | 94.83 | 0.841 |
-| GBM raw | 116.21 | 67.85 | 126.23 | 105.02 | 0.794 |
-| RF raw | 105.62 | 67.45 | 109.96 | 95.01 | 0.825 |
-| GPR raw | 106.71 | 96.46 | 148.10 | 123.89 | 0.732 |
+| ML-only | 107.56 | 76.05 | 110.10 | 98.73 | 0.845 |
+| ML+physics | 107.56 | 76.05 | 110.10 | 98.73 | 0.845 |
+| ML+physics+KG | 75.42 | 75.93 | 110.10 | 92.37 | 0.858 |
+| GBM raw | 112.99 | 67.46 | 121.88 | 102.76 | 0.810 |
+| RF raw | 107.80 | 67.87 | 104.75 | 93.57 | 0.836 |
+| GPR raw | 99.51 | 97.76 | 141.59 | 119.33 | 0.754 |
 
 ### UTS (MPa)
 
@@ -43,9 +43,9 @@ rather than tuned.
 | ML-only | 96.55 | 83.53 | 138.41 | 112.96 | 0.846 |
 | ML+physics | 98.80 | 83.92 | 137.84 | 113.25 | 0.846 |
 | ML+physics+KG | 96.43 | 83.80 | 137.84 | 112.75 | 0.848 |
-| GBM raw | 137.36 | 93.03 | 115.53 | 111.79 | 0.827 |
-| RF raw | 135.42 | 95.28 | 113.78 | 111.33 | 0.825 |
-| GPR raw | 140.86 | 117.34 | 144.56 | 134.96 | 0.758 |
+| GBM raw | 123.54 | 94.09 | 113.52 | 109.39 | 0.837 |
+| RF raw | 129.70 | 96.66 | 112.30 | 110.81 | 0.831 |
+| GPR raw | 131.38 | 119.21 | 142.29 | 132.90 | 0.767 |
 
 ### EL (%)
 
@@ -54,9 +54,9 @@ rather than tuned.
 | ML-only | 28.53 | 7.91 | 10.93 | 13.84 | 0.246 |
 | ML+physics | 28.52 | 7.86 | 10.89 | 13.80 | 0.246 |
 | ML+physics+KG | 24.30 | 7.60 | 10.89 | 12.82 | 0.403 |
-| GBM raw | 21.48 | 7.41 | 12.74 | 12.73 | 0.346 |
-| RF raw | 22.14 | 7.50 | 12.52 | 12.77 | 0.340 |
-| GPR raw | 20.73 | 7.23 | 12.98 | 12.66 | 0.369 |
+| GBM raw | 28.29 | 7.27 | 12.63 | 14.45 | 0.248 |
+| RF raw | 29.03 | 7.35 | 12.42 | 14.53 | 0.238 |
+| GPR raw | 27.18 | 7.21 | 12.95 | 14.35 | 0.285 |
 
 ### EM (GPa)
 
@@ -65,18 +65,18 @@ rather than tuned.
 | ML-only | 14.60 | 9.92 | 13.38 | 12.86 | 0.480 |
 | ML+physics | 6.75 | 10.48 | 7.84 | 8.21 | 0.830 |
 | ML+physics+KG | 6.75 | 10.48 | 7.84 | 8.21 | 0.830 |
-| GBM raw | 17.62 | 9.54 | 15.92 | 14.87 | 0.354 |
-| RF raw | 15.78 | 12.16 | 21.83 | 18.67 | 0.007 |
-| GPR raw | 19.21 | 12.08 | 17.45 | 16.63 | 0.265 |
+| GBM raw | 17.41 | 10.38 | 16.00 | 15.05 | 0.346 |
+| RF raw | 15.51 | 13.02 | 21.99 | 18.90 | -0.013 |
+| GPR raw | 18.66 | 12.54 | 17.45 | 16.62 | 0.266 |
 
 ## What this shows
 
 | property | ML-only (engineered) | best raw-feature baseline | difference |
 |---|---:|---|---:|
-| YS | 101.16 | RF raw 95.01 | -6.1% |
-| UTS | 112.96 | RF raw 111.33 | -1.4% |
-| EL | 13.84 | GPR raw 12.66 | -8.5% |
-| EM | 12.86 | GBM raw 14.87 | +15.6% |
+| YS | 98.73 | RF raw 93.57 | -5.2% |
+| UTS | 112.96 | GBM raw 109.39 | -3.2% |
+| EL | 13.84 | GPR raw 14.35 | +3.7% |
+| EM | 12.86 | GBM raw 15.05 | +17.0% |
 
 **On strength and ductility the engineered features do not pay for
 themselves.** A RandomForest on eleven raw numbers matches or beats the
@@ -96,9 +96,9 @@ estimator, and that is exactly where the physics contributes.
 | property | arm | NEAR | FAR |
 |---|---|---:|---:|
 | UTS | ML-only | 96.55 | 138.41 |
-| UTS | RF raw | 135.42 | 113.78 |
-| YS | ML-only | 107.56 | 115.02 |
-| YS | RF raw | 105.62 | 109.96 |
+| UTS | RF raw | 129.70 | 112.30 |
+| YS | ML-only | 107.56 | 110.10 |
+| YS | RF raw | 107.80 | 104.75 |
 
 The engineered features are better on NEAR and worse on FAR; the raw
 features are the reverse. For tensile strength the gap is large in both
@@ -112,8 +112,8 @@ recall of familiar alloys at some cost to generalisation.
 
 None of this touches the agent-layer result. The full system reaches
 80.89 MPa on yield strength against the best raw baseline's
-95.01 and the best engineered ablation's
-94.83, so its contribution is measured
+93.57 and the best engineered ablation's
+92.37, so its contribution is measured
 against a stronger floor than the paper previously established, and
 survives.
 
@@ -124,15 +124,19 @@ survives.
 | gbm_raw | ys | 105.91 | 0.79 | 82.51 | 0.894 |
 | rf_raw | ys | 117.85 | 0.738 | 70.98 | 0.922 |
 | gpr_raw | ys | 124.97 | 0.741 | 142.12 | 0.647 |
+| gpr_physics | ys | 105.07 | 0.792 | 96.76 | 0.815 |
 | gbm_raw | uts | 110.06 | 0.838 | 120.67 | 0.796 |
 | rf_raw | uts | 120.62 | 0.817 | 113.15 | 0.817 |
 | gpr_raw | uts | 173.62 | 0.623 | 209.35 | 0.469 |
+| gpr_physics | uts | 148.9 | 0.727 | 100.63 | 0.86 |
 | gbm_raw | el | 9.71 | 0.409 | 6.43 | 0.237 |
 | rf_raw | el | 9.56 | 0.447 | 6.27 | 0.256 |
 | gpr_raw | el | 9.79 | 0.41 | 5.8 | 0.286 |
+| gpr_physics | el | 8.71 | 0.557 | 6.6 | 0.085 |
 | gbm_raw | em | 14.35 | 0.637 | 13.84 | 0.768 |
 | rf_raw | em | 14.43 | 0.606 | 15.96 | 0.641 |
 | gpr_raw | em | 20.21 | 0.375 | 10.57 | 0.855 |
+| gpr_physics | em | 35.66 | -1.724 | 12.58 | 0.753 |
 
 ## Limits
 
