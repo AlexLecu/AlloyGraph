@@ -190,14 +190,29 @@ const classifyError = (err) => {
 // a raw Python message ("KeyError: 'Yield Strength'", a litellm traceback line).
 // Surface a short technical detail for the curious, never the raw string as the
 // primary message, and never anything that looks like a stack trace.
-const MAX_DETAIL_CHARS = 160
+const MAX_DETAIL_CHARS = 100
 
 const technicalDetail = (err) => {
   const raw = err?.response?.data?.error || err?.message || ''
-  const first = String(raw).split('\n').find(l => l.trim()) || ''
+  let first = String(raw).split('\n').find(l => l.trim()) || ''
   if (!first) return ''
   if (/Traceback|File "|  at /.test(first)) return ''
+  // Upstream errors often append a serialised payload -- a Python dict or a
+  // JSON body. The prose before it is the useful part; the structure is noise
+  // that reads like a stack trace to anyone who is not debugging this.
+  first = first.split(/[{[]/)[0].trim().replace(/[\s:,-]+$/, '')
+  if (!first) return ''
   return first.length > MAX_DETAIL_CHARS ? `${first.slice(0, MAX_DETAIL_CHARS)}\u2026` : first
+}
+
+// A 200 response can still carry result.error: the agent pipeline reports an
+// upstream failure (provider unreachable, model missing) in-band. That is a
+// backend-side problem, not something wrong with the user's input, so it is
+// classified as 'server' and put through the same sanitiser as a thrown error.
+const messageFromResultError = (raw) => {
+  const detail = technicalDetail({ message: String(raw || '') })
+  const base = 'The backend hit an error while running this analysis.'
+  return detail ? `${base} (${detail})` : base
 }
 
 const getErrorMessage = (type, err) => {
@@ -282,7 +297,10 @@ const runValidation = async (isRetry = false) => {
       composition: manualComp.value, temp: manualTemp.value, processing: manualProcessing.value
     }, { timeout: VALIDATE_TIMEOUT_MS, signal: inFlight.signal })
     if (res.data?.result?.error) {
-      stopLoading(); errorType.value = 'validation'; error.value = res.data.result.error; return
+      stopLoading()
+      errorType.value = 'server'
+      error.value = messageFromResultError(res.data.result.error)
+      return
     }
     result.value = res.data.result
     logs.value.push('Prediction Complete.')

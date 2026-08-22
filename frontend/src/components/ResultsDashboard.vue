@@ -111,20 +111,38 @@ const getOverestimationWarning = (prop, actual, upper, confidence) => {
 }
 
 const getErrorTitle = (type) => {
-  const titles = { network: 'Connection Error', timeout: 'Timeout Error', validation: 'Validation Error', server: 'Server Error' }
-  return titles[type] || 'Unexpected Error'
+  const titles = {
+    network: "Can't reach the backend",
+    no_response: 'No response from the backend',
+    timeout: 'This run took too long',
+    validation: 'Check the inputs',
+    server: 'The backend hit an error',
+    cancelled: 'Run cancelled',
+  }
+  return titles[type] || 'Something went wrong'
 }
 
+// Advice has to match the mode. Evaluation has no iteration count and no
+// targets, so suggesting "increase max iterations" there sends the user looking
+// for a control that is not on screen.
 const getErrorRecoveryActions = (type) => {
-  const actions = {
-    network: ['Check your internet connection', 'Verify backend is running on port 5001', 'Retry the operation'],
-    no_response: ['Check browser console for detailed error', 'Verify backend is running', 'Check for CORS issues', 'Retry the operation'],
-    timeout: ['Reduce max iterations', 'Try with simpler targets', 'Retry the operation'],
-    validation: ['Increase max iterations (try 5-10)', 'Relax target constraints', 'Try different starting composition', 'Adjust gamma prime target if needed'],
-    server: ['Wait a moment and retry', 'Check backend logs', 'Contact support if persists'],
-    unknown: ['Retry the operation', 'Check browser console for details', 'Contact support']
+  const design = props.mode === 'auto'
+  const shared = {
+    network: ['Check that the backend is running', 'Check your network connection', 'Retry'],
+    no_response: ['The backend may still be starting up', 'Give it a moment, then retry'],
+    server: ['This is a backend-side failure, not your input', 'Wait a moment and retry',
+             'If it persists, check the backend logs'],
+    cancelled: ['Retry when ready'],
+    unknown: ['Retry', 'If it persists, check the backend logs']
   }
-  return actions[type] || actions.unknown
+  const byMode = design ? {
+    timeout: ['Reduce the iteration count', 'Relax the target properties', 'Retry'],
+    validation: ['Check the target values are reachable', 'Relax the tightest target', 'Retry'],
+  } : {
+    timeout: ['Retry — the model may be warming up', 'Try a lower temperature value'],
+    validation: ['Check the composition sums to about 100%', 'Check for out-of-range element values'],
+  }
+  return { ...shared, ...byMode }[type] || shared.unknown
 }
 
 // --- PROPERTY COMPARISONS (design mode) ---
@@ -191,7 +209,12 @@ const parsedResults = computed(() => {
   if (!props.result) return null
   const data = props.result
 
-  let comp = data.composition || props.manualComp
+  // In design mode the composition must come from the backend. Falling back to
+  // the user's own input would label what they typed as the "Suggested
+  // Composition" the designer produced -- which is worse than showing nothing.
+  const returnedComp = data.composition && Object.keys(data.composition).length
+    ? data.composition : null
+  let comp = props.mode === 'auto' ? returnedComp : (returnedComp || props.manualComp)
   const rawProps = data.properties || {}
   const propertyIntervals = data.property_intervals || {}
   const confidence = data.confidence || {}
@@ -381,7 +404,7 @@ const copyToEvaluation = () => {
       </div>
 
       <!-- Composition (design mode) -->
-      <div v-if="parsedResults.comp && mode === 'auto'" class="final-comp-section">
+      <div v-if="parsedResults.comp && Object.keys(parsedResults.comp).length && mode === 'auto'" class="final-comp-section">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
           <h4 style="margin: 0;">Suggested Composition</h4>
           <button @click="copyToEvaluation" class="copy-btn" title="Copy to Evaluation Mode">Copy to Evaluation</button>
