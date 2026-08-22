@@ -1,6 +1,7 @@
 from crewai import Agent
 import os
 import logging
+from pathlib import Path
 from dotenv import load_dotenv
 from crewai import LLM
 
@@ -11,7 +12,17 @@ from .tools.rag_tools import AlloySearchTool
 
 from .tools.quick_check_tool import QuickCheckTool
 
-load_dotenv()
+#: The one place .env is allowed to live: the repository root.
+#:
+#: This was a bare load_dotenv(), which walks up from the *current working
+#: directory*. Whether the keys were found therefore depended on where the
+#: process happened to be launched from -- `python backend/app.py` from the root
+#: worked, other entry points silently found nothing and the provider resolution
+#: fell through to a local Ollama model that is not installed. Resolving the
+#: path from this file removes the cwd dependency entirely.
+REPO_ROOT = Path(__file__).resolve().parents[2]
+ENV_PATH = REPO_ROOT / ".env"
+load_dotenv(ENV_PATH)
 
 #: Cap on tool-use iterations per agent. CrewAI defaults to 25, which lets the
 #: Analyst and Reviewer together reach ~56 LLM calls on a single row -- observed

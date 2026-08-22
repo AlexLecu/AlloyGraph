@@ -86,7 +86,8 @@ cd AlloyGraph
 
 # 2. Configure
 cp .env.example .env
-# Edit .env and add your GROQ_API_KEY
+# Edit .env and add a provider key (DEEPINFRA_API_KEY, or another supported provider).
+# .env belongs in the repository root — that is the only location the app reads.
 
 # 3. Launch
 docker compose up -d
