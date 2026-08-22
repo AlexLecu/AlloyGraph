@@ -235,6 +235,18 @@ the data files and applied to the committed prediction outputs by
    the FAR stratum by roughly 5 MPa. Tensile strength and elongation at that
    temperature are unaffected and are retained.
 
+A further fourteen corrections predate this revision. They were applied by hand
+when the 77-alloy training set was built, by no committed script, and were
+undocumented until now: the committed training set could not be regenerated from
+the committed upstream file. Every one is now declared in
+`evaluation/prediction/data/errata_ledger.json`, and
+`verify_training_provenance.py` checks that the upstream file plus the ledger
+reproduces the training set cell for cell. One of them, `T14`, is the sibling of
+erratum 2 -- RGT* 4 carries the identical `-205` defect in the same source
+column and was corrected to +205 rather than withdrawn. See
+[`docs/data_curation.md`](../../../docs/data_curation.md) for why the two are
+treated differently.
+
 `evaluation/prediction/scripts/data_sanity_sweep.py` now checks the whole corpus
 for physically impossible measurements and exits non-zero if any remain. It
 reports none.

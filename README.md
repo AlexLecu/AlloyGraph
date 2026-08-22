@@ -162,6 +162,8 @@ Registered at [w3id.org/alloygraph/ont](https://w3id.org/alloygraph/ont) under C
 
 ## 📦 Data
 
+Data provenance, every correction applied to the alloy data, and the checks that verify the committed training set is reproducible from its sources are documented in [`docs/data_curation.md`](docs/data_curation.md).
+
 All data used in this project is publicly available. The complete archive (KG data, evaluation sets, ontology, and trained models) is hosted on [figshare](https://doi.org/10.6084/m9.figshare.31860466).
 
 | Resource | Description | Link |
