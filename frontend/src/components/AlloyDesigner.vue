@@ -336,7 +336,12 @@ const runDesign = async (isRetry = false) => {
     if (targets.value.tensile > 0) target_props['Tensile Strength'] = targets.value.tensile
     if (targets.value.elongation > 0) target_props['Elongation'] = targets.value.elongation
     if (targets.value.elastic_modulus > 0) target_props['Elastic Modulus'] = targets.value.elastic_modulus
-    if (targets.value.density < 99) target_props['Density'] = targets.value.density
+    // The form states "Set to 0 to skip any property", and every other target
+    // honours that. Density used `< 99` alone, so the default 0 was sent as a
+    // real ceiling of 0 g/cm3 -- a target nothing can meet.
+    if (targets.value.density > 0 && targets.value.density < 99) {
+      target_props['Density'] = targets.value.density
+    }
     if (targets.value.gamma_prime > 0) target_props['Gamma Prime'] = targets.value.gamma_prime
 
     inFlight = new AbortController()

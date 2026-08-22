@@ -163,7 +163,10 @@ const propertyComparisons = computed(() => {
   ]
 
   for (const prop of propMap) {
-    if (prop.target > 0 || (prop.isMax && prop.target < 99)) {
+    // Same convention as the form: 0 means "not set", for maximum-type targets
+    // too. Without the > 0 test a density target of 0 produced a comparison row
+    // reading "Target: <= 0 g/cm3" with actual/0 rendered as "Infinity%".
+    if (prop.target > 0 && (!prop.isMax || prop.target < 99)) {
       const actualVal = parseVal(lookUpProp(actualProps, prop.key))
       if (actualVal !== null) {
         const interval = propertyIntervals[prop.key] || {}
@@ -173,7 +176,7 @@ const propertyComparisons = computed(() => {
         }
 
         let met, status, exceeds = false
-        let percentage = Math.round((actualVal / prop.target) * 100)
+        let percentage = prop.target ? Math.round((actualVal / prop.target) * 100) : 0
 
         if (prop.isMax) {
           met = actualVal <= prop.target; exceeds = !met; status = met ? 'In Range' : 'Too High'
@@ -430,7 +433,7 @@ const copyToEvaluation = () => {
               <span class="comparison-target">Target: {{ comp.isMax ? '\u2264' : '\u2265' }} {{ comp.target }} {{ comp.unit }}</span>
               <span class="comparison-actual">
                 Predicted: <AnimatedNumber :value="comp.actual" :decimals="comp.key.includes('Density') ? 2 : 1" /> {{ comp.unit }}
-                <span v-if="comp.plusMinus" class="comparison-interval-discrete">\u00B1{{ comp.plusMinus }}</span>
+                <span v-if="comp.plusMinus" class="comparison-interval-discrete">±{{ comp.plusMinus }}</span>
               </span>
             </div>
             <div class="comparison-bar-container">
@@ -452,7 +455,7 @@ const copyToEvaluation = () => {
               <AnimatedNumber :value="prop.val" :decimals="prop.label.includes('Density') ? 2 : 1" />
               <small>{{ prop.unit }}</small>
             </div>
-            <div v-if="prop.interval" class="prop-interval-discrete">\u00B1{{ prop.interval }} {{ prop.unit }}</div>
+            <div v-if="prop.interval" class="prop-interval-discrete">±{{ prop.interval }} {{ prop.unit }}</div>
           </div>
         </div>
       </div>
@@ -479,7 +482,7 @@ const copyToEvaluation = () => {
         <div class="issues-list">
           <div v-for="(penalty, i) in parsedResults.auditPenalties" :key="'penalty-'+i" class="issue-item severity-high">
             <div class="issue-header">
-              <span class="issue-icon">\uD83D\uDD34</span>
+              <span class="issue-icon">🔴</span>
               <span class="issue-type">{{ penalty.name }}</span>
               <span class="issue-severity">{{ penalty.value }}</span>
             </div>
@@ -507,7 +510,7 @@ const copyToEvaluation = () => {
           <div v-for="(corr, i) in parsedResults.correctionsApplied" :key="'corr-'+i" class="correction-item">
             <div class="correction-header">
               <span class="correction-prop">{{ corr.property_name }}</span>
-              <span class="correction-arrow">{{ (Number(corr.original_value) || 0).toFixed(1) }} \u2192 {{ (Number(corr.corrected_value) || 0).toFixed(1) }}</span>
+              <span class="correction-arrow">{{ (Number(corr.original_value) || 0).toFixed(1) }} → {{ (Number(corr.corrected_value) || 0).toFixed(1) }}</span>
             </div>
             <div class="correction-reason">{{ corr.correction_reason }}</div>
             <div v-if="corr.physics_constraint" class="correction-constraint">{{ corr.physics_constraint }}</div>
