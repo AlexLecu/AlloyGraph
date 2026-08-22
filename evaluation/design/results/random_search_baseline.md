@@ -15,8 +15,16 @@ Three criteria, increasingly strict:
 | designer (LLM pipeline) | 52.6% | 3/20 | **3/20** | 1 | 6 | 8.0 wt% |
 | random best-of-5 | 71.1% | 7/20 | **0/20** | 20 | 11 | 21.6 wt% |
 | random best-of-5 (plaus-aware) | 71.1% | 7/20 | **0/20** | 20 | 11 | 21.6 wt% |
+| sparsity-matched best-of-5 | 52.6% | 1/20 | **0/20** | 8 | 5 | 12.0 wt% |
+| sparsity-matched best-of-5 (plaus-aware) | 48.7% | 0/20 | **0/20** | 0 | 5 | 10.2 wt% |
 | random+Guard+Tuner best-of-5 | 72.4% | 9/20 | **0/20** | 20 | 12 | 13.8 wt% |
 | random+Guard+Tuner best-of-5 (plaus-aware) | 71.1% | 8/20 | **1/20** | 18 | 11 | 13.6 wt% |
+| sparsity+Guard+Tuner best-of-5 | 68.4% | 5/20 | **5/20** | 3 | 7 | 10.5 wt% |
+| sparsity+Guard+Tuner best-of-5 (plaus-aware) | 68.4% | 5/20 | **5/20** | 0 | 7 | 9.5 wt% |
+| random best-of-100 | 80.3% | 10/20 | **0/20** | 20 | 11 | 18.2 wt% |
+| random best-of-100 (plaus-aware) | 75.0% | 8/20 | **1/20** | 14 | 10 | 15.9 wt% |
+| sparsity-matched best-of-100 | 77.6% | 10/20 | **5/20** | 10 | 5 | 13.6 wt% |
+| sparsity-matched best-of-100 (plaus-aware) | 77.6% | 10/20 | **10/20** | 0 | 5 | 9.4 wt% |
 
 ## Rules tripped
 
@@ -25,47 +33,97 @@ Three criteria, increasingly strict:
 | designer (LLM pipeline) | 1 | 0 | 0 | 0 |
 | random best-of-5 | 20 | 14 | 20 | 5 |
 | random best-of-5 (plaus-aware) | 20 | 14 | 20 | 5 |
+| sparsity-matched best-of-5 | 0 | 6 | 0 | 3 |
+| sparsity-matched best-of-5 (plaus-aware) | 0 | 0 | 0 | 0 |
 | random+Guard+Tuner best-of-5 | 20 | 5 | 20 | 0 |
 | random+Guard+Tuner best-of-5 (plaus-aware) | 18 | 4 | 18 | 0 |
+| sparsity+Guard+Tuner best-of-5 | 1 | 2 | 0 | 0 |
+| sparsity+Guard+Tuner best-of-5 (plaus-aware) | 0 | 0 | 0 | 0 |
+| random best-of-100 | 19 | 12 | 19 | 2 |
+| random best-of-100 (plaus-aware) | 14 | 7 | 13 | 0 |
+| sparsity-matched best-of-100 | 0 | 7 | 0 | 7 |
+| sparsity-matched best-of-100 (plaus-aware) | 0 | 0 | 0 | 0 |
 
 ## Reading
 
-**Random search wins on property targets and loses on credibility.**
-Unconstrained random search reaches 71.1% of property
-targets against the Designer's 52.6%, and
-7/20 usable designs against
-3/20. It is only under the plausibility
-filter that the ordering reverses. The Designer's contribution is
-therefore not target satisfaction — a random sampler does that better —
-but producing compositions that could be manufactured.
+**At the Designer's own budget of 5 candidates, the strongest
+random baseline beats it.**
+`sparsity+Guard+Tuner best-of-5` reaches 5/20
+credible designs at a 68.4% hit rate, against the
+Designer's 3/20 at 52.6%.
+Only 3 of its 20 candidates are
+filtered out as implausible.
 
-**The fair cell is the last row.** `random+Guard+Tuner (plaus-aware)` is
-the strongest baseline available at the Designer's own budget: same
-number of candidates, same deterministic optimizer, and selection that
-prefers a plausible candidate when one exists. It reaches
-1/20 credible designs against the
-Designer's 3/20.
+That arm is the like-for-like comparison: same number of candidates,
+and the same deterministic Guard and Tuner the Designer's own
+pipeline runs in Phase 2. The only thing that differs is where the
+starting composition comes from -- an LLM, or a draw from the
+empirical composition model of the knowledge graph. **The draw wins,
+on both credibility and property targets.**
 
-That margin rests on a handful of designs out of twenty and should be
-reported as such, not as a categorical result.
+The claim that the Designer's contribution is metallurgical
+plausibility does not survive this. What the earlier comparison
+measured was the uniform sampler's inability to produce a sparse
+composition, not the Designer's ability to reason about one.
 
-## The caveat that must be stated
+### Where each arm's advantage comes from
 
-The plausibility gap is **partly an artefact of how the baseline samples**.
-`sample_composition` draws all 20 elements independently and uniformly from
-`ELEMENT_BOUNDS`, which yields 12.2 non-Ni elements above 1 wt% in
-expectation against rule R1's cap of 8, and puts Cu above its 0.5 wt%
-residual limit about five times in six. R1 and R3 therefore fail on almost
-every draw before any search quality is measured.
+Two failure modes trade off at low budget, and the arms separate cleanly
+by which one they suffer:
 
-The Guard confirms this. It repairs the refractory budget — R2 failures
-fall from 14 to 4 — but cannot change how many elements a composition
-carries, so R1 and R3 stay pinned near 20/20 whatever the optimizer does.
-Real superalloys are sparse; a uniform box sampler is dense; the filter
-measures that difference as much as it measures design skill.
+- `random best-of-5`: 20/20 implausible, 13/20 short of target -> 0 credible
+- `random best-of-5 (plaus-aware)`: 20/20 implausible, 13/20 short of target -> 0 credible
+- `sparsity-matched best-of-5`: 8/20 implausible, 19/20 short of target -> 0 credible
+- `sparsity-matched best-of-5 (plaus-aware)`: 0/20 implausible, 20/20 short of target -> 0 credible
+- `random+Guard+Tuner best-of-5`: 20/20 implausible, 11/20 short of target -> 0 credible
+- `random+Guard+Tuner best-of-5 (plaus-aware)`: 18/20 implausible, 12/20 short of target -> 1 credible
+- `sparsity+Guard+Tuner best-of-5`: 3/20 implausible, 15/20 short of target -> 5 credible
+- `sparsity+Guard+Tuner best-of-5 (plaus-aware)`: 0/20 implausible, 15/20 short of target -> 5 credible
+- `designer (LLM pipeline)`: 1/20 implausible, 17/20 short of target -> 3 credible
 
-A sparsity-matched sampler — draw the element count from the distribution
-of the 77 reference alloys, then choose which elements — is the baseline a
-reviewer will ask for. It is not implemented here, and until it is, the
-credibility comparison should be presented as suggestive rather than as
-evidence that an LLM designer is required.
+The uniform sampler hits targets and fails plausibility; sparsity-matched
+sampling alone does the reverse. Only the combination of realistic
+sampling with the deterministic optimizer clears both, which is also
+exactly what the Designer's pipeline is -- with an LLM in place of the
+draw.
+
+**Scaling makes it worse for the Designer.** At 100 candidates,
+`sparsity-matched best-of-100 (plaus-aware)` reaches
+10/20 credible designs at
+77.6%, with 0 filtered
+out. No LLM call is involved at any point.
+
+## The sampler is the confound, and it was tested
+
+An earlier version of this comparison used only the uniform sampler and
+reported that random search produces no credible designs at all. That
+result was mostly an artefact of how the baseline drew compositions.
+`sample_composition` draws all 20 elements independently from
+`ELEMENT_BOUNDS`, giving 12.2 additions above 1 wt% per candidate against
+rule R1's cap of 8, and putting Cu above its residual limit about five
+times in six. R1 and R3 failed before any search quality was measured.
+
+`sample_composition_sparsity` removes that confound by fitting the
+empirical composition model of the 77 knowledge-graph alloys: how many
+deliberate additions an alloy carries, which elements are actually used
+and how often, the amounts observed for each, and the residual elements
+that make a superalloy a superalloy. The effect on the rule counts is
+decisive -- R1 and R3 stop firing entirely, and median additions fall from
+11 to 5, matching the knowledge graph.
+
+The Designer's advantage at equal budget survives that correction. The
+categorical version of the claim does not.
+
+## Remaining limits
+
+- The sparsity model is fitted to the same 77 alloys the system is built
+  on, so it inherits their coverage. Those alloys contain no Re, Ru, Hf, V
+  or Cu, and the sampler therefore never proposes a rhenium-bearing single
+  crystal. For the gamma-prime wrought and cast targets the Designer
+  addresses this is not a restriction, but it bounds what the baseline
+  could ever find.
+- Twenty target specifications, so every rate here moves in steps of 5
+  percentage points and the credible counts are single digits.
+- The plausibility filter is one operationalisation of manufacturability,
+  calibrated to the envelope of real alloys rather than to these results.
+  A different filter would move the credible counts for every arm.
