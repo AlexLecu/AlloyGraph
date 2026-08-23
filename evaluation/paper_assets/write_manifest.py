@@ -30,9 +30,9 @@ PROVENANCE = {
         "stratified_metrics.csv (annotated MAE)"),
     "figures/accuracy_vs_distance.pdf": (
         "evaluation/paper_assets/make_figures.py",
-        "evaluation/prediction/output/seed42_v2_ml_only_*.csv, "
+        "evaluation/prediction/output/seed42_v2prod_ml_deterministic_*.csv, "
         "seed42_v2prod_ml_physics_kg_*.csv, stageb_seed4[2-6]_full_system_*.csv; "
-        "nn_distance.csv"),
+        "nn_distance.csv (bands)"),
     "figures/coverage_by_temperature.pdf": (
         "evaluation/paper_assets/make_figures.py",
         "evaluation/prediction/results/conformal_intervals.csv"),

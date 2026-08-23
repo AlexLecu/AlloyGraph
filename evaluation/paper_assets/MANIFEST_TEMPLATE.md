@@ -143,6 +143,60 @@ to rasterise.
 
 ## Notes that belong with the numbers
 
+**`accuracy_vs_distance.pdf` is banded, and the banded numbers do not support
+the "clean step at d = 2.0" reading.** Panel (a) is the relative yield-strength
+error reduction from adding KG anchoring to ML+physics, per distance band;
+panel (b) is the same bands in absolute MAE for three arms. Values are
+recomputed from the prediction CSVs and asserted against `BAND_EXPECTED` in
+`make_figures.py`, which refuses to draw if they move.
+
+| band | alloys | n | ML+physics | + KG | gain | full system (5 seeds) |
+|---|---:|---:|---:|---:|---:|---:|
+| 0–0.5 | 5 | 12 | 36.71 | 38.80 | **-5.7%** | 72.77 ± 0.49 |
+| 0.5–1 | 5 | 24 | 137.70 | 96.22 | +30.1% | 59.78 ± 1.25 |
+| 1–1.5 | 1 | 12 | 63.95 | 33.25 | +48.0% | 35.17 ± 9.60 |
+| 1.5–2 | 2 | 8 | 188.83 | 131.25 | +30.5% | 100.81 ± 11.73 |
+| 2–3 | 10 | 25 | 90.51 | 90.51 | +0.0% | 92.53 ± 2.55 |
+| 3–4.5 | 21 | 66 | 70.57 | 70.41 | **+0.24%** | 63.96 ± 2.94 |
+| ≥4.5 | 44 | 138 | 110.10 | 110.10 | +0.0% | 89.83 ± 1.32 |
+
+Two statements that have been made about these bands are false at this
+resolution, and both are visible in the figure:
+
+1. *"Every band below 2.0 gains at least 25%."* The **0–0.5 band loses 5.7%** --
+   anchoring makes the nearest near-duplicates slightly worse. Those are the
+   alloys ML already predicts best (36.71 MPa, the lowest MAE of any band), so
+   there is little to win and something to lose.
+2. *"No band above 2.0 gains more than 0.2%."* The 3–4.5 band gains **0.24%**.
+   Trivial in size, but it is not zero, and it is not zero for a reason: KG
+   anchoring fires at d = 3.679 on Haynes 625.
+
+**The deeper problem is that these bands are not samples.** KG anchoring changes
+a yield-strength prediction for **6 of 86 alloys and 21 of 285 rows**. For the
+other 80 alloys the two arms are bit-identical, so every band average is a
+handful of alloys diluted by rows where nothing happened:
+
+| alloy | d | rows changed | MAE ML+physics | MAE + KG |
+|---|---:|---:|---:|---:|
+| MAR-M* 200 | 0.024 | 1 | 39.67 | **149.20** |
+| NIMONIC* 86 | 0.037 | 1 | 84.86 | 0.40 |
+| Haynes 214 | 0.526 | 9 | 141.32 | 30.71 |
+| Haynes 263 | 1.145 | 5 | 97.24 | 23.56 |
+| Haynes 718 | 1.663 | 3 | 203.34 | 49.80 |
+| Haynes 625 | 3.679 | 2 | 110.29 | 104.80 |
+
+So the "step function" is six alloys, one of which (MAR-M* 200) anchoring makes
+**276% worse** and one of which sits well above the supposed d = 2.0 boundary.
+The honest claim is that anchoring fires rarely, that when it fires on a true
+near-duplicate it helps a great deal, and that it can also misfire. A claim
+about a threshold in distance is not supported by six points.
+
+Panel (b) carries its own correction. The full-system curve does **not** sit
+below the other arms everywhere: it is worst of the three in the 0–0.5 band
+(72.77 against 36.71) and marginally worst in 2–3 (92.53 against 90.51). It is
+clearly below beyond d = 4.5 (89.83 against 110.10), which is the part of the
+agent story that survives.
+
 **The parity panels carry +/-10% and +/-20% tolerance bands.** Two nested
 light-grey fills around the perfect-prediction diagonal, no edges, alpha 0.07
 each, drawn beneath the points, so the inner +/-10% region reads darker because

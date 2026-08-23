@@ -206,55 +206,118 @@ def fig_parity(dist, path):
     plt.close(fig)
 
 
+#: Distance bands for the KG step-function figure, finer than NEAR/MID/FAR so
+#: the shape of the effect is visible rather than averaged into three numbers.
+BANDS = ((0.0, 0.5), (0.5, 1.0), (1.0, 1.5), (1.5, 2.0),
+         (2.0, 3.0), (3.0, 4.5), (4.5, float("inf")))
+BAND_LABEL = ("0–0.5", "0.5–1", "1–1.5", "1.5–2", "2–3", "3–4.5", "≥4.5")
+
+#: Recomputed band values, declared so a silent change is caught. Order matches
+#: BANDS. (n rows, ML+physics MAE, +KG MAE, full-system 5-seed mean MAE).
+#: These do NOT satisfy the "every band below 2.0 gains >=25%, none above gains
+#: >0.2%" reading: the 0-0.5 band gets 5.7% WORSE with anchoring, and 3.0-4.5
+#: gains 0.24%. See the manifest.
+BAND_EXPECTED = ((12, 36.71, 38.80, 72.77), (24, 137.70, 96.22, 59.78),
+                 (12, 63.95, 33.25, 35.17), (8, 188.83, 131.25, 100.81),
+                 (25, 90.51, 90.51, 92.53), (66, 70.57, 70.41, 63.96),
+                 (138, 110.10, 110.10, 89.83))
+
+
+def band_stats(dist):
+    """Per-band yield-strength MAE for the three arms the figure compares."""
+    at = dist.set_index("alloy")["distance"]
+
+    def mae(df, alloys):
+        d = df[df.alloy.isin(alloys)].dropna(subset=["pred_ys", "actual_ys"])
+        d = d[d.actual_ys != 0]
+        return len(d), float((d.pred_ys - d.actual_ys).abs().mean())
+
+    phys, kg = load_arm("seed42_v2prod_ml_deterministic"), load_arm("seed42_v2prod_ml_physics_kg")
+    seeds = [load_arm(f"stageb_seed{s}_full_system") for s in SEEDS]
+
+    out = []
+    for lo, hi in BANDS:
+        alloys = at[(at >= lo) & (at < hi)].index
+        n, m_phys = mae(phys, alloys)
+        _, m_kg = mae(kg, alloys)
+        per_seed = [mae(f, alloys)[1] for f in seeds]
+        out.append({"n": n, "alloys": len(alloys), "phys": m_phys, "kg": m_kg,
+                    "full": float(np.mean(per_seed)), "full_sd": float(np.std(per_seed)),
+                    "gain": 100.0 * (m_phys - m_kg) / m_phys})
+
+    for i, (n, ph, k, fu) in enumerate(BAND_EXPECTED):
+        got = (out[i]["n"], round(out[i]["phys"], 2), round(out[i]["kg"], 2),
+               round(out[i]["full"], 2))
+        if got != (n, ph, k, fu):
+            raise SystemExit(f"band {BAND_LABEL[i]} is {got}, declared {(n, ph, k, fu)}. "
+                             f"The results moved; update BAND_EXPECTED deliberately.")
+    return out
+
+
 def fig_accuracy_vs_distance(dist, path):
-    """Per-alloy yield-strength error against distance, for three arms.
+    """Where knowledge-graph anchoring pays, and where the agent layer does.
 
-    The claim this figure carries: knowledge-graph anchoring separates from
-    ML-only only among near-duplicates, while the agent layer sits below both
-    across the whole distance range.
+    (a) Relative yield-strength error reduction from adding KG anchoring to
+    ML+physics, per distance band. Positive is an improvement.
 
-    ML-only and ML+physics+KG are identical past d = 4.5 -- anchoring cannot
-    fire beyond the gate, and no physics rule touches yield strength -- so their
-    trend lines coincide exactly over most of the axis. Drawn naively the upper
-    line simply hides the lower one and the reader sees two arms where there are
-    three. ML-only is therefore drawn thick and solid underneath, with the KG
-    arm dashed on top, so coincidence reads as coincidence.
+    (b) The same bands carrying absolute MAE for three arms, which is what
+    separates the two mechanisms: anchoring is confined to short distances,
+    the agent layer is not.
+
+    Read (a) with the row counts in mind. They are printed on the panel because
+    four of the seven bands rest on 12 rows or fewer, and because the effect is
+    carried by six alloys in total -- anchoring changes no prediction at all for
+    the other 80. A band is not a sample of a population here.
     """
-    arms = [("ML-only", "seed42_v2_ml_only", BLUE, "o", "-", 2.2, 0.9),
-            ("ML+physics+KG", "seed42_v2prod_ml_physics_kg", ORANGE, "s", (0, (3, 2)), 1.3, 1.0),
-            ("Full system", None, VERMILLION, "^", "-", 1.5, 1.0)]
-    fig, ax = plt.subplots(figsize=(COL_W, 2.7))
+    st = band_stats(dist)
+    x = np.arange(len(BANDS))
+    fig, (axa, axb) = plt.subplots(2, 1, figsize=(COL_W, 4.5))
 
-    # Stratum bands, drawn behind everything and labelled along the bottom.
-    xmax = float(dist.distance.max()) * 1.02
-    for lo, hi, name in ((0, 2.0, "NEAR"), (2.0, 4.5, "MID"), (4.5, xmax, "FAR")):
-        ax.axvspan(lo, hi, color=STRATUM_COLOUR[name], alpha=0.055, lw=0, zorder=0)
-        ax.text((lo + min(hi, xmax)) / 2, 0.015, name, transform=ax.get_xaxis_transform(),
-                fontsize=6.3, color=GREY, ha="center", va="bottom")
+    # (a) relative gain -------------------------------------------------
+    gains = [b["gain"] for b in st]
+    colours = [GREEN if g > 0 else VERMILLION for g in gains]
+    axa.bar(x, gains, 0.68, color=colours, edgecolor="none", zorder=3)
+    axa.axhline(0, color=GREY, linewidth=0.6, zorder=4)
+    for xi, (g, b) in enumerate(zip(gains, st)):
+        off = 1.6 if g >= 0 else -1.6
+        axa.text(xi, g + off, f"{g:+.1f}", ha="center", fontsize=6,
+                 va="bottom" if g >= 0 else "top", color=GREY)
+        axa.text(xi, -49, f"n={b['n']}", ha="center", va="bottom",
+                 fontsize=5.6, color=GREY)
+    # d = 2.0, the NEAR/MID cut, falls between the fourth and fifth band.
+    axa.axvline(3.5, color=GREY, linestyle=(0, (2, 2)), linewidth=0.7, zorder=2)
+    axa.text(3.42, 44, "d = 2.0", fontsize=6, color=GREY, ha="right", va="top")
+    axa.set_ylim(-52, 56)
+    axa.set_ylabel("YS error reduction\nfrom KG anchoring (%)")
+    axa.set_title("(a)", loc="left", fontweight="bold")
 
-    ymax = 0
-    for label, tag, colour, marker, dash, lw, alpha in arms:
-        df = full_system_mean() if tag is None else load_arm(tag)
-        d = df.dropna(subset=["pred_ys", "actual_ys"]).copy()
-        d["abs_err"] = (d.pred_ys - d.actual_ys).abs()
-        per_alloy = (d.groupby("alloy")["abs_err"].mean().rename("mae").reset_index()
-                     .merge(dist[["alloy", "distance"]], on="alloy")
-                     .sort_values("distance"))
-        ax.scatter(per_alloy.distance, per_alloy.mae, s=5, marker=marker,
-                   facecolor=colour, edgecolor="none", alpha=0.3, zorder=2)
-        w = max(7, len(per_alloy) // 5)
-        trend = per_alloy.mae.rolling(w, center=True, min_periods=3).median()
-        ax.plot(per_alloy.distance, trend, color=colour, linewidth=lw,
-                linestyle=dash, alpha=alpha, label=label, zorder=3,
-                solid_capstyle="round")
-        ymax = max(ymax, float(np.nanpercentile(per_alloy.mae, 95)))
+    # (b) absolute MAE ---------------------------------------------------
+    series = (("ML+physics", "phys", BLUE, "o", "-"),
+              ("+ KG", "kg", ORANGE, "s", (0, (3, 2))),
+              ("Full system", "full", VERMILLION, "^", "-"))
+    for label, key, colour, marker, dash in series:
+        axb.plot(x, [b[key] for b in st], color=colour, marker=marker,
+                 markersize=3.2, linewidth=1.2, linestyle=dash, label=label, zorder=3)
+    lo = np.array([b["full"] - b["full_sd"] for b in st])
+    hi = np.array([b["full"] + b["full_sd"] for b in st])
+    axb.fill_between(x, lo, hi, color=VERMILLION, alpha=0.16, lw=0, zorder=2)
+    axb.axvline(3.5, color=GREY, linestyle=(0, (2, 2)), linewidth=0.7, zorder=1)
+    axb.set_ylabel("Yield-strength MAE (MPa)")
+    axb.set_ylim(0, 205)
+    # Inside the axes: the upper-left corner is empty (all three arms are at
+    # their lowest in the nearest band) and a legend above the panel crowds
+    # panel (a)'s tick labels.
+    axb.legend(frameon=False, loc="upper left", handlelength=1.8,
+               labelspacing=0.25, handletextpad=0.4, borderaxespad=0.2)
+    axb.set_title("(b)", loc="left", fontweight="bold")
 
-    ax.set_xlabel("Distance to nearest training alloy (wt%)")
-    ax.set_ylabel("Per-alloy yield-strength MAE (MPa)")
-    ax.set_xlim(0, xmax)
-    ax.set_ylim(0, ymax * 1.25)
-    ax.legend(frameon=False, loc="upper center", bbox_to_anchor=(0.5, 1.16),
-              ncol=3, handlelength=1.8, columnspacing=1.0, handletextpad=0.4)
+    for ax in (axa, axb):
+        ax.set_xticks(x)
+        ax.set_xticklabels(BAND_LABEL, fontsize=6.2)
+        ax.set_xlim(-0.6, len(BANDS) - 0.4)
+        ax.tick_params(length=2)
+    axb.set_xlabel("Distance to nearest training alloy (wt%)")
+    fig.tight_layout(pad=0.4)
     fig.savefig(path)
     plt.close(fig)
 
