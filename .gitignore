@@ -306,6 +306,10 @@ docs/paper/*.md
 # the artefact of record and losing it loses the figure outright.
 docs/paper/figures/*.png
 !docs/paper/figures/system_architecture.png
+# The vector export of figure 1. KBS asks for vector artwork, so this, not the
+# PNG, is what goes to the publisher. Regenerate with the drawio CLI; see the
+# asset manifest.
+!docs/paper/figures/system_architecture.pdf
 !docs/paper/figures/agent_pipeline.png
 !docs/paper/figures/kg.png
 

@@ -48,13 +48,21 @@ is written down here.
 
 | Figure in the paper | Source | Rendered PNG (tracked) |
 |---|---|---|
-| System architecture | `docs/paper/figures/fig1_system_architecture_big.drawio` (`alloygraph-arch-v10`) | `docs/paper/figures/system_architecture.png` |
+| System architecture | `docs/paper/figures/fig1_system_architecture_big.drawio` (`alloygraph-arch-v10`) | `docs/paper/figures/system_architecture.pdf` (vector) and `.png` |
 | HAYNES 230 knowledge graph | **none — screenshot, see below** | `docs/paper/figures/kg.png` |
 | Prediction / design pipeline | `docs/paper/figures/fig3_evaluation_pipeline.drawio` (`pipeline-v4`) | `docs/paper/figures/agent_pipeline.png` |
 
 Both sources were checked label-for-label against the rendered figure and are
 current. The alloy counts are the quick tell: the source and the paper figure
 both read "88 Ni superalloys", and any export reading **99** is stale.
+
+Figure 1 carries three corrections made in `a076a77`, so an export predating it
+is stale in three more places: the triplestore holds **77** alloy variants and
+not 106, the orchestration band names no vendor (the provider chain is
+DeepInfra/Together/Groq/OpenAI, so "(Groq API)" was both stale and misleading),
+and the ensemble uses **50-80** engineered features, which is what
+`saved_models_v2/metrics.json` records -- `n_features` 80 for YS and UTS, 50 for
+EL and EM -- against the "25+" the figure had claimed.
 
 Two further draw.io files are **not used by the manuscript** and are kept only
 as alternates. Do not export from them:
@@ -105,23 +113,33 @@ figure in the paper changes with it: node labels carry fresh uuid suffixes and
 the force-directed layout lands differently. Treat a re-capture as a new figure
 needing a fresh caption check, not as a refresh.
 
-**These could not be exported here.** Neither the draw.io desktop application
-nor its CLI is installed on this machine, and no scriptable export path exists
-without one. Rendering the XML through a third-party library would silently
-change the layout the diagrams were drawn with, which is worse than not
-exporting them.
-
-To export, either use the desktop app (File > Export as > PDF, with *Crop* and
-*Transparent background*), or install the CLI once:
+**Export is scriptable.** The draw.io desktop app ships a CLI wrapper; install
+it once with `brew install --cask drawio`, which links `drawio` onto the path.
+Re-export figure 1 after any edit to its source:
 
 ```bash
-npm install -g @drawio/export
+SRC=docs/paper/figures/fig1_system_architecture_big.drawio
 drawio --export --format pdf --crop --transparent \
-  --output paper_assets/figures/fig1_system_architecture.pdf \
-  docs/paper/figures/fig1_system_architecture_big.drawio
+  --output docs/paper/figures/system_architecture.pdf "$SRC"
+drawio --export --format png --crop --width 5500 \
+  --output docs/paper/figures/system_architecture.png "$SRC"
+cp docs/paper/figures/system_architecture.png assets/system_architecture.png
+cp docs/paper/figures/system_architecture.png paper_src/Alloygraph_kbs/images/
 ```
 
-Export as PDF rather than PNG: KBS R2.1 asks for vector artwork.
+Three copies of the PNG have to move together -- the tracked one, the README's,
+and the manuscript build input -- which is exactly how the "99 Ni superalloys"
+export went stale. The PDF has no such copies.
+
+`system_architecture.pdf` is the vector version and is tracked: KBS R2.1 asks
+for vector artwork, so it, not the PNG, is what should go to the publisher. It
+carries no raster content and embeds every font as a subset. One caveat: five
+faces are subsetted Helvetica (CID TrueType), but the glyphs Helvetica lacks --
+`·`, `→`, `γ`, `′`, `±` -- fall back to a **Type 3** LucidaGrande subset. Type 3
+here is vector glyph procedures rather than bitmaps, so it is resolution
+independent, but some publishers' preflight flags Type 3 on sight. If Elsevier
+objects, the fix is to set those characters in a face that has them rather than
+to rasterise.
 
 ## Notes that belong with the numbers
 
