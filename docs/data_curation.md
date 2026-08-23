@@ -142,56 +142,94 @@ four into a shipped category, so **the committed evaluation set cannot be
 reproduced from the committed scripts** — it is five records short of what they
 produce.
 
-### Why no scope rule was encoded
+### The scope exclusion list
 
-Encoding the exclusions as a rule was attempted and **abandoned, deliberately.**
-No principled, composition-based rule covers all four, and the reason is in the
-data rather than in the wording.
+Every record a source offers and the evaluation set declines is now named in
+`evaluation/prediction/data/scope_exclusions.json`, the same contract as the
+errata ledger: a change means an entry, not new logic. Thirteen entries under
+three rules.
 
-**MC-102\* is not out of scope by any criterion, and an earlier note here was
-wrong to group it with the ODS alloys.** Its composition is
-Ni 64, Cr 20, Mo 6, W 2.5, Nb 6, Ta 0.6, closing to 99.7 wt%, with six
-temperatures of yield strength, tensile strength and elongation. It is a
-conventional cast Ni--Cr--Mo--Nb alloy of the 625 family: its nearest neighbour
-in the corpus is Cast Alloy 625 at d = 5.13. By the project's own
-γ′-former index, `Al+Ti+Ta+0.35*Nb` = **2.70**, it is a γ′/γ″-class alloy --
-`create_categorized_datasets.classify_alloy` labels it solid-solution only
-because its test reads Al and Ti and ignores Nb and Ta. There is no scope reason
-to exclude it.
+```bash
+python evaluation/prediction/scripts/verify_evaluation_provenance.py
+```
 
-**For two of the others the deciding property is not recorded at all.** MA758 is
-dispersion strengthened by Y₂O₃ and TD NiCr by ThO₂, and neither oxide appears
-in the stored composition: MA758 reads as Ni--30Cr--3Nb and TD NiCr as
-Ni--20Cr and nothing else. "ODS" is therefore knowable only from the alloy
-name, and a name-matching rule is the approach already rejected for
-manufacturer attribution.
+rebuilds the four category files from the sources plus the list plus the two
+evaluation errata. **Membership and order reproduce exactly** in all four,
+which is what the list governs, and the script fails if that stops being true.
 
-Candidate composition rules were tested against the shipped 88 and the 77
-training alloys:
+**Rules.** Each was tested against the shipped 88 and the 77 training alloys
+before being adopted, and each removes nothing that is currently kept:
 
-| candidate rule | catches | collateral |
+| rule | test | catches |
 |---|---|---|
-| `Al >= 7 wt%` | NX188 | none, in either set |
-| `< 3 elements` | TD NiCr | removes **TD Nickel from training** |
-| `composition sum > 103 wt%` | MA758 | removes **12 shipped evaluation alloys** |
-| `Mo >= 15 wt%` | NX188 | removes **12 shipped evaluation alloys** |
-| any of the above | — | **none catches MC-102\*** |
+| R1 unfeaturisable | composition is empty | UNITEMP\* AF2-1DA |
+| R2 NiAl intermetallic | Al ≥ 7.0 wt% | NX188(DS) |
+| R4 exact duplicate | composition distance < 0.01 to a record already accepted | MM-200, G-50 Grade 140, INCONEL 622 Sheet |
 
-Only the NiAl rule is clean. The rest either change the training set, which is
-frozen, or delete alloys the paper reports on.
+R1 matters beyond its one record: the untouched classifier reached the same
+outcome for the wrong reason, reading the absent nickel as Ni = 0 and filing the
+record as Fe-Ni base.
 
-So the four remain what they are: an undocumented legacy exclusion, now
-measured and named rather than guessed at. Two defensible ways forward, neither
-taken here without a decision:
+**Declared, because no rule can reach them.** Seven entries rest on alloy
+identity. For MA758 and TD NiCr the deciding property is not in the data at all:
+they are dispersion strengthened by Y₂O₃ and ThO₂ respectively, and neither
+oxide appears in the stored composition. Every composition test that catches
+them does collateral damage — `sum > 103 wt%` removes 12 shipped alloys and
+UDIMET\* 630 from the frozen training set; `< 3 elements` removes TD Nickel from
+training. The rest are near-duplicates that R4 misses (INCONEL HX at d = 0.42,
+TRW-NASA VIA at d = 3.40, both the same alloy as a kept record) or records whose
+composition never closes (AL 825 at 67.9 wt%, INCOLOY 908 at 61.2 wt%); no
+closure threshold separates those from INCOLOY 803, which is shipped at 65.6.
 
-1. **Declare them.** A named list with a per-entry rationale, in the pattern
-   `errata_ledger.json` already uses, plus the `Al >= 7 wt%` rule for NX188.
-   Honest about being a list rather than a rule, and makes the evaluation set
-   reproducible from the scripts.
-2. **Re-admit MC-102\***, which nothing justifies excluding, and declare only
-   the three that have a stated reason. This changes the evaluation set to 89
-   alloys and every metric with it, so it is a decision for before the next
-   results freeze, not after.
+**Historical, and disclosed.** One entry, `X05`, has no defensible reason.
+
+### MC-102\*: an exclusion with no justification, measured rather than assumed
+
+MC-102\* is in scope on every criterion. Ni 64 / Cr 20 / Mo 6 / W 2.5 / Nb 6 /
+Ta 0.6, closing to 99.7 wt%, with yield strength, tensile strength and
+elongation at six temperatures; a conventional cast Ni--Cr--Mo--Nb alloy of the
+625 family whose nearest training neighbour is Cast Alloy 625 at d = 5.13. By
+the project's own γ′-former index, `Al+Ti+Ta+0.35*Nb` = 2.70, it is γ′ class;
+`classify_alloy` files it as solid-solution only because that test reads Al and
+Ti and ignores Nb and Ta.
+
+It is kept out **only** so the committed results stay reproducible, and the cost
+of that is measured, not asserted to be small. d = 5.13 puts it in **FAR**, the
+stratum the headline agent claim rests on. Including its six rows:
+
+| property | scope | ML+physics+KG shipped | with MC-102\* | change |
+|---|---|---:|---:|---:|
+| YS | FAR | 110.10 | 108.50 | **−1.5%** |
+| YS | ALL | 92.37 | 91.95 | −0.5% |
+| UTS | FAR | 137.84 | 134.29 | −2.6% |
+| UTS | ALL | 112.75 | 111.48 | −1.1% |
+| EL | FAR | 10.89 | 11.38 | **+4.4%** |
+| EM | either | 7.84 | 7.84 | none — no measured modulus |
+
+Every strength number moves **in the platform's favour**, so the exclusion is
+not flattering the result. Elongation is the exception and worth stating: the
+arms predict roughly 30% against a measured 5% at room temperature, which is the
+already-known weakness on cast ductility rather than a new one. Full table in
+`evaluation/prediction/results/mc102_sensitivity.md`.
+
+Re-admit at the next results freeze: the evaluation set becomes 89 alloys and
+every metric moves.
+
+### Values do not reproduce, and that is a separate, older gap
+
+Membership reproduces; **cell values do not**. Twenty of 99 records differ in
+397 cells, and the direction is always the same — the shipped files hold data
+the committed sources do not: yield-strength series on AL 276, an iron content
+on Altemp 718, a full composition on INCONEL G-3, room-temperature moduli
+*replaced* rather than removed (76 → 207 GPa, a shear-for-Young's substitution
+that `clean_elasticity.py` only ever cleared), test temperatures normalised
+(20 → 21 °C, 540 → 649).
+
+The committed MatWeb source files are an **older extraction** than the one the
+shipped evaluation files were built from, and that newer extraction was never
+committed. Closing this needs the newer extraction, not another rule. The
+verifier reports the gap with a count rather than hiding it, and gates only on
+membership.
 
 ### One authoritative path
 

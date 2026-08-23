@@ -28,6 +28,56 @@ SOURCES = {
     "matweb_alloys": os.path.join(PROJECT_ROOT, "backend", "superalloy_preprocess", "output_data", "matweb_alloys.jsonl"),
 }
 
+#: Declared scope exclusions. Every record a source offers and the evaluation
+#: set does not take is named in this file, with the rule that removes it or --
+#: where no rule can -- an explicit declaration. Rules R1/R2/R4 are applied here;
+#: entries marked "declared" or "historical" are matched by alloy name because
+#: no composition test reaches them without removing alloys that are kept.
+#: See docs/data_curation.md.
+SCOPE_EXCLUSIONS = os.path.join(BASE_DIR, "data", "scope_exclusions.json")
+
+#: R2. Above this the strengthening phase is bulk beta-NiAl, not gamma-prime.
+NIAL_AL_WT = 7.0
+
+#: R4. Composition distance below which two records are the same alloy.
+DUPLICATE_D = 0.01
+
+
+def load_scope_exclusions(path=SCOPE_EXCLUSIONS):
+    with open(path, encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def _distance(a, b):
+    """Euclidean distance on wt%-normalised composition, as rag_tools computes it."""
+    keys = set(a) | set(b)
+    return sum((float(a.get(k) or 0) - float(b.get(k) or 0)) ** 2 for k in keys) ** 0.5
+
+
+def scope_verdict(alloy_data, accepted, by_name):
+    """(excluded, entry_id, reason) for one record.
+
+    Rules first, so a record a rule reaches is reported as reached by the rule
+    rather than by its declaration.
+    """
+    comp = alloy_data.get("composition") or {}
+    name = alloy_data.get("alloy", "")
+
+    if not comp:
+        return True, by_name.get(name, {}).get("id"), "R1 unfeaturisable: composition is empty"
+    if float(comp.get("Al") or 0) >= NIAL_AL_WT:
+        return True, by_name.get(name, {}).get("id"), (
+            f"R2 NiAl intermetallic: Al = {float(comp['Al']):.1f} wt%")
+    for kept_name, kept_comp in accepted:
+        if kept_comp and _distance(comp, kept_comp) < DUPLICATE_D:
+            return True, by_name.get(name, {}).get("id"), (
+                f"R4 exact duplicate of {kept_name}")
+    entry = by_name.get(name)
+    if entry:
+        return True, entry["id"], f"{entry['status']}: {entry['rationale'][:70]}..."
+    return False, None, ""
+
+
 # SC/DS indicators in alloy names
 SC_DS_INDICATORS = ['(SC)', '(DS)', 'CMSX', 'PWA 14', 'PWA*14', 'Rene N', 'RENÉ* N',
                     'TMS-', 'DD5', 'DD6', 'DD9', 'DD98', 'RR30']
@@ -90,6 +140,11 @@ def load_and_categorize():
     all_alloys = []
     stats = defaultdict(lambda: defaultdict(int))
 
+    scope = load_scope_exclusions()
+    by_name = {e["alloy"]: e for e in scope["entries"]}
+    accepted = []          # (name, composition) of everything kept, for R4
+    excluded_log = []
+
     for source_name, source_path in SOURCES.items():
         if not os.path.exists(source_path):
             print(f"Warning: {source_path} not found, skipping")
@@ -107,7 +162,20 @@ def load_and_categorize():
                 except json.JSONDecodeError:
                     continue
 
-                category, reason = classify_alloy(alloy_data)
+                excluded, entry_id, why = scope_verdict(alloy_data, accepted, by_name)
+                if excluded:
+                    entry = by_name.get(alloy_data.get('alloy', ''), {})
+                    disposition = entry.get('disposition', 'dropped')
+                    excluded_log.append((alloy_data.get('alloy', '?'), source_name,
+                                         entry_id, why, disposition))
+                    stats[source_name]['excluded'] += 1
+                    if disposition != 'other':
+                        continue
+                    category, reason = 'other', why
+                else:
+                    category, reason = classify_alloy(alloy_data)
+                    accepted.append((alloy_data.get('alloy', '?'),
+                                     alloy_data.get('composition') or {}))
 
                 # Add metadata
                 alloy_data['_category'] = category
@@ -119,6 +187,11 @@ def load_and_categorize():
                 stats[source_name][category] += 1
 
                 print(f"  {category:<15} | {reason:<20} | {alloy_data.get('alloy', 'Unknown')[:40]}")
+
+    print(f"\n{len(excluded_log)} record(s) excluded by scope_exclusions.json:")
+    for name, src, entry_id, why, disposition in excluded_log:
+        print(f"  {entry_id or '??':4s} {name[:44]:46s} [{src}] -> {disposition}")
+        print(f"       {why}")
 
     return categorized, all_alloys, stats
 
