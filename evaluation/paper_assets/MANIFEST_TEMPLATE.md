@@ -46,7 +46,7 @@ is written down here.
 | Figure in the paper | Source | Rendered PNG (tracked) |
 |---|---|---|
 | System architecture | `docs/paper/figures/fig1_system_architecture_big.drawio` (`alloygraph-arch-v10`) | `docs/paper/figures/system_architecture.png` |
-| HAYNES 230 knowledge graph | **none — screenshot, see below** | `paper_src/.../images/kg.png` (untracked) |
+| HAYNES 230 knowledge graph | **none — screenshot, see below** | `docs/paper/figures/kg.png` |
 | Prediction / design pipeline | `docs/paper/figures/fig3_evaluation_pipeline.drawio` (`pipeline-v4`) | `docs/paper/figures/agent_pipeline.png` |
 
 Both sources were checked label-for-label against the rendered figure and are
@@ -90,9 +90,17 @@ therefore a different label in the view. Node placement is force-directed and
 unseeded as well. The rendered PNG is the artefact of record; the recipe above
 reproduces the *structure*, not the image.
 
-Because `paper_src/` is git-ignored, `kg.png` currently exists in no commit.
-Fixing that means either tracking it beside the other two figures or accepting
-that figure 2 is unrecoverable if the working copy is lost.
+**`docs/paper/figures/kg.png` is therefore the artefact of record**, and is
+tracked for that reason rather than as a convenience. The other two figures can
+be rebuilt from their `.drawio` sources if the PNG is lost; this one cannot be
+rebuilt from anything. It is the only copy that exists in a commit --
+`paper_src/` is git-ignored, so the manuscript's own copy is not backed by
+version control.
+
+If figure 2 is ever regenerated, the new screenshot replaces this file, and the
+figure in the paper changes with it: node labels carry fresh uuid suffixes and
+the force-directed layout lands differently. Treat a re-capture as a new figure
+needing a fresh caption check, not as a refresh.
 
 **These could not be exported here.** Neither the draw.io desktop application
 nor its CLI is installed on this machine, and no scriptable export path exists

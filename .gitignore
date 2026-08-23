@@ -299,12 +299,15 @@ docs/paper/*.md
 # One such export shipped a wrong alloy count ("99 Ni superalloys") for months
 # while its source already said 88.
 #
-# The two the manuscript actually compiles are exceptions and ARE tracked.
+# The three the manuscript actually compiles are exceptions and ARE tracked.
 # paper_src/ is git-ignored (Overleaf is authoritative), so without these the
-# only copy of each lived on one laptop.
+# only copy of each lived on one laptop. kg.png matters most: it is a GraphDB
+# screenshot with no source file and a non-deterministic view, so the PNG is
+# the artefact of record and losing it loses the figure outright.
 docs/paper/figures/*.png
 !docs/paper/figures/system_architecture.png
 !docs/paper/figures/agent_pipeline.png
+!docs/paper/figures/kg.png
 
 # Generated manuscript assets — regenerate with evaluation/paper_assets/*.py.
 # Anchored: an unanchored "paper_assets/" also matches evaluation/paper_assets,
