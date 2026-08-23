@@ -96,6 +96,66 @@ names one, and deriving it from the alloy-name string does not work: 31 of the
 HASTELLOY X is a Haynes product but the string says nothing, while UDIMET has
 changed hands. Any per-manufacturer count in the paper would be an invention.
 
+## The 106 / 77 / 88 arithmetic
+
+Check it with `verify_split_arithmetic.py`. Two things have to be said plainly
+before it closes.
+
+**A "record" is an alloy under one processing route and product form, not an
+alloy.** The upstream file holds **106 records over 100 distinct alloy names** --
+RENÉ\* 41 appears as Bar and as Sheet, and so on. Quoting 106 as a count of
+alloys is wrong.
+
+**The evaluation set is not the holdout.** The stratified split produced 27
+holdout records; the 88-alloy evaluation set draws 22 of them plus 66 MatWeb
+records.
+
+### Step 1, the split: 106 = 77 + 27 + 2
+
+Two records go to neither side:
+
+| record | composition | why |
+|---|---|---|
+| RENÉ\* 41 (wrought, Sheet) | empty, 0 wt% | cannot be featurised; the Bar record of the same alloy carries a full composition and is in training |
+| TD Nickel (wrought, Sheet) | empty, 0 wt% | same |
+
+Training and holdout do not overlap at all.
+
+### Step 2, holdout to evaluation set: 27 = 22 + 5
+
+Five holdout records never reach a shipped file. **One is explained, four are
+not.**
+
+| record | composition | disposition |
+|---|---|---|
+| UNITEMP\* AF2-1DA | empty, 0 wt% | classifier reads Ni = 0, routes it to `other` (out of scope). Same defect as the two above |
+| INCONEL\* MA758 | 7 elements, 103.8 wt% | **no recorded reason** — classifies `solid_solution` |
+| MC-102\* | 9 elements, 99.7 wt% | **no recorded reason** — classifies `solid_solution` |
+| TD NiCr | 2 elements, 98.0 wt% | **no recorded reason** — classifies `solid_solution` |
+| NX188(DS) | 4 elements, 100.0 wt% | **no recorded reason** — classifies `precip_sc_ds` |
+
+The four have valid compositions, full yield-strength, tensile-strength and
+elongation series, and classify cleanly under the committed classifier. They are
+not duplicates of shipped alloys: nearest-neighbour distances run 0.92 to 12.5.
+Re-running `create_categorized_datasets.py` on the committed inputs puts all
+four into a shipped category, so **the committed evaluation set cannot be
+reproduced from the committed scripts** — it is five records short of what they
+produce.
+
+They are plausibly deliberate: MA758 and TD NiCr are oxide-dispersion
+strengthened, NX188 is a NiAl-based DS eutectic, and none is a conventional
+γ′ or solid-solution superalloy. But that reasoning appears in no script, no
+comment and no note, so it is a reconstruction and not a record.
+
+`data/all_categorized.jsonl` and `data/manifest.json` are stale artefacts of an
+earlier run and should not be used: the manifest counts 111 records where the
+file holds 106, and the file is missing RGT\* 13, which *is* shipped in
+`precip.jsonl`. The three shipped files are authoritative.
+
+A further eight MatWeb records are classifiable but unshipped, several of them
+apparent name duplicates of shipped alloys (`TRW-NASA VIA` beside
+`TRW-NASA VI A`, `MM-200` beside `MAR-M\* 200`). Not investigated here.
+
 ## Checks
 
 Run both before trusting any published number.
