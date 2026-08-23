@@ -36,6 +36,9 @@ PROVENANCE = {
     "figures/coverage_by_temperature.pdf": (
         "evaluation/paper_assets/make_figures.py",
         "evaluation/prediction/results/conformal_intervals.csv"),
+    "figures/mcq_accuracy.pdf": (
+        "evaluation/paper_assets/make_figures.py",
+        "evaluation/chatbot/results/mcq_report.json"),
     "tables/T1_main.tex": (
         "evaluation/paper_assets/make_tables.py",
         "evaluation/prediction/results/headline_metrics.csv"),

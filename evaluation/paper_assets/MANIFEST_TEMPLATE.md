@@ -19,8 +19,11 @@ results table already holds, so a figure and a table cannot disagree.
 
 All vector PDF, no raster content, Helvetica embedded as subsetted TrueType so
 text stays selectable and editable. Sized for a single journal column (3.5 in)
-at 8 pt base type. Palette is Okabe--Ito, distinguishable under deuteranopia,
-protanopia and tritanopia, and separable in greyscale.
+at 8 pt base type; `mcq_accuracy.pdf` is the one exception, set to the full text
+width (7.16 in) because twelve grouped bars each carrying a value label cannot
+fit a column without the labels colliding. The manuscript already runs that
+figure across both columns. Palette is Okabe--Ito, distinguishable under
+deuteranopia, protanopia and tritanopia, and separable in greyscale.
 
 | Asset | Script | Data consumed |
 |---|---|---|
@@ -146,6 +149,23 @@ pooled yield strength is now **13.53 MPa** (92.37 to 78.84) -- exactly the
 Total rows are unchanged at **471**: the erratum withdrew a cell, not a case.
 Every correction is declared in `evaluation/prediction/data/errata_ledger.json`;
 see `docs/data_curation.md`.
+
+**The MCQ figure is now generated from the committed report, and guards
+against drift.** `images/mcq_accuracy.png` in the manuscript was drawn by
+`evaluation/chatbot/notebooks/mcq_analysis.ipynb` (cell 7), which **hard-codes**
+its twelve percentages rather than reading them from anything -- so the figure
+could have disagreed with the run behind it and nothing would have caught it.
+`mcq_accuracy.pdf` recomputes all twelve from
+`evaluation/chatbot/results/mcq_report.json` and refuses to draw if any of them
+round to something other than the published value, naming the cell that moved.
+All twelve currently agree, so the vector figure is the same figure: 1-Hop
+100/35/33, 2-Hop 79/43/42, General 98/92/100, Overall 91/50/50, for
+Chatbot + KG / Llama 3.3 70B / GPT-4o over 250 questions per system.
+
+The one deliberate departure from the PNG is palette. The original used Paul
+Tol muted; this uses Okabe--Ito to match the other figures, and draws "Overall"
+in light grey with a hatch rather than a fourth hue, because it is an aggregate
+of the other three bars and should not carry the visual weight of a peer.
 
 **The sub-zero temperature bin is excluded from the coverage figure.** It holds
 two cryogenic rows for two properties, too few to estimate coverage from. The

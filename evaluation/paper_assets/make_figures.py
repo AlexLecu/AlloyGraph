@@ -12,6 +12,7 @@ Figures
     parity_stratified.pdf       predicted vs measured, full system, by stratum
     accuracy_vs_distance.pdf    per-alloy YS error against distance, three arms
     coverage_by_temperature.pdf conformal coverage by temperature bin
+    mcq_accuracy.pdf            chatbot MCQ accuracy by question type
 
 Usage:
     python make_figures.py                    # all four, into ../../paper_assets/figures
@@ -19,6 +20,7 @@ Usage:
 """
 
 import argparse
+import json
 import os
 import sys
 
@@ -34,6 +36,7 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))
 PRED_DIR = os.path.join(PROJECT_ROOT, "evaluation", "prediction")
 RESULTS = os.path.join(PRED_DIR, "results")
 OUTPUT = os.path.join(PRED_DIR, "output")
+CHATBOT_RESULTS = os.path.join(PROJECT_ROOT, "evaluation", "chatbot", "results")
 DEFAULT_OUT = os.path.join(PROJECT_ROOT, "paper_assets", "figures")
 
 DATASETS = ("sss", "precip", "sc_ds")
@@ -56,6 +59,11 @@ PROPS = (("ys", "Yield strength", "MPa"),
 #: Single journal column. Figures that need two rows of panels get more height,
 #: never more width, so nothing is scaled down at typesetting.
 COL_W = 3.5
+
+#: Full text width, for the one figure that cannot fit a column. Twelve grouped
+#: bars with a value label on each need the width; squeezed to COL_W the labels
+#: collide. The manuscript already sets this figure across both columns.
+FULL_W = 7.16
 
 
 def style():
@@ -278,6 +286,78 @@ def fig_coverage_by_temperature(path):
     plt.close(fig)
 
 
+def fig_mcq_accuracy(path):
+    """Multiple-choice accuracy by question type, three systems.
+
+    Read from the committed mcq_report.json rather than restated. The notebook
+    that first drew this figure (evaluation/chatbot/notebooks/mcq_analysis.ipynb,
+    cell 7) hard-codes its twelve percentages, so the figure could drift from
+    the run behind it with nothing to catch the drift. The values here are
+    recomputed from the report and asserted against the published figure below.
+
+    "Overall" is an aggregate of the other three bars, not a fourth question
+    type, so it is drawn in grey with a hatch instead of being given a fourth
+    hue of equal weight.
+    """
+    report = json.load(open(os.path.join(CHATBOT_RESULTS, "mcq_report.json")))
+
+    #: report key -> label in the paper. Labels match the published figure.
+    systems = (("chatbot", "Chatbot + KG"),
+               ("llama", "Llama 3.3 70B"),
+               ("gpt", "GPT-4o"))
+    hops = (("1hop", "1-Hop"), ("2hop", "2-Hop"),
+            ("general", "General"), ("overall", "Overall"))
+
+    pct = {}
+    for hop_key, hop_label in hops:
+        pct[hop_label] = [100.0 * report["systems"][s][hop_key]["correct"]
+                          / report["systems"][s][hop_key]["total"]
+                          for s, _ in systems]
+
+    # The figure in the manuscript. Regenerating must not silently change it.
+    published = {"1-Hop": [100, 35, 33], "2-Hop": [79, 43, 42],
+                 "General": [98, 92, 100], "Overall": [91, 50, 50]}
+    for label, expected in published.items():
+        got = [round(v) for v in pct[label]]
+        if got != expected:
+            raise SystemExit(f"mcq_accuracy: {label} is {got}, published {expected}. "
+                             f"The results moved; update `published` deliberately.")
+
+    # Light grey, not GREY: at full strength the aggregate bar out-weighs the
+    # three measured ones it summarises, which is backwards.
+    AGGREGATE = "#B0B0B0"
+    colour = {"1-Hop": BLUE, "2-Hop": ORANGE, "General": GREEN, "Overall": AGGREGATE}
+    hatch = {"1-Hop": "", "2-Hop": "", "General": "", "Overall": "//"}
+
+    fig, ax = plt.subplots(figsize=(FULL_W, 2.9))
+    bar_w = 0.17
+    group_w = len(hops) * bar_w
+    left = np.arange(len(systems)) * (group_w + 0.4)
+
+    for i, (_, label) in enumerate(hops):
+        bars = ax.bar(left + i * bar_w, pct[label], bar_w, label=label,
+                      color=colour[label], hatch=hatch[label],
+                      edgecolor="white", linewidth=0.6, zorder=3)
+        for bar, v in zip(bars, pct[label]):
+            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 1.2,
+                    f"{v:.0f}%", ha="center", va="bottom", fontsize=6.5, color=GREY)
+
+    for y in range(20, 101, 20):
+        ax.axhline(y, color="#E8E8E8", linewidth=0.5, zorder=1)
+    ax.set_ylim(0, 108)
+    ax.set_yticks(range(0, 101, 20))
+    ax.set_yticklabels([f"{y}%" for y in range(0, 101, 20)])
+    ax.set_ylabel("Accuracy")
+    ax.set_xticks(left + group_w / 2 - bar_w / 2)
+    ax.set_xticklabels([label for _, label in systems])
+    ax.tick_params(axis="x", length=0)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.14), ncol=len(hops),
+              frameon=False, columnspacing=1.5, handlelength=1.2,
+              handletextpad=0.4)
+    fig.savefig(path)
+    plt.close(fig)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -292,6 +372,7 @@ def main():
         ("parity_stratified.pdf", lambda p: fig_parity(dist, p)),
         ("accuracy_vs_distance.pdf", lambda p: fig_accuracy_vs_distance(dist, p)),
         ("coverage_by_temperature.pdf", lambda p: fig_coverage_by_temperature(p)),
+        ("mcq_accuracy.pdf", lambda p: fig_mcq_accuracy(p)),
     ]
     for name, fn in jobs:
         path = os.path.join(args.outdir, name)
