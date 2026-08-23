@@ -215,21 +215,65 @@ already-known weakness on cast ductility rather than a new one. Full table in
 Re-admit at the next results freeze: the evaluation set becomes 89 alloys and
 every metric moves.
 
-### Values do not reproduce, and that is a separate, older gap
+### The category files are the artefact of record for their values
 
-Membership reproduces; **cell values do not**. Twenty of 99 records differ in
-397 cells, and the direction is always the same — the shipped files hold data
-the committed sources do not: yield-strength series on AL 276, an iron content
-on Altemp 718, a full composition on INCONEL G-3, room-temperature moduli
-*replaced* rather than removed (76 → 207 GPa, a shear-for-Young's substitution
-that `clean_elasticity.py` only ever cleared), test temperatures normalised
-(20 → 21 °C, 540 → 649).
+Membership reproduces from the sources; **cell values do not**, in 20 of 99
+records over 397 cells. The missing step was searched for and is not in this
+repository.
 
-The committed MatWeb source files are an **older extraction** than the one the
-shipped evaluation files were built from, and that newer extraction was never
-committed. Closing this needs the newer extraction, not another rule. The
-verifier reports the gap with a count rather than hiding it, and gates only on
-membership.
+**It is not a newer MatWeb extraction.** That was the first guess and it is
+wrong. MatWeb's own record for AL 276, in every scrape on disk
+(`backend/scrape/Data/{all_materials,materials3,processed_materials}.jsonl`) and
+in `matweb_unique_standardized.xlsx`, carries a single room-temperature bound:
+
+```
+yield_strength_mpa: [{temp_c: null, min: 283.0, qualifier: ">=", raw: ">= 283 MPa @Strain 0.2 %"}]
+```
+
+The shipped file carries 415 / 380 / 345 / 315 MPa at 21 / 93 / 204 / 316 °C --
+a 70 / 200 / 400 / 600 °F ladder off a manufacturer datasheet, which no MatWeb
+summary page ever held. The enrichment came from reading datasheets directly
+between the January extraction and the March evaluation files, and no
+intermediate was kept.
+
+Searched and excluded: `.new/`, `Data/`, `figshare-data/`, `alloygraph-data.zip`,
+`evaluation/_archive/`, `backend/_archive/`, `backend/scrape/Data*`, every
+`output_data/` file, the standardised MatWeb spreadsheet, and the git history of
+`SSS.jsonl` (one commit, 2026-03-18, already carrying the series).
+`figshare-data/evaluation/sss.jsonl` matches the shipped values exactly and is a
+**byte-identical copy** of `SSS.jsonl`, not a source.
+
+So the three evaluated category files are the artefact of record for their
+values, the way `kg.png` is for figure 2: reproducible in structure, not
+regenerable in content. They are tracked for that reason.
+
+**What the 397 cells are:**
+
+| kind | cells | what it is |
+|---|---:|---|
+| added | 236 | the source has nothing; the shipped file has a measurement |
+| removed | 148 | the source has a value the shipped file drops |
+| changed | 13 | both present and different |
+
+Net, the shipped files hold **88 more measurements** than the sources. Most of
+the 148 removals are the elasticity clean-up (79 of them): `clean_elasticity.py`
+strips shear-modulus values that MatWeb mixed into Young's-modulus fields. The
+13 changes are the same defect handled by substitution rather than deletion --
+AL 600 at 76 → 207 GPa, INCONEL 725 at 78 → 204, C276 at 79 → 205 are all
+G → E corrections -- plus three elongation values differing in the first decimal.
+
+**The deltas pass the standing check.** `data_sanity_sweep.py` sweeps all 165
+training and evaluation records, these 20 included, and reports **0 physically
+impossible measurements**: no negative or zero strengths, no yield above
+tensile beyond rounding, no impossible elongation, no composition far from
+closure. The enrichment is not smuggling anything past the guard rails.
+
+**What this means for reuse.** Regenerating the evaluation set from the
+committed sources gives the right 88 alloys with poorer property coverage, not a
+different alloy set. Anyone reproducing the paper's numbers must use the
+committed category files, which is why they are tracked and why
+`verify_evaluation_provenance.py` gates on membership and prints the value delta
+rather than implying the files are derivable.
 
 ### One authoritative path
 

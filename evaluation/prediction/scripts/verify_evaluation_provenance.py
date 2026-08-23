@@ -20,18 +20,21 @@ difference, so a hand edit to the evaluation data cannot pass unnoticed.
 
 WHAT PASSES AND WHAT DOES NOT. Membership and order reproduce exactly, in all
 four category files: the exclusion list accounts for every record the sources
-offer and the evaluation set declines, and that is what the list governs. Cell
-values do not, and the reason is a separate, older gap: **the committed source
-files are behind the shipped evaluation files.** Twenty records hold data the
-sources do not have -- yield-strength series on AL 276, an iron content on
-Altemp 718, a full composition on INCONEL G-3, room-temperature moduli replaced
-rather than removed (76 -> 207 GPa, a shear-for-Young's substitution that
-`clean_elasticity.py` only ever cleared), and test temperatures normalised
-(20 -> 21 degC, 540 -> 649). The shipped files were built from a later MatWeb
-extraction than the one committed, and that extraction was never committed.
+offer and the evaluation set declines, and that is what the list governs.
 
-This script therefore gates on membership and reports the value gap rather than
-hiding it. Closing the value gap needs the newer extraction, not another rule.
+Cell values do not, in 20 of 99 records over 397 cells, and the missing step was
+searched for and is not in this repository. It is not, as first supposed, a
+newer pass over MatWeb: MatWeb's own record for AL 276 carries a single
+room-temperature bound, ">= 283 MPa", where the shipped file carries 415/380/
+345/315 MPa at 21/93/204/316 degC -- a 70/200/400/600 degF ladder off a
+manufacturer datasheet, which no MatWeb summary page ever held. The enrichment
+came from reading datasheets directly between the January extraction and the
+March evaluation files, and no intermediate was kept.
+
+The three evaluated category files are therefore the artefact of record for
+their values, in the way that a screenshot is for a figure with no source. This
+script gates on membership, which is reproducible, and reports the value delta
+with a count rather than implying the whole file is derivable.
 
 `other.jsonl` membership is checked too. Its one exclusion, UNITEMP* AF2-1DA,
 now carries a corrected `_category_reason`: the old string read "Fe-Ni base",
@@ -183,12 +186,12 @@ def main():
           "four category files exactly.")
 
     if value_gap_records:
-        print(f"\nKNOWN VALUE GAP (not a failure, and not what this list governs):")
+        print(f"\nVALUE DELTA (expected; not a failure, and not what this list governs):")
         print(f"  {value_gap_records} of {total} records differ in {value_gap_cells} cells.")
-        print(f"  The committed MatWeb source files are an older extraction than the one")
-        print(f"  the shipped evaluation files were built from -- the shipped files hold")
-        print(f"  data the sources do not. Re-run with --verbose to list the cells.")
-        print(f"  Closing this needs the newer extraction committed, not another rule.")
+        print(f"  The category files are the artefact of record for their values: the")
+        print(f"  datasheet transcription that enriched them was never kept, and it is")
+        print(f"  not a MatWeb re-extraction -- MatWeb never held these series.")
+        print(f"  See docs/data_curation.md. Re-run with --verbose to list the cells.")
     return 0
 
 

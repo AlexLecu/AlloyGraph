@@ -167,5 +167,6 @@
       "disposition": "dropped"
     }
   ],
-  "disposition_note": "`disposition` says where an excluded record goes. `other` means it is written to other.jsonl, the bucket for records carried but never evaluated; `dropped` means it leaves the corpus entirely. Only X01 is routed rather than dropped, because that is what the committed other.jsonl holds."
+  "disposition_note": "`disposition` says where an excluded record goes. `other` means it is written to other.jsonl, the bucket for records carried but never evaluated; `dropped` means it leaves the corpus entirely. Only X01 is routed rather than dropped, because that is what the committed other.jsonl holds.",
+  "value_provenance_note": "This list governs MEMBERSHIP only. The category files' cell VALUES are not derivable from the committed sources: 20 of 99 records carry 397 cells the sources do not match, because manufacturer datasheets were read directly between the January extraction and the March evaluation files and no intermediate was kept. It is not a newer MatWeb pass -- MatWeb never held those temperature series. The category files are the artefact of record for their values. See docs/data_curation.md."
 }
