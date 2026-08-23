@@ -55,6 +55,9 @@ PROVENANCE = {
     "tables/T5_conformal.tex": (
         "evaluation/paper_assets/make_tables.py",
         "evaluation/prediction/results/conformal_coverage.csv"),
+    "tables/T6_baselines.tex": (
+        "evaluation/paper_assets/make_tables.py",
+        "evaluation/prediction/results/stratified_metrics.csv"),
 }
 
 

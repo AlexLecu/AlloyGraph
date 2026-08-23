@@ -75,6 +75,27 @@ If the original handbook is consulted and confirms 435 MPa at 871 °C, E02 can b
 changed from a withdrawal to a correction: edit the ledger entry, re-run
 `apply_errata.py --apply`, and regenerate.
 
+## What the 88 evaluation alloys are
+
+Each evaluation record carries a `_source` tag. The split is exactly:
+
+| `_source` | n | what it is |
+|---|---:|---|
+| `test_split_30` | 22 | stratified 30% holdout of the curated corpus, split before any model was fitted (`create_train_test_split.py`) |
+| `matweb_original` | 33 | MatWeb records, first extraction pass |
+| `matweb_alloys` | 33 | MatWeb records, second extraction pass |
+
+None of the 88 shares a name with any of the 77 training alloys. The two MatWeb
+passes are extraction batches, not different kinds of source: both are MatWeb
+transcriptions of manufacturer datasheets, so the split by *kind* of source is
+**22 curated-corpus holdout against 66 datasheet-derived**.
+
+**Manufacturer is not recorded.** No field in any evaluation or upstream file
+names one, and deriving it from the alloy-name string does not work: 31 of the
+88 carry no vendor token at all, and the ones that do are not reliable --
+HASTELLOY X is a Haynes product but the string says nothing, while UDIMET has
+changed hands. Any per-manufacturer count in the paper would be an invention.
+
 ## Checks
 
 Run both before trusting any published number.

@@ -11,6 +11,7 @@ Emits, into ../../paper_assets/tables:
     T3_provenance.tex  mechanism, where it helps, and the supporting evidence
     T4_design.tex      inverse-design arms and their three success criteria
     T5_conformal.tex   conformal coverage and interval width per stratum
+    T6_baselines.tex   per-stratum YS and UTS for the four method baselines
 
 Usage:
     python make_tables.py
@@ -49,6 +50,12 @@ T1_ARMS = [
 T2_ARMS = [("ML-only", "ML-only"), ("ML + physics", "ML+physics"),
            ("ML + physics + KG", "ML+physics+KG"),
            ("Full system", "Full system (5 seeds)")]
+
+#: Method baselines beside the two internal arms they are meant to bracket.
+#: Ordered so the two reference arms come first and the four baselines follow.
+T6_ARMS = [("ML-only", "ML-only"), ("ML + physics", "ML+physics"),
+           ("GBM, raw", "GBM raw"), ("RF, raw", "RF raw"),
+           ("GPR, raw", "GPR raw"), ("GPR, physics", "GPR physics")]
 
 STRATA = ("NEAR", "MID", "FAR")
 
@@ -367,6 +374,59 @@ def write(out, name, lines):
     print(f"  {name:22s} {os.path.getsize(path):6d} bytes")
 
 
+# ---------------------------------------------------------------- T6
+def t6_baselines(out):
+    """Per-stratum YS and UTS for the method baselines.
+
+    UTS is carried as well as YS because it costs one extra block and changes
+    the reading: on FAR the two tree baselines beat the internal arms on
+    tensile strength, which the yield-strength column alone would hide.
+    """
+    s = pd.read_csv(os.path.join(RESULTS, "stratified_metrics.csv"))
+
+    def cell(arm, prop, stratum):
+        r = s[(s.method == arm) & (s.property == prop) & (s.stratum == stratum)]
+        return "--" if r.empty or pd.isna(r.iloc[0]["mae"]) else num(r.iloc[0]["mae"], 1)
+
+    def n_of(prop, stratum):
+        r = s[(s.property == prop) & (s.stratum == stratum)]
+        return "--" if r.empty else str(int(r.iloc[0]["n_rows"]))
+
+    L = [header("T6: method baselines by stratum",
+                "evaluation/prediction/results/stratified_metrics.csv"),
+         r"\begin{table*}[t]", r"\centering",
+         r"\caption{Method baselines by distance stratum, mean absolute error. "
+         r"All arms are trained on the same 77 alloys and scored on the same "
+         r"rows. \emph{Raw} features are composition in wt\% plus temperature "
+         r"and processing route; \emph{physics} features add the engineered "
+         r"descriptors the internal models use. Strata are as in "
+         r"Table~\ref{tab:stratified}.}",
+         r"\label{tab:baselines}",
+         r"\begin{tabular}{ll" + "r" * len(T6_ARMS) + "}", r"\toprule",
+         "Property & Stratum ($n$) & " + " & ".join(esc(l) for l, _ in T6_ARMS) + r" \\",
+         r"\midrule"]
+    for i, (prop, unit) in enumerate((("YS", "MPa"), ("UTS", "MPa"))):
+        if i:
+            L.append(r"\addlinespace")
+        for j, st in enumerate(STRATA + ("ALL",)):
+            first = f"{prop} ({unit})" if j == 0 else ""
+            L.append(f"{first} & {st} ({n_of(prop, st)}) & "
+                     + " & ".join(cell(key, prop, st) for _, key in T6_ARMS) + r" \\")
+    L += [r"\bottomrule", r"\end{tabular}",
+          r"\begin{minipage}{\textwidth}\vspace{2pt}\footnotesize",
+          r"The raw-feature baselines do not collapse on FAR: RF reaches "
+          r"104.8~MPa on yield strength against 110.1 for the internal arms, "
+          r"and both tree baselines beat them on tensile strength "
+          r"(112.3 and 113.5 against 137.8). Only the Gaussian process on "
+          r"engineered features degrades sharply (301.7~MPa), and it does so "
+          r"because those features extrapolate poorly, not because the "
+          r"features are uninformative -- it is the best arm in "
+          r"cross-validation. Distance from the training set costs every arm "
+          r"accuracy; it does not separate raw from engineered features.",
+          r"\end{minipage}", r"\end{table*}", ""]
+    write(out, "T6_baselines.tex", L)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -378,6 +438,7 @@ def main():
     t3_provenance(args.outdir)
     t4_design(args.outdir)
     t5_conformal(args.outdir)
+    t6_baselines(args.outdir)
     print(f"\nWritten to {args.outdir}")
 
 

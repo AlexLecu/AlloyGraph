@@ -143,6 +143,29 @@ to rasterise.
 
 ## Notes that belong with the numbers
 
+**The "raw-feature models degrade to ~170 MPa on FAR" claim is not supported,
+and T6 shows what is.** No raw-feature arm is anywhere near 170 on FAR yield
+strength: GBM 121.9, RF 104.8, GPR 141.6, against 110.1 for the internal arms.
+**RF on raw features beats the internal arms on FAR** (104.8 against 110.1), and
+on FAR tensile strength both tree baselines beat them clearly (112.3 and 113.5
+against 137.8) -- RF also beats the full system there (116.9). The only arm near
+or above 170 is the Gaussian process on *engineered* features (301.7), which is
+the physics-feature arm, not a raw one, and its failure is extrapolation rather
+than weak features: it is the best arm in cross-validation.
+
+The defensible claim is narrower: distance from the training set costs every arm
+accuracy, and the full system holds the largest FAR margin on yield strength
+(89.8 against 104.8 for the best baseline). It does not hold that margin on
+tensile strength.
+
+**Significance of the headline comparison** is in
+`evaluation/prediction/results/wilcoxon_tests.csv`, from
+`evaluation/prediction/scripts/wilcoxon_tests.py`: paired Wilcoxon signed-rank
+on per-case absolute errors, full system (five-seed mean) against ML+physics+KG.
+Strength improvements are significant, ductility and stiffness are not. Reported
+at both case level and alloy level, because 285 cases come from 88 alloys and
+are not independent -- the alloy-level test is the conservative one.
+
 **`accuracy_vs_distance.pdf` is banded, and the banded numbers do not support
 the "clean step at d = 2.0" reading.** Panel (a) is the relative yield-strength
 error reduction from adding KG anchoring to ML+physics, per distance band;
