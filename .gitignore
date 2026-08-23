@@ -288,14 +288,23 @@ evaluation/_archive/
 figshare-data/
 alloygraph-data.zip
 
-# Stale paper copies — paper_src/ (Overleaf) is authoritative. The .drawio
-# figure sources under docs/paper/figures are tracked; only the rendered
-# PNGs are ignored, since paper_src/images carries its own copies.
+# Stale paper copies — paper_src/ (Overleaf) is authoritative.
 docs/paper.tex
 docs/paper-acta.tex
 docs/cover-letter.tex
 docs/paper/*.md
+
+# Rendered figures under docs/paper/figures are ignored by default: most are
+# throwaway exports that go stale the moment the .drawio beside them is edited.
+# One such export shipped a wrong alloy count ("99 Ni superalloys") for months
+# while its source already said 88.
+#
+# The two the manuscript actually compiles are exceptions and ARE tracked.
+# paper_src/ is git-ignored (Overleaf is authoritative), so without these the
+# only copy of each lived on one laptop.
 docs/paper/figures/*.png
+!docs/paper/figures/system_architecture.png
+!docs/paper/figures/agent_pipeline.png
 
 # Generated manuscript assets — regenerate with evaluation/paper_assets/*.py.
 # Anchored: an unanchored "paper_assets/" also matches evaluation/paper_assets,
