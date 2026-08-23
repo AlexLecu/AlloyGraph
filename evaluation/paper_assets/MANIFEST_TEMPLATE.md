@@ -125,6 +125,22 @@ Export as PDF rather than PNG: KBS R2.1 asks for vector artwork.
 
 ## Notes that belong with the numbers
 
+**The parity panels carry +/-10% and +/-20% tolerance bands.** Two nested
+light-grey fills around the perfect-prediction diagonal, no edges, alpha 0.07
+each, drawn beneath the points, so the inner +/-10% region reads darker because
+it carries both. They give the reader a fixed relative-error reference that MAE
+in absolute units cannot: 100 MPa is a different thing at 300 MPa than at
+1200 MPa.
+
+Read them per panel, not across panels. Each panel is scaled robustly to its
+own data, so the elastic-modulus axis starts near 100 GPa rather than zero and
+its bands look wide -- the percentages are still exact, since the bands are
+defined off the diagonal through the origin, but visually comparing band widths
+between panels means nothing.
+
+**The bands are not currently explained anywhere in the figure**, which has no
+room for a fourth legend entry. The manuscript caption must say what they are.
+
 **Parity MAE annotations are read from `stratified_metrics.csv`, not recomputed.**
 The plotted points are the row-wise mean prediction over the five campaign
 seeds; averaging predictions first cancels independent seed noise, so those

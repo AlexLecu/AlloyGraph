@@ -167,6 +167,14 @@ def fig_parity(dist, path):
         lo, hi = np.percentile(both, [0.5, 99.5])
         pad = (hi - lo) * 0.06
         lo, hi = max(0.0, lo - pad), hi + pad
+        # Tolerance bands around the diagonal, nested so the +/-10% region
+        # carries both fills and reads darker than the +/-20% one. zorder 0
+        # keeps them under the diagonal and the points; no edge, and an alpha
+        # low enough that the stratum colours stay dominant.
+        edge = np.array([lo, hi])
+        for frac in (0.20, 0.10):
+            ax.fill_between(edge, edge * (1 - frac), edge * (1 + frac),
+                            color=GREY, alpha=0.07, linewidth=0, zorder=0)
         ax.plot([lo, hi], [lo, hi], color=GREY, linewidth=0.7, zorder=1)
         for s in STRATA:
             ss = d[d.stratum == s]
