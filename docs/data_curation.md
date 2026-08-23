@@ -142,15 +142,82 @@ four into a shipped category, so **the committed evaluation set cannot be
 reproduced from the committed scripts** — it is five records short of what they
 produce.
 
-They are plausibly deliberate: MA758 and TD NiCr are oxide-dispersion
-strengthened, NX188 is a NiAl-based DS eutectic, and none is a conventional
-γ′ or solid-solution superalloy. But that reasoning appears in no script, no
-comment and no note, so it is a reconstruction and not a record.
+### Why no scope rule was encoded
 
-`data/all_categorized.jsonl` and `data/manifest.json` are stale artefacts of an
-earlier run and should not be used: the manifest counts 111 records where the
-file holds 106, and the file is missing RGT\* 13, which *is* shipped in
-`precip.jsonl`. The three shipped files are authoritative.
+Encoding the exclusions as a rule was attempted and **abandoned, deliberately.**
+No principled, composition-based rule covers all four, and the reason is in the
+data rather than in the wording.
+
+**MC-102\* is not out of scope by any criterion, and an earlier note here was
+wrong to group it with the ODS alloys.** Its composition is
+Ni 64, Cr 20, Mo 6, W 2.5, Nb 6, Ta 0.6, closing to 99.7 wt%, with six
+temperatures of yield strength, tensile strength and elongation. It is a
+conventional cast Ni--Cr--Mo--Nb alloy of the 625 family: its nearest neighbour
+in the corpus is Cast Alloy 625 at d = 5.13. By the project's own
+γ′-former index, `Al+Ti+Ta+0.35*Nb` = **2.70**, it is a γ′/γ″-class alloy --
+`create_categorized_datasets.classify_alloy` labels it solid-solution only
+because its test reads Al and Ti and ignores Nb and Ta. There is no scope reason
+to exclude it.
+
+**For two of the others the deciding property is not recorded at all.** MA758 is
+dispersion strengthened by Y₂O₃ and TD NiCr by ThO₂, and neither oxide appears
+in the stored composition: MA758 reads as Ni--30Cr--3Nb and TD NiCr as
+Ni--20Cr and nothing else. "ODS" is therefore knowable only from the alloy
+name, and a name-matching rule is the approach already rejected for
+manufacturer attribution.
+
+Candidate composition rules were tested against the shipped 88 and the 77
+training alloys:
+
+| candidate rule | catches | collateral |
+|---|---|---|
+| `Al >= 7 wt%` | NX188 | none, in either set |
+| `< 3 elements` | TD NiCr | removes **TD Nickel from training** |
+| `composition sum > 103 wt%` | MA758 | removes **12 shipped evaluation alloys** |
+| `Mo >= 15 wt%` | NX188 | removes **12 shipped evaluation alloys** |
+| any of the above | — | **none catches MC-102\*** |
+
+Only the NiAl rule is clean. The rest either change the training set, which is
+frozen, or delete alloys the paper reports on.
+
+So the four remain what they are: an undocumented legacy exclusion, now
+measured and named rather than guessed at. Two defensible ways forward, neither
+taken here without a decision:
+
+1. **Declare them.** A named list with a per-entry rationale, in the pattern
+   `errata_ledger.json` already uses, plus the `Al >= 7 wt%` rule for NX188.
+   Honest about being a list rather than a rule, and makes the evaluation set
+   reproducible from the scripts.
+2. **Re-admit MC-102\***, which nothing justifies excluding, and declare only
+   the three that have a stated reason. This changes the evaluation set to 89
+   alloys and every metric with it, so it is a decision for before the next
+   results freeze, not after.
+
+### One authoritative path
+
+`data/all_categorized.jsonl` and `data/manifest.json` were snapshots of an
+earlier run that nothing regenerated: the manifest counted 111 records against a
+file holding 106, that file carried 8 records no category file holds, and it was
+missing RGT\* 13, which *is* shipped in `precip.jsonl`. This was a live second
+path, not a leftover -- `generate_predictions.py --dataset all` reads it.
+
+Both are now **derived views**, rebuilt from the category files by
+`rebuild_categorized_index.py`, which is concatenation and nothing else:
+
+```bash
+python evaluation/prediction/scripts/rebuild_categorized_index.py --check
+```
+
+fails if they ever drift again. The four category files stay authoritative, and
+`SSS.jsonl`, `precip.jsonl` and `sc_ds.jsonl` were not touched -- no shipped
+number moved. The combined index is now 99 records: the 88 evaluated plus the 11
+in `other`.
+
+`*.jsonl` is globally git-ignored; `SSS.jsonl`, `precip.jsonl` and `sc_ds.jsonl`
+are force-added exceptions and are the tracked source of truth.
+`other.jsonl` and the combined index are not tracked, so on a fresh clone the
+index rebuilds to the 88 evaluated records alone. Nothing evaluates `other`, so
+no result depends on it.
 
 A further eight MatWeb records are classifiable but unshipped, several of them
 apparent name duplicates of shipped alloys (`TRW-NASA VIA` beside
