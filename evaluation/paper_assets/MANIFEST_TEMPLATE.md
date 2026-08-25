@@ -56,6 +56,14 @@ Both sources were checked label-for-label against the rendered figure and are
 current. The alloy counts are the quick tell: the source and the paper figure
 both read "88 Ni superalloys", and any export reading **99** is stale.
 
+Figure 1 was revised again in the same way: the Data Sources box now reads
+"88 Ni superalloys · Held-out test data (stratified by novelty)". The previous
+wording, "Independent test data", contradicted the paper's own central finding --
+13 of those 88 are vendor-renamed near-duplicates of training alloys, which is
+the reason the evaluation is stratified at all. The detail text inside the
+inner boxes also went from 14 px to 16 px; the cropped export is 5500x3049
+before and after, so nothing overflowed.
+
 Figure 1 carries three corrections made in `a076a77`, so an export predating it
 is stale in three more places: the triplestore holds **77** alloy variants and
 not 106, the orchestration band names no vendor (the provider chain is
@@ -123,13 +131,20 @@ drawio --export --format pdf --crop --transparent \
   --output docs/paper/figures/system_architecture.pdf "$SRC"
 drawio --export --format png --crop --width 5500 \
   --output docs/paper/figures/system_architecture.png "$SRC"
+cp docs/paper/figures/system_architecture.pdf paper_src/Alloygraph_kbs/images/
 cp docs/paper/figures/system_architecture.png assets/system_architecture.png
-cp docs/paper/figures/system_architecture.png paper_src/Alloygraph_kbs/images/
 ```
 
-Three copies of the PNG have to move together -- the tracked one, the README's,
-and the manuscript build input -- which is exactly how the "99 Ni superalloys"
-export went stale. The PDF has no such copies.
+**The manuscript now compiles the PDF, not the PNG** -- `paper_src/images/`
+holds only `system_architecture.pdf`, so that is the copy a re-export must
+refresh. The PNG survives for one reader: the README. Four files move together
+(source, tracked PDF, manuscript PDF, README PNG), and missing one is exactly
+how the "99 Ni superalloys" export went stale.
+
+`--crop` sizes the canvas to the content bounding box, which makes it a free
+overflow test: if a font change pushes text outside its box, the exported
+dimensions grow. Compare them across a re-export before trusting a type
+change.
 
 `system_architecture.pdf` is the vector version and is tracked: KBS R2.1 asks
 for vector artwork, so it, not the PNG, is what should go to the publisher. It
