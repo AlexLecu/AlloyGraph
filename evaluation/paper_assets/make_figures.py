@@ -326,11 +326,12 @@ def fig_coverage_by_temperature(path):
     """Empirical conformal coverage per property, binned by temperature."""
     iv = pd.read_csv(os.path.join(RESULTS, "conformal_intervals.csv"))
     iv = iv.dropna(subset=["actual", "covered"])
-    # The sub-zero bin holds two cryogenic rows for two properties; a bin that
-    # thin cannot carry a coverage estimate, so it is excluded rather than
-    # drawn as an empty column. Stated in the manifest.
-    edges = [0, 400, 700, 900, 1300]
-    labels = ["0–400", "400–700", "700–900", ">900"]
+    # The evaluation set reaches -196 degC, so the first bin is not "0-400": it
+    # is everything up to 400, cryogenic rows included. Labelling it "0-400"
+    # implied a lower edge the data does not have. The bin edge stays at -273
+    # so nothing is silently dropped, and the label says so.
+    edges = [-273, 400, 700, 900, 1300]
+    labels = ["≤400", "400–700", "700–900", ">900"]
     iv["bin"] = pd.cut(iv.temperature, bins=edges, labels=labels, right=False)
     fig, ax = plt.subplots(figsize=(COL_W, 2.4))
     # conformal_intervals.csv keys properties in lower case (ys, uts, el, em).

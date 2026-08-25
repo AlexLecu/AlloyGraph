@@ -293,9 +293,13 @@ Tol muted; this uses Okabe--Ito to match the other figures, and draws "Overall"
 in light grey with a hatch rather than a fourth hue, because it is an aggregate
 of the other three bars and should not carry the visual weight of a peer.
 
-**The sub-zero temperature bin is excluded from the coverage figure.** It holds
-two cryogenic rows for two properties, too few to estimate coverage from. The
-per-stratum conformal table (T5) is unaffected.
+**The first coverage bin is "<=400 degC", not "0-400".** The evaluation set
+reaches -196 degC, so an axis starting at 0 named a lower edge the data does not
+have. The bin now runs from -273 and the label says so; the four cryogenic rows
+(two elongation, two tensile strength) join the bin they always belonged to
+rather than being silently dropped. Coverage in that bin is computed over five
+or more rows per property, as everywhere else, so no estimate rests on the four
+alone. The per-stratum conformal table (T5) is unaffected.
 
 **GPR on engineered features is worse than GPR on raw features, and that is
 real.** It scores better in-distribution (CV MAE 105 against 125 MPa on yield
