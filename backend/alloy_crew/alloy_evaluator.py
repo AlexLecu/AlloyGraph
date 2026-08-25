@@ -88,7 +88,21 @@ def _slim_kg_context(kg_json_str: str, target_temp: int = 20) -> str:
         return kg_json_str[:1500] if len(kg_json_str) > 1500 else kg_json_str
 
 class AlloyEvaluationCrew:
-    def __init__(self, llm_config=None, agents=None):
+    def __init__(self, llm_config=None, agents=None, skip_reviewer: bool = False):
+        """skip_reviewer runs the Analyst-only ablation.
+
+        The Analyst's output goes straight to deterministic post-processing:
+        every guard, the evidence envelope, the trust system and the correction
+        reconciliation still run, exactly as in the full pipeline. Nothing else
+        changes -- same agents, same prompts, same tools, same anchors. The only
+        difference is that the Reviewer task is not in the crew, which isolates
+        what the second agent contributes from what the deterministic layer does.
+
+        Runs in this mode are tagged pipeline_stage="analyst_ablation", kept
+        distinct from the pre-existing "analyst_only", which means something
+        else entirely: the Reviewer ran but its output could not be parsed and
+        the code fell back to the Analyst's.
+        """
         if agents:
             self.agents_map = agents
         else:
@@ -96,6 +110,7 @@ class AlloyEvaluationCrew:
         self.analyst = self.agents_map['analyst']
         self.reviewer = self.agents_map['reviewer']
         self.llm = self.agents_map.get('llm')  # For direct summary call
+        self.skip_reviewer = skip_reviewer
 
     @staticmethod
     def validate_composition(composition: Dict[str, float]) -> Dict[str, Any]:
@@ -509,15 +524,25 @@ class AlloyEvaluationCrew:
             context=[task_analysis]
         )
 
-        evaluation_crew = Crew(
-            agents=[self.analyst, self.reviewer],
-            tasks=[task_analysis, task_review],
-            process=Process.sequential,
-            verbose=True
-        )
+        if self.skip_reviewer:
+            # Ablation: the Reviewer task is built above but never enters the
+            # crew, so the prompts stay byte-identical to the full pipeline.
+            evaluation_crew = Crew(
+                agents=[self.analyst],
+                tasks=[task_analysis],
+                process=Process.sequential,
+                verbose=True
+            )
+        else:
+            evaluation_crew = Crew(
+                agents=[self.analyst, self.reviewer],
+                tasks=[task_analysis, task_review],
+                process=Process.sequential,
+                verbose=True
+            )
 
         token_usage = {}
-        pipeline_stage = "reviewer"
+        pipeline_stage = "analyst_ablation" if self.skip_reviewer else "reviewer"
 
         try:
             crew_output = evaluation_crew.kickoff()
@@ -533,7 +558,8 @@ class AlloyEvaluationCrew:
                 token_usage = {}
 
             output = None
-            pipeline_stage = "reviewer"          # full Analyst -> Reviewer path
+            pipeline_stage = ("analyst_ablation" if self.skip_reviewer
+                              else "reviewer")   # full Analyst -> Reviewer path
             if hasattr(crew_output, "pydantic") and crew_output.pydantic:
                 output = crew_output.pydantic
             elif hasattr(crew_output, "raw"):
@@ -545,7 +571,7 @@ class AlloyEvaluationCrew:
                     output = None
 
             if output is None:
-                review_task_output = task_review.output
+                review_task_output = None if self.skip_reviewer else task_review.output
                 if review_task_output and review_task_output.pydantic:
                     output = review_task_output.pydantic
                     pipeline_stage = "reviewer_task_output"
@@ -554,8 +580,11 @@ class AlloyEvaluationCrew:
                     analyst_task_output = task_analysis.output
                     if analyst_task_output and analyst_task_output.pydantic:
                         output = analyst_task_output.pydantic
-                        pipeline_stage = "analyst_only"
-                        output.reviewer_assessment = "Review skipped due to parsing failure."
+                        if not self.skip_reviewer:
+                            pipeline_stage = "analyst_only"
+                            output.reviewer_assessment = "Review skipped due to parsing failure."
+                        else:
+                            output.reviewer_assessment = "Reviewer disabled (analyst-only ablation)."
                     elif ml_fallback:
                         logger.warning("Analyst also failed, using ML fallback...")
                         output = PhysicsAuditWithCorrectionsOutput(

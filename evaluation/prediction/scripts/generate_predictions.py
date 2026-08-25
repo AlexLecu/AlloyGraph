@@ -212,15 +212,22 @@ def reset_crewai_state():
 # Prediction modes
 # ---------------------------------------------------------------------------
 
-def run_full_system(composition, processing, temperature, max_retries=3, base_wait=30, llm_config=None):
-    """Run full-system evaluation with fresh evaluator and retry logic."""
+def run_full_system(composition, processing, temperature, max_retries=3, base_wait=30,
+                    llm_config=None, skip_reviewer=False):
+    """Run full-system evaluation with fresh evaluator and retry logic.
+
+    skip_reviewer runs the Analyst-only ablation: the Reviewer task is left out
+    of the crew and the Analyst's output goes straight to deterministic
+    post-processing. Every guard still runs. See AlloyEvaluationCrew.
+    """
     from alloy_crew.alloy_evaluator import AlloyEvaluationCrew
 
     for attempt in range(max_retries):
         try:
             RATE_GATE.wait()
             reset_event_context()
-            evaluator = AlloyEvaluationCrew(llm_config=llm_config)
+            evaluator = AlloyEvaluationCrew(llm_config=llm_config,
+                                            skip_reviewer=skip_reviewer)
             result = evaluator.run(
                 composition=composition,
                 processing=processing,
@@ -275,7 +282,7 @@ def run_full_system(composition, processing, temperature, max_retries=3, base_wa
 
     # Final attempt — still on a worker thread, so thread-local reset only.
     reset_event_context()
-    evaluator = AlloyEvaluationCrew(llm_config=llm_config)
+    evaluator = AlloyEvaluationCrew(llm_config=llm_config, skip_reviewer=skip_reviewer)
     return evaluator.run(composition=composition, processing=processing, temperature=temperature)
 
 
@@ -846,6 +853,10 @@ def parse_args():
                             help='ML + physics enforcement (UTS/YS caps, EM Reuss, EL caps) — no agents')
     mode_group.add_argument('--ml-physics-kg', action='store_true',
                             help='ML + physics + KG anchoring, no agents (needs Weaviate)')
+    mode_group.add_argument('--analyst-only', action='store_true',
+                            help='Ablation: full pipeline with the Reviewer agent '
+                                 'disabled. Analyst output goes straight to '
+                                 'deterministic post-processing; all guards still run.')
     mode_group.add_argument('--llm-only', action='store_true',
                             help='LLM-only predictions (no ML model, no KG, no agents)')
 
@@ -890,6 +901,12 @@ def parse_args():
 # Main
 # ---------------------------------------------------------------------------
 
+#: Modes that drive the CrewAI agent pipeline. The Analyst-only ablation is one
+#: of them: it needs the same LLM config, concurrency, event-bus resets and
+#: token accounting as the full system, and differs only in crew membership.
+AGENT_MODES = ('FULL_SYSTEM', 'ANALYST_ONLY')
+
+
 def _evaluate_row(item, method, args, llm_only_model_key, llm_sampling_temp, llm_config,
                   base_wait=30.0):
     """Run one alloy/temperature evaluation. Returns (row, error_dict)."""
@@ -920,7 +937,8 @@ def _evaluate_row(item, method, args, llm_only_model_key, llm_sampling_temp, llm
                 processing=processing,
                 temperature=int(temp),
                 base_wait=base_wait,
-                llm_config=llm_config
+                llm_config=llm_config,
+                skip_reviewer=(method == 'ANALYST_ONLY')
             )
 
         elapsed = time.time() - start_time
@@ -963,7 +981,7 @@ def _evaluate_row(item, method, args, llm_only_model_key, llm_sampling_temp, llm
             'seed': args.seed if args.seed is not None else '',
         }
 
-        if method == 'FULL_SYSTEM':
+        if method in AGENT_MODES:
             row['pipeline_stage'] = eval_result.get('pipeline_stage', 'unknown')
             row['envelope_overrides'] = sum(
                 1 for c in (eval_result.get('corrections_applied') or [])
@@ -1035,6 +1053,8 @@ def main():
         method = 'ML_PHYSICS_KG'
     elif args.llm_only:
         method = 'LLM_ONLY'
+    elif args.analyst_only:
+        method = 'ANALYST_ONLY'
     else:
         method = 'FULL_SYSTEM'
 
@@ -1092,7 +1112,7 @@ def main():
     # LLM config (full system only)
     llm_config = None
     llm_name = 'auto'
-    if method == 'FULL_SYSTEM' and args.llm:
+    if method in AGENT_MODES and args.llm:
         llm_config = get_llm_config(args.llm, temperature=crew_sampling_temp)
         llm_name = args.llm
 
@@ -1101,7 +1121,7 @@ def main():
     llm_only_model_name = LLM_ONLY_MODELS.get(llm_only_model_key, llm_only_model_key)
 
     print(f"Mode: {method}")
-    if method == 'FULL_SYSTEM':
+    if method in AGENT_MODES:
         print(f"LLM provider: {llm_name}")
     elif method == 'LLM_ONLY':
         print(f"LLM model: {llm_only_model_name}")
@@ -1119,7 +1139,21 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
 
     if args.output:
-        output_file = os.path.join(output_dir, args.output)
+        # --output names a file inside output/, and os.path.join silently
+        # accepts a path that already carries a directory: "output/x.csv"
+        # becomes output/output/x.csv, which does not exist. The save only
+        # fails at the end of the run, so a full campaign burns its API spend
+        # and then loses every row. Reject it up front instead.
+        if os.path.isabs(args.output):
+            output_file = args.output
+        elif os.path.dirname(args.output):
+            sys.exit(
+                f"error: --output must be a bare filename inside {output_dir}/ "
+                f"(or an absolute path); got {args.output!r}. "
+                f"Did you mean --output {os.path.basename(args.output)} ?"
+            )
+        else:
+            output_file = os.path.join(output_dir, args.output)
     else:
         mode_suffix = method.lower()
         if method == 'LLM_ONLY':
@@ -1202,7 +1236,7 @@ def main():
                 pd.DataFrame(results).to_csv(output_file, index=False)
 
     concurrency = max(1, int(args.concurrency))
-    if concurrency > 1 and method != 'FULL_SYSTEM':
+    if concurrency > 1 and method not in AGENT_MODES:
         print(f"NOTE: --concurrency only applies to full-system mode; running sequentially")
         concurrency = 1
 
@@ -1211,7 +1245,7 @@ def main():
             row, err = _evaluate_row(item, method, args, llm_only_model_key,
                                      llm_sampling_temp, llm_config, base_wait=delay)
             _record(row, err)
-            if method == 'FULL_SYSTEM':
+            if method in AGENT_MODES:
                 reset_crewai_state()
             if delay > 0:
                 time.sleep(delay)
@@ -1231,7 +1265,7 @@ def main():
                                       'temperature': item['temp'], 'error': str(e)}
                 _record(row, err)
         # Global bus cleanup once, on the main thread, after the pool drains.
-        if method == 'FULL_SYSTEM':
+        if method in AGENT_MODES:
             reset_crewai_state()
 
 
