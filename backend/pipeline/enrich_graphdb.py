@@ -54,6 +54,12 @@ UNIT_MAP = {
     "°C": QUDT_UNIT.DEG_C,
 }
 
+from .range_validation import check_features, log_violations  # noqa: E402
+
+#: Every range violation seen this run, so the ingest can report a total rather
+#: than leaving them scattered through the log.
+RANGE_VIOLATIONS = []
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("json-to-graphdb")
 
@@ -335,6 +341,16 @@ def build_data_graph(json_path: str) -> Graph:
         try:
             computed = compute_alloy_features(alloy_data)
             add_computed_features(g, variant_uri, computed, alloy_name)
+            # The ontology declares physical-plausibility ranges on these
+            # features but nothing compared the data to them; see
+            # pipeline/range_validation.py. Logged, never fatal: the corrected
+            # corpora produce no violations, so a hard gate would reject nothing
+            # today while risking a pipeline that refuses to load on a future
+            # record a human should look at first.
+            violations = check_features(alloy_name, computed)
+            if violations:
+                log_violations(violations)
+                RANGE_VIOLATIONS.extend(violations)
             log.info(f"[{alloy_name}] Added features: Md_avg={computed.get('Md_avg')}, TCP={computed.get('TCP_risk')}")
         except Exception as e:
             log.warning(f"[{alloy_name}] Feature computation failed: {e}")
