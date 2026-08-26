@@ -256,10 +256,10 @@ def run_random(targets, n, rng, with_optimizer=False, plausible_aware=False,
     return per_target, total_hits, total_goals, tcp
 
 
-def run_designer(targets):
+def run_designer(targets, stem="design_evaluation_results"):
     """Re-score the compositions the LLM pipeline produced, same scorer."""
     import pandas as pd
-    path = os.path.join(BASE_DIR, "results", "design_evaluation_results.csv")
+    path = os.path.join(BASE_DIR, "results", f"{stem}.csv")
     if not os.path.exists(path):
         return None
     df = pd.read_csv(path)

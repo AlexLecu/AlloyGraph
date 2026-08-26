@@ -20,12 +20,12 @@ two arms.
 | Alloy 263 (C263) | 0.980 | 1 | 0 | withheld — divergence below 15% (YS 4.8%, UTS 4.3%, EL 9.4%) |
 | Udimet 720 | 0.987 | 1 | 0 | withheld — neighbour UDIMET* 720LI carried no parsed property values |
 | Haynes 263 | 1.145 | 26 | 12 | **anchored** |
-| Rene 100 | 1.600 | 1 | 0 | withheld — divergence below 15% on YS (1.8%) and UTS (9.5%); see note |
+| Rene 100 | 1.600 | 1 | 0 | withheld — **proposal deduplication**: the KG proposal was generated and then outranked, see below |
 | Haynes 718 | 1.663 | 17 | 7 | **anchored** |
 
 **Of the 13 NEAR alloys, anchoring reached 6. The remaining 7 were withheld by
-the 15% ML-vs-KG divergence threshold (5), a retrieval miss (1), and a
-neighbour with no parsed property values (1).**
+the 15% ML-vs-KG divergence threshold (4), proposal deduplication (1), a
+retrieval miss (1), and a neighbour with no parsed property values (1).**
 
 None of the seven was withheld by the gamma-prime class guard or by processing-route
 exclusion. Both gates exist and fire elsewhere -- the gamma-prime guard rejects
@@ -39,8 +39,23 @@ is the same failure measured at corpus scale in the retrieval-recall check
 (78/88 top-3 recall), and it bounds what anchoring can deliver independently of
 any threshold.
 
-**Unresolved detail.** Rene 100's elongation diverges by 17.4% (ML 10.6% against
-KG 9.0%), above the 15% threshold, yet no anchoring proposal was produced for it.
-Every other withheld case is fully explained by the conditions above. Reported
-rather than smoothed over; it does not change the counts, since the alloy
-contributes one row and neither arm's prediction moved.
+**Rene 100: a distance cliff, not the divergence gate.** Its elongation diverges
+by 17.4% (ML 10.6% against KG 9.0%), above the threshold, and the anchoring
+proposal *was* generated -- instrumenting `kg_anchor_weight` shows it firing at
+d = 1.60 for a weight of 0.858. The proposal is then discarded by the
+per-property deduplication at `analysis_tool.py:950`, which ranks
+`(confidence, source)` in that order:
+
+| proposal | confidence | rank |
+|---|---|---|
+| KG anchoring (IN-100, d = 1.60) | MEDIUM -- the rule is `HIGH if kg_distance < 1.5 else MEDIUM` | (2, 2) |
+| elongation bounds | HIGH, hard-coded | (3, 1) |
+
+`(3,1) > (2,2)` lexicographically, so a generic bounds rule displaces an
+experimental value from a near-duplicate 1.6 wt% away. Had the alloy been at
+d = 1.49 the KG proposal would have ranked (3, 2) and won.
+
+This is a latent design issue rather than a one-off: any near-duplicate between
+d = 1.5 and 4.5 whose property collides with a HIGH-confidence rule loses its
+anchoring regardless of how well the knowledge-graph match agrees. It is
+recorded, not changed -- the system is frozen for these results.

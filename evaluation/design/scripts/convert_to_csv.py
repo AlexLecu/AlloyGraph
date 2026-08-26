@@ -14,8 +14,10 @@ import json
 from pathlib import Path
 
 RESULTS_DIR = Path(__file__).resolve().parent.parent / "results"
-JSONL_PATH = RESULTS_DIR / "design_evaluation_results.jsonl"
-CSV_PATH = RESULTS_DIR / "design_evaluation_results.csv"
+import sys as _sys
+_stem = _sys.argv[1] if len(_sys.argv) > 1 else "design_evaluation_results"
+JSONL_PATH = RESULTS_DIR / f"{_stem}.jsonl"
+CSV_PATH = RESULTS_DIR / f"{_stem}.csv"
 
 # Elements in conventional superalloy ordering (base → major → minor → trace)
 ELEMENTS = ["Ni", "Cr", "Co", "Mo", "W", "Al", "Ti", "Ta", "Nb", "Re", "Hf",

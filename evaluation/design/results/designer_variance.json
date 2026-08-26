@@ -1,0 +1,56 @@
+{
+ "campaigns": [
+  {
+   "label": "original",
+   "goals_met_pct": 52.6,
+   "usable": 3,
+   "credible": 3,
+   "n": 20,
+   "median_major_elements": 6,
+   "hits": 40,
+   "goals": 76
+  },
+  {
+   "label": "repeat 2",
+   "goals_met_pct": 53.9,
+   "usable": 3,
+   "credible": 3,
+   "n": 20,
+   "median_major_elements": 7,
+   "hits": 41,
+   "goals": 76
+  },
+  {
+   "label": "repeat 3",
+   "goals_met_pct": 56.6,
+   "usable": 4,
+   "credible": 4,
+   "n": 20,
+   "median_major_elements": 7,
+   "hits": 43,
+   "goals": 76
+  },
+  {
+   "label": "repeat 4",
+   "goals_met_pct": 53.9,
+   "usable": 3,
+   "credible": 3,
+   "n": 20,
+   "median_major_elements": 7,
+   "hits": 41,
+   "goals": 76
+  }
+ ],
+ "mean": {
+  "goals_met_pct": 54.3,
+  "usable": 3.25,
+  "credible": 3.25,
+  "median_major_elements": 6.75
+ },
+ "sd": {
+  "goals_met_pct": 1.7,
+  "usable": 0.5,
+  "credible": 0.5,
+  "median_major_elements": 0.5
+ }
+}

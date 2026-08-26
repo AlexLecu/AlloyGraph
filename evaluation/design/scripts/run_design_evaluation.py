@@ -13,6 +13,7 @@ Usage:
 
 import gc
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -259,7 +260,16 @@ def main():
                         help="Run only these alloy IDs (e.g. --only Alloy_Q Alloy_R)")
     parser.add_argument("--fresh", action="store_true",
                         help="Ignore existing results for selected alloys (re-run them)")
+    parser.add_argument("--out", metavar="FILE",
+                        help="Write to this results file inside results/ instead of the "
+                             "default. Used to run repeat campaigns side by side without "
+                             "them appending to each other.")
     args = parser.parse_args()
+
+    global RESULTS_FILE
+    if args.out:
+        RESULTS_FILE = OUTPUT_DIR / os.path.basename(args.out)
+        print(f"Results file: {RESULTS_FILE}")
 
     # Filter targets if --only specified
     targets = TARGETS
