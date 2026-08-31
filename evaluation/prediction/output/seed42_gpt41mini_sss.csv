@@ -1,0 +1,240 @@
+alloy,temperature,processing,method,status,pred_ys,actual_ys,pred_uts,actual_uts,pred_el,actual_el,pred_em,actual_em,pred_density,pred_gamma_prime,confidence_level,tcp_risk,corrections_applied,eval_time_sec,seed
+NIMOCAST* 75,21.0,cast,LLM_ONLY,SUCCESS,250.0,179.0,450.0,500.0,20.0,39.0,200.0,,,,LOW,N/A,0,5.0,42
+NIMOCAST* 242,21.0,cast,LLM_ONLY,SUCCESS,600.0,300.0,800.0,460.0,12.0,8.0,210.0,,,,LOW,N/A,0,2.3,42
+INCONEL* 600,21.0,wrought,LLM_ONLY,SUCCESS,250.0,285.0,600.0,660.0,40.0,45.0,200.0,214.0,,,LOW,N/A,0,2.8,42
+INCONEL* 600,93.0,wrought,LLM_ONLY,SUCCESS,400.0,,550.0,,35.0,,200.0,210.0,,,LOW,N/A,0,4.4,42
+INCONEL* 600,204.0,wrought,LLM_ONLY,SUCCESS,500.0,,700.0,,25.0,,200.0,205.0,,,LOW,N/A,0,4.2,42
+INCONEL* 600,316.0,wrought,LLM_ONLY,SUCCESS,250.0,,450.0,,35.0,,195.0,199.0,,,LOW,N/A,0,3.6,42
+INCONEL* 600,427.0,wrought,LLM_ONLY,SUCCESS,400.0,,550.0,,35.0,,200.0,192.0,,,LOW,N/A,0,2.6,42
+INCONEL* 600,538.0,wrought,LLM_ONLY,SUCCESS,280.0,220.0,480.0,560.0,25.0,41.0,185.0,184.0,,,LOW,N/A,0,3.6,42
+INCONEL* 600,649.0,wrought,LLM_ONLY,SUCCESS,275.0,205.0,425.0,450.0,25.0,49.0,185.0,176.0,,,LOW,N/A,0,3.1,42
+INCONEL* 600,760.0,wrought,LLM_ONLY,SUCCESS,250.0,180.0,400.0,260.0,25.0,70.0,170.0,168.0,,,LOW,N/A,0,3.4,42
+INCONEL* 600,871.0,wrought,LLM_ONLY,SUCCESS,200.0,75.0,300.0,140.0,25.0,80.0,170.0,157.0,,,LOW,N/A,0,2.9,42
+INCONEL* 600,982.0,wrought,LLM_ONLY,SUCCESS,80.0,41.0,130.0,76.0,35.0,115.0,155.0,145.0,,,LOW,N/A,0,3.0,42
+HASTELLOY* X,21.0,wrought,LLM_ONLY,SUCCESS,450.0,360.0,650.0,785.0,25.0,43.0,200.0,197.0,,,LOW,N/A,0,2.7,42
+HASTELLOY* X,93.0,wrought,LLM_ONLY,SUCCESS,400.0,,550.0,,25.0,,200.0,194.0,,,LOW,N/A,0,2.7,42
+HASTELLOY* X,204.0,wrought,LLM_ONLY,SUCCESS,550.0,,750.0,,20.0,,210.0,186.0,,,LOW,N/A,0,3.3,42
+HASTELLOY* X,316.0,wrought,LLM_ONLY,SUCCESS,500.0,,800.0,,25.0,,200.0,178.0,,,LOW,N/A,0,4.1,42
+HASTELLOY* X,427.0,wrought,LLM_ONLY,SUCCESS,450.0,,600.0,,25.0,,190.0,170.0,,,LOW,N/A,0,3.3,42
+HASTELLOY* X,538.0,wrought,LLM_ONLY,SUCCESS,400.0,290.0,500.0,650.0,22.0,45.0,195.0,161.0,,,LOW,N/A,0,2.6,42
+HASTELLOY* X,649.0,wrought,LLM_ONLY,SUCCESS,400.0,275.0,500.0,570.0,25.0,37.0,185.0,154.0,,,LOW,N/A,0,4.4,42
+HASTELLOY* X,760.0,wrought,LLM_ONLY,SUCCESS,400.0,260.0,550.0,435.0,22.0,37.0,155.0,146.0,,,LOW,N/A,0,2.4,42
+HASTELLOY* X,871.0,wrought,LLM_ONLY,SUCCESS,350.0,180.0,450.0,255.0,18.0,50.0,155.0,137.0,,,LOW,N/A,0,3.5,42
+HASTELLOY* X,982.0,wrought,LLM_ONLY,SUCCESS,200.0,110.0,300.0,150.0,25.0,45.0,130.0,128.0,,,LOW,N/A,0,3.8,42
+HASTELLOY* X,1093.0,wrought,LLM_ONLY,SUCCESS,90.0,55.0,160.0,90.0,30.0,40.0,160.0,,,,LOW,N/A,0,3.5,42
+HAYNES* 242,21.0,wrought,LLM_ONLY,SUCCESS,1000.0,845.0,1150.0,1290.0,12.0,46.0,200.0,228.0,,,LOW,N/A,0,3.3,42
+HAYNES* 242,93.0,wrought,LLM_ONLY,SUCCESS,650.0,,850.0,,15.0,,210.0,225.0,,,LOW,N/A,0,3.5,42
+HAYNES* 242,204.0,wrought,LLM_ONLY,SUCCESS,1000.0,,1100.0,,12.0,,200.0,219.0,,,LOW,N/A,0,3.5,42
+HAYNES* 242,316.0,wrought,LLM_ONLY,SUCCESS,1000.0,,1150.0,,12.0,,210.0,212.0,,,LOW,N/A,0,3.4,42
+HAYNES* 242,427.0,wrought,LLM_ONLY,SUCCESS,650.0,,850.0,,15.0,,210.0,205.0,,,LOW,N/A,0,2.7,42
+HAYNES* 242,538.0,wrought,LLM_ONLY,SUCCESS,550.0,540.0,700.0,1080.0,20.0,50.0,200.0,197.0,,,LOW,N/A,0,2.6,42
+HAYNES* 242,649.0,wrought,LLM_ONLY,SUCCESS,800.0,570.0,1000.0,1000.0,12.0,41.0,185.0,190.0,,,LOW,N/A,0,3.2,42
+HAYNES* 242,760.0,wrought,LLM_ONLY,SUCCESS,550.0,310.0,700.0,730.0,15.0,54.0,210.0,177.0,,,LOW,N/A,0,3.3,42
+HAYNES* 242,871.0,wrought,LLM_ONLY,SUCCESS,450.0,310.0,550.0,500.0,12.0,85.0,155.0,166.0,,,LOW,N/A,0,3.5,42
+HAYNES* 242,982.0,wrought,LLM_ONLY,SUCCESS,250.0,210.0,350.0,290.0,15.0,97.0,130.0,154.0,,,LOW,N/A,0,3.3,42
+Alloy 718 (AMS 5596 sheet),20.0,wrought,LLM_ONLY,SUCCESS,800.0,860.0,1000.0,1100.0,18.0,30.0,210.0,,,,LOW,N/A,0,2.5,42
+Alloy 725,20.0,wrought,LLM_ONLY,SUCCESS,650.0,827.0,850.0,1170.0,22.0,35.0,210.0,,,,LOW,N/A,0,3.3,42
+Haynes 244,20.0,wrought,LLM_ONLY,SUCCESS,1000.0,860.0,1150.0,1240.0,18.0,12.0,200.0,,,,LOW,N/A,0,2.0,42
+ATI Allegheny Ludlum AL 22™ Nickel-Base Alloy,20.0,wrought,LLM_ONLY,SUCCESS,700.0,345.0,850.0,724.0,25.0,67.0,200.0,207.0,,,LOW,N/A,0,4.8,42
+ATI Allegheny Ludlum AL 276™ Nickel-Base Alloy,20.0,wrought,LLM_ONLY,SUCCESS,700.0,415.0,850.0,790.0,15.0,50.0,210.0,205.0,,,LOW,N/A,0,3.5,42
+ATI Allegheny Ludlum AL 276™ Nickel-Base Alloy,21.0,wrought,LLM_ONLY,SUCCESS,850.0,415.0,1000.0,790.0,20.0,50.0,220.0,205.0,,,LOW,N/A,0,3.8,42
+ATI Allegheny Ludlum AL 276™ Nickel-Base Alloy,93.0,wrought,LLM_ONLY,SUCCESS,1000.0,380.0,1150.0,725.0,18.0,50.0,210.0,,,,LOW,N/A,0,3.6,42
+ATI Allegheny Ludlum AL 276™ Nickel-Base Alloy,204.0,wrought,LLM_ONLY,SUCCESS,850.0,345.0,950.0,710.0,15.0,50.0,210.0,,,,LOW,N/A,0,4.1,42
+ATI Allegheny Ludlum AL 276™ Nickel-Base Alloy,316.0,wrought,LLM_ONLY,SUCCESS,800.0,315.0,1000.0,675.0,25.0,55.0,200.0,,,,LOW,N/A,0,4.4,42
+ATI Allegheny Ludlum AL 276™ Nickel-Base Alloy,427.0,wrought,LLM_ONLY,SUCCESS,850.0,290.0,1000.0,655.0,18.0,60.0,200.0,,,,LOW,N/A,0,3.4,42
+ATI Allegheny Ludlum AL 276™ Nickel-Base Alloy,538.0,wrought,LLM_ONLY,SUCCESS,750.0,270.0,850.0,640.0,18.0,60.0,200.0,,,,LOW,N/A,0,3.4,42
+ATI Allegheny Ludlum AL 600™ Nickel-Base Alloy,20.0,wrought,LLM_ONLY,SUCCESS,450.0,255.0,700.0,640.0,30.0,45.0,200.0,207.0,,,LOW,N/A,0,5.4,42
+ATI Allegheny Ludlum AL 601™ Nickel-Base Alloy,20.0,wrought,LLM_ONLY,SUCCESS,300.0,440.0,500.0,790.0,40.0,45.0,210.0,205.0,,,LOW,N/A,0,3.5,42
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,20.0,wrought,LLM_ONLY,SUCCESS,800.0,485.0,1000.0,940.0,20.0,46.0,210.0,205.0,,,LOW,N/A,0,2.7,42
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,21.0,wrought,LLM_ONLY,SUCCESS,650.0,485.0,850.0,940.0,20.0,46.0,210.0,205.0,,,LOW,N/A,0,3.4,42
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,93.0,wrought,LLM_ONLY,SUCCESS,850.0,,1000.0,,20.0,,205.0,200.0,,,LOW,N/A,0,3.6,42
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,204.0,wrought,LLM_ONLY,SUCCESS,650.0,,750.0,,20.0,,205.0,195.0,,,LOW,N/A,0,3.5,42
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,316.0,wrought,LLM_ONLY,SUCCESS,800.0,,900.0,,15.0,,210.0,190.0,,,LOW,N/A,0,4.0,42
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,427.0,wrought,LLM_ONLY,SUCCESS,750.0,,900.0,,18.0,,195.0,185.0,,,LOW,N/A,0,3.3,42
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,538.0,wrought,LLM_ONLY,SUCCESS,500.0,,650.0,,25.0,,200.0,175.0,,,LOW,N/A,0,3.2,42
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,649.0,wrought,LLM_ONLY,SUCCESS,650.0,,950.0,,15.0,,155.0,170.0,,,LOW,N/A,0,4.5,42
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,760.0,wrought,LLM_ONLY,SUCCESS,400.0,,500.0,,18.0,,155.0,160.0,,,LOW,N/A,0,2.9,42
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,21.0,wrought,LLM_ONLY,SUCCESS,800.0,1200.0,1000.0,1435.0,20.0,21.0,200.0,200.0,,,LOW,N/A,0,3.8,42
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,93.0,wrought,LLM_ONLY,SUCCESS,650.0,,800.0,,22.0,,220.0,196.0,,,LOW,N/A,0,3.2,42
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,204.0,wrought,LLM_ONLY,SUCCESS,820.0,1125.0,980.0,1365.0,20.0,20.0,200.0,190.0,,,LOW,N/A,0,3.5,42
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,316.0,wrought,LLM_ONLY,SUCCESS,750.0,,950.0,,20.0,,205.0,184.0,,,LOW,N/A,0,3.2,42
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,427.0,wrought,LLM_ONLY,SUCCESS,850.0,1080.0,1000.0,1325.0,20.0,19.5,210.0,178.0,,,LOW,N/A,0,3.6,42
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,538.0,wrought,LLM_ONLY,SUCCESS,500.0,1065.0,650.0,1280.0,18.0,19.0,185.0,171.0,,,LOW,N/A,0,3.2,42
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,649.0,wrought,LLM_ONLY,SUCCESS,450.0,1020.0,600.0,1160.0,20.0,19.0,180.0,163.0,,,LOW,N/A,0,3.7,42
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,704.0,wrought,LLM_ONLY,SUCCESS,520.0,945.0,700.0,1005.0,20.0,20.0,190.0,,,,LOW,N/A,0,2.8,42
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,760.0,wrought,LLM_ONLY,SUCCESS,550.0,,700.0,,15.0,,190.0,154.0,,,LOW,N/A,0,3.6,42
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,-196.0,wrought,LLM_ONLY,SUCCESS,950.0,,1150.0,1035.0,18.0,46.0,220.0,,,,LOW,N/A,0,3.6,42
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,-78.0,wrought,LLM_ONLY,SUCCESS,805.0,,1150.0,819.0,22.5,51.0,216.0,,,,LOW,N/A,0,3.8,42
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,20.0,wrought,LLM_ONLY,SUCCESS,500.0,324.0,750.0,720.0,25.0,,200.0,196.0,,,LOW,N/A,0,3.1,42
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,200.0,wrought,LLM_ONLY,SUCCESS,850.0,336.0,1050.0,713.0,18.0,41.0,200.0,185.0,,,LOW,N/A,0,3.9,42
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,204.0,wrought,LLM_ONLY,SUCCESS,600.0,336.0,750.0,713.0,25.0,41.0,200.0,185.0,,,LOW,N/A,0,3.7,42
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,427.0,wrought,LLM_ONLY,SUCCESS,500.0,301.0,650.0,687.0,25.0,44.0,195.0,,,,LOW,N/A,0,3.3,42
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,600.0,wrought,LLM_ONLY,SUCCESS,400.0,,500.0,,25.0,,170.0,158.0,,,LOW,N/A,0,3.7,42
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,649.0,wrought,LLM_ONLY,SUCCESS,400.0,272.0,550.0,472.0,25.0,37.0,185.0,,,,LOW,N/A,0,3.9,42
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,800.0,wrought,LLM_ONLY,SUCCESS,300.0,,400.0,,25.0,,170.0,143.0,,,LOW,N/A,0,3.5,42
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,871.0,wrought,LLM_ONLY,SUCCESS,350.0,177.0,500.0,252.0,20.0,51.0,155.0,,,,LOW,N/A,0,3.7,42
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,1000.0,wrought,LLM_ONLY,SUCCESS,150.0,,250.0,,25.0,,150.0,126.0,,,LOW,N/A,0,12.9,42
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,1093.0,wrought,LLM_ONLY,SUCCESS,100.0,55.0,180.0,90.0,25.0,40.0,120.0,,,,LOW,N/A,0,4.4,42
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,1204.0,wrought,LLM_ONLY,SUCCESS,40.0,26.0,60.0,37.0,30.0,31.0,155.0,,,,LOW,N/A,0,4.3,42
+Haynes 625 alloy,20.0,wrought,LLM_ONLY,SUCCESS,850.0,490.0,1000.0,905.0,18.0,48.5,210.0,208.0,,,LOW,N/A,0,4.0,42
+Haynes 625 alloy,100.0,wrought,LLM_ONLY,SUCCESS,1000.0,,1200.0,,18.0,,220.0,201.0,,,LOW,N/A,0,3.9,42
+Haynes 625 alloy,200.0,wrought,LLM_ONLY,SUCCESS,820.0,,1000.0,,18.0,,210.0,199.0,,,LOW,N/A,0,3.1,42
+Haynes 625 alloy,300.0,wrought,LLM_ONLY,SUCCESS,800.0,,1000.0,,20.0,,210.0,192.0,,,LOW,N/A,0,3.2,42
+Haynes 625 alloy,400.0,wrought,LLM_ONLY,SUCCESS,650.0,,800.0,,15.0,,210.0,186.0,,,LOW,N/A,0,3.8,42
+Haynes 625 alloy,500.0,wrought,LLM_ONLY,SUCCESS,650.0,,900.0,,20.0,,210.0,179.0,,,LOW,N/A,0,4.1,42
+Haynes 625 alloy,540.0,wrought,LLM_ONLY,SUCCESS,650.0,370.0,850.0,770.0,22.0,54.0,195.0,,,,LOW,N/A,0,4.3,42
+Haynes 625 alloy,600.0,wrought,LLM_ONLY,SUCCESS,650.0,,900.0,,20.0,,200.0,171.0,,,LOW,N/A,0,3.5,42
+Haynes 625 alloy,650.0,wrought,LLM_ONLY,SUCCESS,650.0,370.0,850.0,760.0,15.0,55.6,200.0,,,,LOW,N/A,0,3.4,42
+Haynes 625 alloy,700.0,wrought,LLM_ONLY,SUCCESS,700.0,,850.0,,18.0,,185.0,163.0,,,LOW,N/A,0,3.1,42
+Haynes 625 alloy,760.0,wrought,LLM_ONLY,SUCCESS,500.0,345.0,700.0,600.0,20.0,53.1,170.0,,,,LOW,N/A,0,3.7,42
+Haynes 625 alloy,800.0,wrought,LLM_ONLY,SUCCESS,450.0,,600.0,,20.0,,165.0,153.0,,,LOW,N/A,0,3.4,42
+Haynes 625 alloy,870.0,wrought,LLM_ONLY,SUCCESS,380.0,205.0,450.0,345.0,20.0,45.9,190.0,,,,LOW,N/A,0,3.7,42
+Haynes 625 alloy,900.0,wrought,LLM_ONLY,SUCCESS,400.0,,500.0,,18.0,,190.0,142.0,,,LOW,N/A,0,4.2,42
+Haynes 625 alloy,980.0,wrought,LLM_ONLY,SUCCESS,400.0,83.0,500.0,165.0,25.0,43.8,140.0,,,,LOW,N/A,0,4.0,42
+Haynes 625 alloy,1000.0,wrought,LLM_ONLY,SUCCESS,200.0,,270.0,,20.0,,130.0,126.0,,,LOW,N/A,0,5.5,42
+Haynes 625 alloy,1095.0,wrought,LLM_ONLY,SUCCESS,150.0,39.0,250.0,95.0,30.0,44.7,130.0,,,,LOW,N/A,0,3.6,42
+Haynes 718 alloy,20.0,wrought,LLM_ONLY,SUCCESS,700.0,1175.0,900.0,1395.0,15.0,22.3,210.0,200.0,,,LOW,N/A,0,3.3,42
+Haynes 718 alloy,100.0,wrought,LLM_ONLY,SUCCESS,800.0,,1000.0,,20.0,,210.0,199.0,,,LOW,N/A,0,3.2,42
+Haynes 718 alloy,200.0,wrought,LLM_ONLY,SUCCESS,800.0,,1000.0,,18.0,,210.0,191.0,,,LOW,N/A,0,2.2,42
+Haynes 718 alloy,300.0,wrought,LLM_ONLY,SUCCESS,700.0,,900.0,,15.0,,210.0,185.0,,,LOW,N/A,0,2.3,42
+Haynes 718 alloy,400.0,wrought,LLM_ONLY,SUCCESS,700.0,,900.0,,15.0,,210.0,179.0,,,LOW,N/A,0,3.0,42
+Haynes 718 alloy,500.0,wrought,LLM_ONLY,SUCCESS,820.0,,1000.0,,18.0,,210.0,173.0,,,LOW,N/A,0,2.4,42
+Haynes 718 alloy,540.0,wrought,LLM_ONLY,SUCCESS,650.0,995.0,800.0,1130.0,18.0,24.4,185.0,,,,LOW,N/A,0,3.1,42
+Haynes 718 alloy,600.0,wrought,LLM_ONLY,SUCCESS,650.0,,850.0,,15.0,,210.0,167.0,,,LOW,N/A,0,2.6,42
+Haynes 718 alloy,650.0,wrought,LLM_ONLY,SUCCESS,520.0,1000.0,680.0,1155.0,20.0,19.9,195.0,,,,LOW,N/A,0,2.4,42
+Haynes 718 alloy,700.0,wrought,LLM_ONLY,SUCCESS,500.0,,650.0,,22.0,,155.0,159.0,,,LOW,N/A,0,2.4,42
+Haynes 718 alloy,760.0,wrought,LLM_ONLY,SUCCESS,500.0,750.0,700.0,855.0,20.0,10.2,155.0,,,,LOW,N/A,0,2.6,42
+Haynes 718 alloy,800.0,wrought,LLM_ONLY,SUCCESS,400.0,,550.0,,18.0,,180.0,149.0,,,LOW,N/A,0,3.2,42
+Haynes 718 alloy,870.0,wrought,LLM_ONLY,SUCCESS,400.0,305.0,500.0,420.0,20.0,27.7,170.0,,,,LOW,N/A,0,3.4,42
+Haynes 718 alloy,900.0,wrought,LLM_ONLY,SUCCESS,400.0,,550.0,,22.0,,185.0,134.0,,,LOW,N/A,0,2.1,42
+Haynes 718 alloy,980.0,wrought,LLM_ONLY,SUCCESS,300.0,90.0,400.0,145.0,20.0,37.0,150.0,,,,LOW,N/A,0,2.9,42
+Haynes 718 alloy,1000.0,wrought,LLM_ONLY,SUCCESS,300.0,,400.0,,25.0,,155.0,117.0,,,LOW,N/A,0,2.6,42
+Haynes 718 alloy,1095.0,wrought,LLM_ONLY,SUCCESS,200.0,40.0,300.0,77.0,25.0,38.5,140.0,,,,LOW,N/A,0,2.6,42
+Haynes CABVAL Hastelloy® G-50™ Grade 100 Ni-Cr-Fe-Mo Alloy,23.0,wrought,LLM_ONLY,SUCCESS,450.0,,650.0,,25.0,,210.0,192.0,,,LOW,N/A,0,3.1,42
+Haynes Hastelloy® B-2 alloy,20.0,wrought,LLM_ONLY,SUCCESS,550.0,396.0,700.0,914.0,15.0,55.0,210.0,217.0,,,LOW,N/A,0,2.9,42
+Haynes Hastelloy® B-2 alloy,316.0,wrought,LLM_ONLY,SUCCESS,700.0,,800.0,,18.0,,200.0,202.0,,,LOW,N/A,0,3.1,42
+Haynes Hastelloy® B-2 alloy,427.0,wrought,LLM_ONLY,SUCCESS,750.0,,950.0,,12.0,,200.0,196.0,,,LOW,N/A,0,4.5,42
+Haynes Hastelloy® B-2 alloy,538.0,wrought,LLM_ONLY,SUCCESS,500.0,,700.0,,12.0,,185.0,189.0,,,LOW,N/A,0,3.6,42
+Haynes Hastelloy® B-3® alloy,20.0,wrought,LLM_ONLY,SUCCESS,800.0,421.0,1000.0,862.0,18.0,53.0,200.0,216.0,,,LOW,N/A,0,3.8,42
+Haynes Hastelloy® B-3® alloy,93.0,wrought,LLM_ONLY,SUCCESS,800.0,379.0,1000.0,834.0,20.0,57.0,210.0,,,,LOW,N/A,0,6.0,42
+Haynes Hastelloy® B-3® alloy,100.0,wrought,LLM_ONLY,SUCCESS,1000.0,,1150.0,,12.0,,210.0,213.0,,,LOW,N/A,0,4.6,42
+Haynes Hastelloy® B-3® alloy,200.0,wrought,LLM_ONLY,SUCCESS,700.0,324.0,900.0,758.0,18.0,60.0,210.0,208.0,,,LOW,N/A,0,4.5,42
+Haynes Hastelloy® B-3® alloy,204.0,wrought,LLM_ONLY,SUCCESS,900.0,324.0,1050.0,758.0,12.0,60.0,210.0,208.0,,,LOW,N/A,0,7.0,42
+Haynes Hastelloy® B-3® alloy,300.0,wrought,LLM_ONLY,SUCCESS,1000.0,,1150.0,,12.0,,210.0,202.0,,,LOW,N/A,0,3.1,42
+Haynes Hastelloy® B-3® alloy,316.0,wrought,LLM_ONLY,SUCCESS,700.0,303.0,850.0,717.0,15.0,63.0,210.0,,,,LOW,N/A,0,3.7,42
+Haynes Hastelloy® B-3® alloy,400.0,wrought,LLM_ONLY,SUCCESS,1000.0,,1150.0,,12.0,,210.0,197.0,,,LOW,N/A,0,3.8,42
+Haynes Hastelloy® B-3® alloy,427.0,wrought,LLM_ONLY,SUCCESS,700.0,290.0,850.0,703.0,22.0,62.0,210.0,,,,LOW,N/A,0,3.1,42
+Haynes Hastelloy® B-3® alloy,500.0,wrought,LLM_ONLY,SUCCESS,900.0,,1100.0,,15.0,,210.0,190.0,,,LOW,N/A,0,2.8,42
+Haynes Hastelloy® B-3® alloy,538.0,wrought,LLM_ONLY,SUCCESS,650.0,269.0,800.0,676.0,15.0,59.0,200.0,,,,LOW,N/A,0,4.2,42
+Haynes Hastelloy® B-3® alloy,600.0,wrought,LLM_ONLY,SUCCESS,850.0,,950.0,,15.0,,200.0,185.0,,,LOW,N/A,0,4.2,42
+Haynes Hastelloy® B-3® alloy,649.0,wrought,LLM_ONLY,SUCCESS,650.0,317.0,850.0,717.0,15.0,56.0,190.0,,,,LOW,N/A,0,3.2,42
+Haynes Hastelloy® C-2000® alloy,20.0,wrought,LLM_ONLY,SUCCESS,450.0,393.0,650.0,779.0,25.0,68.0,200.0,,,,LOW,N/A,0,2.8,42
+Haynes Hastelloy® C-2000® alloy,25.0,wrought,LLM_ONLY,SUCCESS,550.0,,800.0,,35.0,,210.0,207.0,,,LOW,N/A,0,3.6,42
+Haynes Hastelloy® C-2000® alloy,316.0,wrought,LLM_ONLY,SUCCESS,650.0,,750.0,,22.0,,200.0,190.0,,,LOW,N/A,0,3.4,42
+Haynes Hastelloy® C-2000® alloy,427.0,wrought,LLM_ONLY,SUCCESS,650.0,,750.0,,18.0,,192.0,177.0,,,LOW,N/A,0,4.0,42
+Haynes Hastelloy® C-2000® alloy,538.0,wrought,LLM_ONLY,SUCCESS,700.0,,900.0,,20.0,,185.0,171.0,,,LOW,N/A,0,5.4,42
+Haynes Hastelloy® C-2000® alloy,649.0,wrought,LLM_ONLY,SUCCESS,400.0,,600.0,,20.0,,190.0,162.0,,,LOW,N/A,0,3.7,42
+Haynes Hastelloy® C-22® alloy,21.0,wrought,LLM_ONLY,SUCCESS,550.0,407.0,750.0,800.0,20.0,57.0,210.0,206.0,,,LOW,N/A,0,3.5,42
+Haynes Hastelloy® C-22® alloy,93.0,wrought,LLM_ONLY,SUCCESS,1000.0,372.0,1150.0,758.0,18.0,58.0,200.0,,,,LOW,N/A,0,2.9,42
+Haynes Hastelloy® C-22® alloy,200.0,wrought,LLM_ONLY,SUCCESS,850.0,303.0,1000.0,703.0,20.0,57.0,210.0,197.0,,,LOW,N/A,0,3.0,42
+Haynes Hastelloy® C-22® alloy,204.0,wrought,LLM_ONLY,SUCCESS,850.0,303.0,950.0,703.0,20.0,57.0,210.0,197.0,,,LOW,N/A,0,3.4,42
+Haynes Hastelloy® C-22® alloy,300.0,wrought,LLM_ONLY,SUCCESS,850.0,,1000.0,,18.0,,210.0,191.0,,,LOW,N/A,0,3.3,42
+Haynes Hastelloy® C-22® alloy,316.0,wrought,LLM_ONLY,SUCCESS,750.0,286.0,900.0,676.0,20.0,62.0,210.0,,,,LOW,N/A,0,3.2,42
+Haynes Hastelloy® C-22® alloy,400.0,wrought,LLM_ONLY,SUCCESS,750.0,,900.0,,18.0,,210.0,185.0,,,LOW,N/A,0,2.4,42
+Haynes Hastelloy® C-22® alloy,427.0,wrought,LLM_ONLY,SUCCESS,820.0,283.0,980.0,655.0,18.0,67.0,200.0,,,,LOW,N/A,0,2.9,42
+Haynes Hastelloy® C-22® alloy,500.0,wrought,LLM_ONLY,SUCCESS,650.0,,800.0,,20.0,,200.0,179.0,,,LOW,N/A,0,2.8,42
+Haynes Hastelloy® C-22® alloy,538.0,wrought,LLM_ONLY,SUCCESS,650.0,276.0,850.0,627.0,20.0,61.0,185.0,,,,LOW,N/A,0,2.4,42
+Haynes Hastelloy® C-22® alloy,600.0,wrought,LLM_ONLY,SUCCESS,500.0,,650.0,,18.0,,185.0,174.0,,,LOW,N/A,0,2.8,42
+Haynes Hastelloy® C-22® alloy,649.0,wrought,LLM_ONLY,SUCCESS,500.0,248.0,650.0,586.0,22.0,65.0,155.0,,,,LOW,N/A,0,2.9,42
+Haynes Hastelloy® C-22® alloy,700.0,wrought,LLM_ONLY,SUCCESS,400.0,,500.0,,25.0,,185.0,168.0,,,LOW,N/A,0,2.6,42
+Haynes Hastelloy® C-22® alloy,760.0,wrought,LLM_ONLY,SUCCESS,550.0,241.0,750.0,524.0,20.0,63.0,190.0,,,,LOW,N/A,0,2.4,42
+Haynes Hastelloy® C-22® alloy,800.0,wrought,LLM_ONLY,SUCCESS,400.0,,500.0,,22.0,,155.0,160.0,,,LOW,N/A,0,2.6,42
+Haynes Hastelloy® C-22® alloy,900.0,wrought,LLM_ONLY,SUCCESS,400.0,,500.0,,25.0,,150.0,152.0,,,LOW,N/A,0,2.8,42
+Haynes Hastelloy® C-22® alloy,1000.0,wrought,LLM_ONLY,SUCCESS,180.0,,230.0,,25.0,,125.0,144.0,,,LOW,N/A,0,3.3,42
+Haynes Hastelloy® C-276 alloy,20.0,wrought,LLM_ONLY,SUCCESS,850.0,364.7,1000.0,826.7,20.0,61.0,210.0,205.0,,,LOW,N/A,0,3.0,42
+Haynes Hastelloy® C-276 alloy,204.0,wrought,LLM_ONLY,SUCCESS,950.0,,1050.0,696.4,18.0,,210.0,195.0,,,LOW,N/A,0,3.0,42
+Haynes Hastelloy® C-276 alloy,316.0,wrought,LLM_ONLY,SUCCESS,1050.0,,1150.0,681.2,18.0,68.0,210.0,188.0,,,LOW,N/A,0,3.4,42
+Haynes Hastelloy® C-276 alloy,427.0,wrought,LLM_ONLY,SUCCESS,850.0,,950.0,,20.0,67.0,210.0,182.0,,,LOW,N/A,0,3.6,42
+Haynes Hastelloy® C-276 alloy,538.0,wrought,LLM_ONLY,SUCCESS,650.0,,850.0,,15.0,,200.0,176.0,,,LOW,N/A,0,3.1,42
+Haynes Hastelloy® C-4 alloy,20.0,wrought,LLM_ONLY,SUCCESS,550.0,421.0,750.0,801.0,22.0,55.0,210.0,211.0,,,LOW,N/A,0,2.9,42
+Haynes Hastelloy® C-4 alloy,93.0,wrought,LLM_ONLY,SUCCESS,550.0,,750.0,,25.0,,200.0,207.0,,,LOW,N/A,0,3.1,42
+Haynes Hastelloy® C-4 alloy,204.0,wrought,LLM_ONLY,SUCCESS,650.0,403.0,850.0,706.0,20.0,55.0,210.0,201.0,,,LOW,N/A,0,2.7,42
+Haynes Hastelloy® C-4 alloy,316.0,wrought,LLM_ONLY,SUCCESS,650.0,371.0,800.0,675.0,22.0,61.0,200.0,194.0,,,LOW,N/A,0,2.5,42
+Haynes Hastelloy® C-4 alloy,427.0,wrought,LLM_ONLY,SUCCESS,520.0,320.0,650.0,656.0,22.0,68.0,200.0,187.0,,,LOW,N/A,0,3.1,42
+Haynes Hastelloy® C-4 alloy,538.0,wrought,LLM_ONLY,SUCCESS,500.0,299.0,650.0,645.0,25.0,55.0,200.0,179.0,,,LOW,N/A,0,3.1,42
+Haynes Hastelloy® C-4 alloy,649.0,wrought,LLM_ONLY,SUCCESS,400.0,291.0,550.0,571.0,20.0,50.0,185.0,171.0,,,LOW,N/A,0,3.2,42
+Haynes Hastelloy® C-4 alloy,760.0,wrought,LLM_ONLY,SUCCESS,400.0,260.0,500.0,476.0,18.0,44.0,140.0,162.0,,,LOW,N/A,0,2.9,42
+Haynes Hastelloy® C-4 alloy,871.0,wrought,LLM_ONLY,SUCCESS,400.0,,500.0,,25.0,,155.0,152.0,,,LOW,N/A,0,3.1,42
+Haynes Hastelloy® C-4 alloy,982.0,wrought,LLM_ONLY,SUCCESS,180.0,,250.0,,25.0,,130.0,141.0,,,LOW,N/A,0,4.5,42
+Haynes Hastelloy® G-30® alloy,20.0,wrought,LLM_ONLY,SUCCESS,550.0,338.0,750.0,689.0,20.0,56.0,210.0,202.0,,,LOW,N/A,0,3.8,42
+Haynes Hastelloy® G-30® alloy,93.0,wrought,LLM_ONLY,SUCCESS,520.0,290.0,700.0,655.0,25.0,54.0,210.0,,,,LOW,N/A,0,2.7,42
+Haynes Hastelloy® G-30® alloy,200.0,wrought,LLM_ONLY,SUCCESS,650.0,248.0,900.0,607.0,20.0,59.0,210.0,196.0,,,LOW,N/A,0,3.4,42
+Haynes Hastelloy® G-30® alloy,204.0,wrought,LLM_ONLY,SUCCESS,700.0,248.0,850.0,607.0,22.0,59.0,210.0,196.0,,,LOW,N/A,0,2.9,42
+Haynes Hastelloy® G-30® alloy,300.0,wrought,LLM_ONLY,SUCCESS,650.0,,850.0,,20.0,,210.0,195.0,,,LOW,N/A,0,3.5,42
+Haynes Hastelloy® G-30® alloy,316.0,wrought,LLM_ONLY,SUCCESS,550.0,228.0,750.0,572.0,25.0,59.0,195.0,,,,LOW,N/A,0,2.7,42
+Haynes Hastelloy® G-30® alloy,400.0,wrought,LLM_ONLY,SUCCESS,700.0,,900.0,,18.0,,210.0,192.0,,,LOW,N/A,0,2.4,42
+Haynes Hastelloy® G-30® alloy,427.0,wrought,LLM_ONLY,SUCCESS,650.0,214.0,800.0,552.0,18.0,60.0,195.0,,,,LOW,N/A,0,2.8,42
+Haynes Hastelloy® G-30® alloy,500.0,wrought,LLM_ONLY,SUCCESS,700.0,,850.0,,20.0,,200.0,187.0,,,LOW,N/A,0,2.8,42
+Haynes Hastelloy® G-30® alloy,538.0,wrought,LLM_ONLY,SUCCESS,500.0,200.0,650.0,524.0,22.0,62.0,185.0,,,,LOW,N/A,0,3.4,42
+Haynes Hastelloy® N,14.0,wrought,LLM_ONLY,SUCCESS,500.0,,650.0,,25.0,,200.0,219.0,,,LOW,N/A,0,3.5,42
+Haynes Hastelloy® N,20.0,wrought,LLM_ONLY,SUCCESS,700.0,314.0,850.0,794.0,20.0,50.7,200.0,,,,LOW,N/A,0,3.9,42
+Haynes Hastelloy® N,221.0,wrought,LLM_ONLY,SUCCESS,700.0,,850.0,,22.0,,200.0,202.0,,,LOW,N/A,0,2.9,42
+Haynes Hastelloy® N,410.0,wrought,LLM_ONLY,SUCCESS,650.0,,800.0,,18.0,,200.0,192.0,,,LOW,N/A,0,3.8,42
+Haynes Hastelloy® N,500.0,wrought,LLM_ONLY,SUCCESS,650.0,,800.0,,22.0,,200.0,187.0,,,LOW,N/A,0,3.0,42
+Haynes Hastelloy® N,577.0,wrought,LLM_ONLY,SUCCESS,650.0,,750.0,,22.0,,190.0,181.0,,,LOW,N/A,0,3.5,42
+Haynes Hastelloy® N,593.0,wrought,LLM_ONLY,SUCCESS,520.0,227.0,700.0,599.0,12.0,45.3,200.0,,,,LOW,N/A,0,3.5,42
+Haynes Hastelloy® N,632.0,wrought,LLM_ONLY,SUCCESS,450.0,,600.0,,20.0,,180.0,181.0,,,LOW,N/A,0,3.3,42
+Haynes Hastelloy® N,700.0,wrought,LLM_ONLY,SUCCESS,450.0,218.0,600.0,480.0,20.0,30.0,155.0,171.0,,,LOW,N/A,0,2.5,42
+Haynes Hastelloy® N,704.0,wrought,LLM_ONLY,SUCCESS,350.0,218.0,500.0,480.0,20.0,30.0,155.0,171.0,,,LOW,N/A,0,2.8,42
+Haynes Hastelloy® N,800.0,wrought,LLM_ONLY,SUCCESS,400.0,,500.0,,25.0,,155.0,163.0,,,LOW,N/A,0,3.4,42
+Haynes Hastelloy® N,815.0,wrought,LLM_ONLY,SUCCESS,350.0,203.0,500.0,385.0,20.0,24.3,155.0,,,,LOW,N/A,0,2.9,42
+Haynes Hastelloy® N,854.0,wrought,LLM_ONLY,SUCCESS,300.0,,400.0,,20.0,,150.0,157.0,,,LOW,N/A,0,3.7,42
+Haynes Hastelloy® N,904.0,wrought,LLM_ONLY,SUCCESS,250.0,,350.0,,20.0,,145.0,151.0,,,LOW,N/A,0,3.0,42
+Haynes Hastelloy® N,927.0,wrought,LLM_ONLY,SUCCESS,200.0,179.0,250.0,234.0,20.0,30.0,130.0,,,,LOW,N/A,0,4.5,42
+Haynes Hastelloy® N,954.0,wrought,LLM_ONLY,SUCCESS,200.0,,270.0,,20.0,,130.0,143.0,,,LOW,N/A,0,3.0,42
+Haynes Hastelloy® N,1000.0,wrought,LLM_ONLY,SUCCESS,200.0,,280.0,,25.0,,130.0,136.0,,,LOW,N/A,0,12.1,42
+Haynes Hastelloy® N,1049.0,wrought,LLM_ONLY,SUCCESS,130.0,,180.0,,25.0,,140.0,122.0,,,LOW,N/A,0,3.3,42
+Nickel Alloy 59,20.0,wrought,LLM_ONLY,SUCCESS,400.0,320.0,650.0,690.0,35.0,40.0,200.0,210.0,,,LOW,N/A,0,3.9,42
+Special Metals INCOLOY® alloy 890 Ni-Cr-Fe Superalloy,22.0,wrought,LLM_ONLY,SUCCESS,350.0,272.0,600.0,652.0,30.0,46.6,200.0,195.1,,,LOW,N/A,0,2.2,42
+Special Metals INCOLOY® alloy 890 Ni-Cr-Fe Superalloy,100.0,wrought,LLM_ONLY,SUCCESS,450.0,,600.0,,25.0,,210.0,191.0,,,LOW,N/A,0,3.5,42
+Special Metals INCOLOY® alloy 890 Ni-Cr-Fe Superalloy,300.0,wrought,LLM_ONLY,SUCCESS,500.0,,750.0,,25.0,,200.0,180.0,,,LOW,N/A,0,2.9,42
+Special Metals INCOLOY® alloy 890 Ni-Cr-Fe Superalloy,500.0,wrought,LLM_ONLY,SUCCESS,400.0,,500.0,,25.0,,195.0,166.9,,,LOW,N/A,0,3.5,42
+Special Metals INCOLOY® alloy 890 Ni-Cr-Fe Superalloy,700.0,wrought,LLM_ONLY,SUCCESS,350.0,,550.0,,25.0,,200.0,151.7,,,LOW,N/A,0,3.7,42
+Special Metals INCOLOY® alloy 890 Ni-Cr-Fe Superalloy,870.0,wrought,LLM_ONLY,SUCCESS,180.0,110.0,280.0,132.0,25.0,84.8,140.0,,,,LOW,N/A,0,3.8,42
+Special Metals INCOLOY® alloy 890 Ni-Cr-Fe Superalloy,900.0,wrought,LLM_ONLY,SUCCESS,250.0,,400.0,,20.0,,190.0,138.6,,,LOW,N/A,0,3.0,42
+Special Metals INCOLOY® alloy 890 Ni-Cr-Fe Superalloy,980.0,wrought,LLM_ONLY,SUCCESS,150.0,66.0,250.0,92.0,30.0,98.0,130.0,,,,LOW,N/A,0,3.3,42
+Special Metals INCOLOY® alloy 890 Ni-Cr-Fe Superalloy,1100.0,wrought,LLM_ONLY,SUCCESS,80.0,44.0,130.0,62.0,25.0,83.6,110.0,,,,LOW,N/A,0,2.8,42
+Special Metals INCONEL® 622 Nickel Superalloy (UNS N06022) Plate 0.250 in (6.4 mm),20.0,wrought,LLM_ONLY,SUCCESS,850.0,311.0,950.0,699.8,20.0,69.0,210.0,209.0,,,LOW,N/A,0,2.6,42
+Special Metals INCONEL® 725 Nickel Superalloy (UNS N07725),20.0,wrought,LLM_ONLY,SUCCESS,1150.0,427.0,1350.0,855.0,13.0,57.0,210.0,204.0,,,LOW,N/A,0,3.4,42
+Special Metals INCONEL® Alloy 686 Nickel Superalloy Sheet (UNS N06686),20.0,wrought,LLM_ONLY,SUCCESS,500.0,421.0,650.0,848.0,22.0,59.0,200.0,207.0,,,LOW,N/A,0,3.4,42
+Special Metals INCONEL® Alloy 686 Nickel Superalloy Sheet (UNS N06686),100.0,wrought,LLM_ONLY,SUCCESS,800.0,,1000.0,,20.0,,200.0,205.0,,,LOW,N/A,0,3.3,42
+Special Metals INCONEL® Alloy 686 Nickel Superalloy Sheet (UNS N06686),200.0,wrought,LLM_ONLY,SUCCESS,850.0,,1000.0,,15.0,,210.0,197.0,,,LOW,N/A,0,2.5,42
+Special Metals INCONEL® Alloy 686 Nickel Superalloy Sheet (UNS N06686),300.0,wrought,LLM_ONLY,SUCCESS,1000.0,,1200.0,,20.0,,210.0,193.0,,,LOW,N/A,0,3.1,42
+Special Metals INCONEL® Alloy 686 Nickel Superalloy Sheet (UNS N06686),400.0,wrought,LLM_ONLY,SUCCESS,650.0,,850.0,,20.0,,210.0,185.0,,,LOW,N/A,0,3.0,42
+Special Metals INCONEL® Alloy 686 Nickel Superalloy Sheet (UNS N06686),500.0,wrought,LLM_ONLY,SUCCESS,700.0,,900.0,,20.0,,185.0,183.0,,,LOW,N/A,0,2.8,42
+Special Metals INCONEL® Alloy 686 Nickel Superalloy Sheet (UNS N06686),600.0,wrought,LLM_ONLY,SUCCESS,500.0,,650.0,,15.0,,180.0,173.0,,,LOW,N/A,0,2.6,42
+Special Metals INCONEL® Alloy 686 Nickel Superalloy Sheet (UNS N06686),700.0,wrought,LLM_ONLY,SUCCESS,550.0,,750.0,,20.0,,170.0,165.0,,,LOW,N/A,0,2.5,42
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,21.0,wrought,LLM_ONLY,SUCCESS,700.0,403.0,900.0,824.0,20.0,46.0,210.0,212.0,,,LOW,N/A,0,2.6,42
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,22.0,wrought,LLM_ONLY,SUCCESS,800.0,403.0,1000.0,824.0,18.0,46.0,210.0,212.0,,,LOW,N/A,0,3.1,42
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,100.0,wrought,LLM_ONLY,SUCCESS,900.0,,1100.0,,20.0,,210.0,208.0,,,LOW,N/A,0,3.1,42
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,200.0,wrought,LLM_ONLY,SUCCESS,750.0,386.0,880.0,772.0,18.0,45.0,205.0,203.0,,,LOW,N/A,0,2.6,42
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,204.0,wrought,LLM_ONLY,SUCCESS,950.0,386.0,1150.0,772.0,18.0,45.0,210.0,203.0,,,LOW,N/A,0,2.9,42
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,300.0,wrought,LLM_ONLY,SUCCESS,700.0,,900.0,,20.0,,210.0,199.0,,,LOW,N/A,0,2.5,42
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,316.0,wrought,LLM_ONLY,SUCCESS,750.0,372.0,900.0,758.0,18.0,46.0,210.0,,,,LOW,N/A,0,2.5,42
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,400.0,wrought,LLM_ONLY,SUCCESS,800.0,,1000.0,,18.0,,195.0,194.0,,,LOW,N/A,0,3.7,42
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,427.0,wrought,LLM_ONLY,SUCCESS,22.0,359.0,14.0,745.0,5.0,48.0,2.0,,,,LOW,N/A,0,3.3,42
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,500.0,wrought,LLM_ONLY,SUCCESS,800.0,,1000.0,,18.0,,195.0,188.0,,,LOW,N/A,0,3.6,42
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,538.0,wrought,LLM_ONLY,SUCCESS,650.0,310.0,800.0,724.0,18.0,40.0,200.0,,,,LOW,N/A,0,6.0,42
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,600.0,wrought,LLM_ONLY,SUCCESS,700.0,,900.0,,18.0,,190.0,183.0,,,LOW,N/A,0,2.8,42
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,649.0,wrought,LLM_ONLY,SUCCESS,500.0,290.0,650.0,724.0,18.0,50.0,185.0,,,,LOW,N/A,0,3.2,42
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,700.0,wrought,LLM_ONLY,SUCCESS,650.0,,800.0,,18.0,,190.0,175.0,,,LOW,N/A,0,2.8,42
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,760.0,wrought,LLM_ONLY,SUCCESS,500.0,290.0,650.0,517.0,18.0,70.0,190.0,,,,LOW,N/A,0,3.8,42
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,800.0,wrought,LLM_ONLY,SUCCESS,450.0,,650.0,,15.0,,155.0,167.0,,,LOW,N/A,0,2.7,42
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,871.0,wrought,LLM_ONLY,SUCCESS,350.0,193.0,550.0,234.0,15.0,90.0,155.0,,,,LOW,N/A,0,3.2,42
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,1090.0,wrought,LLM_ONLY,SUCCESS,150.0,55.2,250.0,82.7,20.0,70.0,130.0,,,,LOW,N/A,0,3.2,42
+Special Metals INCONEL® C276 Nickel Superalloy Sheet,20.0,wrought,LLM_ONLY,SUCCESS,500.0,376.0,750.0,796.3,35.0,60.0,200.0,205.0,,,LOW,N/A,0,4.1,42
+Special Metals INCONEL® G-3 Nickel Superalloy (UNS N06985),20.0,wrought,LLM_ONLY,SUCCESS,550.0,320.0,750.0,690.0,25.0,60.0,210.0,199.0,,,LOW,N/A,0,5.0,42
+Special Metals INCONEL® G-3 Nickel Superalloy (UNS N06985),550.0,wrought,LLM_ONLY,SUCCESS,500.0,190.0,650.0,500.0,25.0,65.0,190.0,,,,LOW,N/A,0,3.9,42
+Special Metals NIMONIC® Alloy 86,20.0,wrought,LLM_ONLY,SUCCESS,750.0,410.0,900.0,825.0,25.0,42.0,210.0,210.0,,,LOW,N/A,0,12.3,42
+Special Metals NIMONIC® Alloy 86,23.0,wrought,LLM_ONLY,SUCCESS,500.0,410.0,800.0,825.0,40.0,42.0,200.0,210.0,,,LOW,N/A,0,2.9,42
+Special Metals NIMONIC® Alloy 86,650.0,wrought,LLM_ONLY,SUCCESS,450.0,240.0,600.0,620.0,20.0,50.0,185.0,,,,LOW,N/A,0,3.2,42

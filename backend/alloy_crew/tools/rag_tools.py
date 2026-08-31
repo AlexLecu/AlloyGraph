@@ -333,7 +333,8 @@ class AlloySearchTool(BaseTool):
                 # Extract composition from graph refs
                 _extract_composition(obj, candidate)
 
-                # Composition mode: compute Euclidean distance for reranking
+                # Composition mode: overwrite the hybrid-search ordering with a
+                # Euclidean wt% distance (NOT cosine) and rerank on it
                 if composition:
                     candidate["_distance"] = _composition_distance(composition, candidate["composition"])
                 else:
@@ -511,7 +512,19 @@ def _extract_properties_inline(obj, candidate: dict):
 
 
 def _composition_distance(target: Dict[str, float], candidate_comp: Dict[str, float]) -> float:
-    """Euclidean distance on normalized compositions."""
+    """Euclidean (L2) distance between wt%-normalised compositions.
+
+    NOT a cosine distance. Each composition is rescaled to sum to 100, then the
+    element-wise L2 norm of the difference is taken, so the result carries units
+    of wt% and is unbounded above (~141.4 for two fully disjoint compositions).
+    Typical superalloy neighbour pairs land around 1-15.
+
+    In particular the value is NOT confined to the [0, 2] range of a cosine
+    distance, and must not be described as one. Weaviate's hybrid query does use
+    dense cosine similarity, but only as a recall stage: the ``_distance`` field
+    it returns is overwritten with this Euclidean value before reranking (see
+    the composition-mode branch in AlloyKGSearchTool._run).
+    """
     def normalize(c):
         total = sum(c.values())
         return {k: (v / total) * 100 for k, v in c.items()} if total > 0 else c

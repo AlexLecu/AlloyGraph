@@ -1,0 +1,17 @@
+comparison,scope,property,n,n_nonzero,W,p,median_delta,wins,losses,direction,unit,units_compared
+Full system vs ML+physics+KG,ALL,YS,285,267,12090.0,4.399752335543724e-06,-9.51688797556335,170,97,full system lower error,MPa,cases (alloy x temperature)
+Full system vs ML+physics+KG,ALL (by alloy),YS,86,86,1377.0,0.033585820846281755,-6.466164597709096,55,31,full system lower error,MPa,alloys
+Full system vs ML+physics+KG,FAR,YS,138,138,2396.0,3.402943157887172e-07,-35.61914220528613,101,37,full system lower error,MPa,cases (alloy x temperature)
+Full system vs ML+physics+KG,FAR (by alloy),YS,43,43,275.0,0.01600824142133206,-15.993860787351878,31,12,full system lower error,MPa,alloys
+Full system vs ML+physics+KG,ALL,UTS,290,286,14670.0,2.924834883795433e-05,-2.015183938647084,175,111,full system lower error,MPa,cases (alloy x temperature)
+Full system vs ML+physics+KG,ALL (by alloy),UTS,86,86,1255.0,0.008041053758014876,-5.396003854993783,55,31,full system lower error,MPa,alloys
+Full system vs ML+physics+KG,FAR,UTS,142,142,3166.0,9.999043658634033e-05,-9.662332785529543,93,49,full system lower error,MPa,cases (alloy x temperature)
+Full system vs ML+physics+KG,FAR (by alloy),UTS,43,43,285.0,0.02249689523273446,-0.03993953591441368,30,13,full system lower error,MPa,alloys
+Full system vs ML+physics+KG,ALL,EL,284,255,15552.0,0.5147702089197582,0.0,131,124,KG arm lower error,%,cases (alloy x temperature)
+Full system vs ML+physics+KG,ALL (by alloy),EL,86,84,1601.0,0.4118747150286183,-0.008669621678106587,46,38,full system lower error,%,alloys
+Full system vs ML+physics+KG,FAR,EL,141,135,3727.0,0.05804211995063323,-0.003643528206698221,76,59,full system lower error,%,cases (alloy x temperature)
+Full system vs ML+physics+KG,FAR (by alloy),EL,43,43,400.0,0.38507096484067915,-0.009038193763915459,24,19,full system lower error,%,alloys
+Full system vs ML+physics+KG,ALL,EM,304,300,21023.0,0.3020312799034165,-0.00724698546112279,164,136,full system lower error,GPa,cases (alloy x temperature)
+Full system vs ML+physics+KG,ALL (by alloy),EM,46,46,460.0,0.3855928365038608,-0.004054950203332908,26,20,full system lower error,GPa,alloys
+Full system vs ML+physics+KG,FAR,EM,184,183,8225.0,0.7879564713884101,0.00020379548182347662,91,92,KG arm lower error,GPa,cases (alloy x temperature)
+Full system vs ML+physics+KG,FAR (by alloy),EM,29,29,205.0,0.7982758991420269,-0.0012140373718967368,15,14,full system lower error,GPa,alloys

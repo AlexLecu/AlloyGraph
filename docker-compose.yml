@@ -15,10 +15,21 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/"]
+      # 127.0.0.1, NOT localhost. busybox wget resolves localhost to [::1] and
+      # tries IPv6 first, but nginx.conf declares only `listen 80` (IPv4). The
+      # nginx entrypoint's 10-listen-on-ipv6-by-default.sh would normally add
+      # the IPv6 listener, but it skips any default.conf that differs from the
+      # packaged one -- and ours does. So the check got "Connection refused"
+      # and the container reported unhealthy while serving every real request
+      # on IPv4 perfectly well. curl happens to survive this by falling back to
+      # IPv4; wget does not.
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:80/"]
       interval: 30s
       timeout: 10s
       retries: 3
+      # nginx is up in well under a second, but without this a slow image start
+      # burns retries before the first successful probe.
+      start_period: 10s
 
   # ===========================================
   # BACKEND - Flask API (internal, via nginx proxy)

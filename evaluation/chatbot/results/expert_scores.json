@@ -1,0 +1,379 @@
+{
+  "source": "/Users/alexlecu/Downloads/exam_questions_grading - grading_sheet_2.csv",
+  "total_scored_rows": 36,
+  "aggregated": {
+    "chatbot": {
+      "correctness": {
+        "mean": 4.083,
+        "std": 1.24,
+        "n": 12
+      },
+      "completeness": {
+        "mean": 3.333,
+        "std": 1.073,
+        "n": 12
+      },
+      "relevance": {
+        "mean": 4.0,
+        "std": 0.953,
+        "n": 12
+      },
+      "overall": {
+        "mean": 3.806,
+        "std": 1.117
+      }
+    },
+    "gpt": {
+      "correctness": {
+        "mean": 4.917,
+        "std": 0.289,
+        "n": 12
+      },
+      "completeness": {
+        "mean": 4.667,
+        "std": 0.888,
+        "n": 12
+      },
+      "relevance": {
+        "mean": 4.667,
+        "std": 0.888,
+        "n": 12
+      },
+      "overall": {
+        "mean": 4.75,
+        "std": 0.732
+      }
+    },
+    "llama": {
+      "correctness": {
+        "mean": 4.417,
+        "std": 1.24,
+        "n": 12
+      },
+      "completeness": {
+        "mean": 4.583,
+        "std": 0.9,
+        "n": 12
+      },
+      "relevance": {
+        "mean": 4.75,
+        "std": 0.622,
+        "n": 12
+      },
+      "overall": {
+        "mean": 4.583,
+        "std": 0.937
+      }
+    }
+  },
+  "statistical_tests": {
+    "n_questions": 12,
+    "systems": [
+      "chatbot",
+      "gpt",
+      "llama"
+    ],
+    "friedman": {
+      "statistic": 10.7568,
+      "p_value": 0.004615
+    },
+    "pairwise_wilcoxon": [
+      {
+        "pair": "chatbot vs gpt",
+        "statistic": 10.0,
+        "p_value": 0.038086,
+        "mean_diff": -0.944
+      },
+      {
+        "pair": "chatbot vs llama",
+        "statistic": 1.0,
+        "p_value": 0.015625,
+        "mean_diff": -0.778
+      },
+      {
+        "pair": "gpt vs llama",
+        "statistic": 5.0,
+        "p_value": 0.28125,
+        "mean_diff": 0.167
+      }
+    ]
+  },
+  "per_question": [
+    {
+      "question_id": "expert_001",
+      "systems": {
+        "llama": {
+          "correctness": 5.0,
+          "completeness": 4.0,
+          "relevance": 5.0,
+          "avg": 4.67
+        },
+        "chatbot": {
+          "correctness": 5.0,
+          "completeness": 4.0,
+          "relevance": 3.0,
+          "avg": 4.0
+        },
+        "gpt": {
+          "correctness": 5.0,
+          "completeness": 5.0,
+          "relevance": 5.0,
+          "avg": 5.0
+        }
+      }
+    },
+    {
+      "question_id": "expert_002",
+      "systems": {
+        "gpt": {
+          "correctness": 5.0,
+          "completeness": 5.0,
+          "relevance": 4.0,
+          "avg": 4.67
+        },
+        "llama": {
+          "correctness": 1.0,
+          "completeness": 2.0,
+          "relevance": 3.0,
+          "avg": 2.0
+        },
+        "chatbot": {
+          "correctness": 1.0,
+          "completeness": 2.0,
+          "relevance": 3.0,
+          "avg": 2.0
+        }
+      }
+    },
+    {
+      "question_id": "expert_003",
+      "systems": {
+        "llama": {
+          "correctness": 5.0,
+          "completeness": 5.0,
+          "relevance": 5.0,
+          "avg": 5.0
+        },
+        "gpt": {
+          "correctness": 5.0,
+          "completeness": 5.0,
+          "relevance": 5.0,
+          "avg": 5.0
+        },
+        "chatbot": {
+          "correctness": 5.0,
+          "completeness": 4.0,
+          "relevance": 4.0,
+          "avg": 4.33
+        }
+      }
+    },
+    {
+      "question_id": "expert_004",
+      "systems": {
+        "llama": {
+          "correctness": 4.0,
+          "completeness": 4.0,
+          "relevance": 5.0,
+          "avg": 4.33
+        },
+        "gpt": {
+          "correctness": 5.0,
+          "completeness": 4.0,
+          "relevance": 5.0,
+          "avg": 4.67
+        },
+        "chatbot": {
+          "correctness": 4.0,
+          "completeness": 4.0,
+          "relevance": 5.0,
+          "avg": 4.33
+        }
+      }
+    },
+    {
+      "question_id": "expert_005",
+      "systems": {
+        "llama": {
+          "correctness": 5.0,
+          "completeness": 5.0,
+          "relevance": 5.0,
+          "avg": 5.0
+        },
+        "chatbot": {
+          "correctness": 4.0,
+          "completeness": 2.0,
+          "relevance": 3.0,
+          "avg": 3.0
+        },
+        "gpt": {
+          "correctness": 5.0,
+          "completeness": 5.0,
+          "relevance": 5.0,
+          "avg": 5.0
+        }
+      }
+    },
+    {
+      "question_id": "expert_006",
+      "systems": {
+        "chatbot": {
+          "correctness": 4.0,
+          "completeness": 2.0,
+          "relevance": 3.0,
+          "avg": 3.0
+        },
+        "llama": {
+          "correctness": 5.0,
+          "completeness": 5.0,
+          "relevance": 5.0,
+          "avg": 5.0
+        },
+        "gpt": {
+          "correctness": 5.0,
+          "completeness": 5.0,
+          "relevance": 5.0,
+          "avg": 5.0
+        }
+      }
+    },
+    {
+      "question_id": "expert_007",
+      "systems": {
+        "llama": {
+          "correctness": 5.0,
+          "completeness": 5.0,
+          "relevance": 5.0,
+          "avg": 5.0
+        },
+        "gpt": {
+          "correctness": 5.0,
+          "completeness": 5.0,
+          "relevance": 5.0,
+          "avg": 5.0
+        },
+        "chatbot": {
+          "correctness": 3.0,
+          "completeness": 3.0,
+          "relevance": 4.0,
+          "avg": 3.33
+        }
+      }
+    },
+    {
+      "question_id": "expert_008",
+      "systems": {
+        "llama": {
+          "correctness": 5.0,
+          "completeness": 5.0,
+          "relevance": 5.0,
+          "avg": 5.0
+        },
+        "gpt": {
+          "correctness": 5.0,
+          "completeness": 5.0,
+          "relevance": 5.0,
+          "avg": 5.0
+        },
+        "chatbot": {
+          "correctness": 5.0,
+          "completeness": 3.0,
+          "relevance": 5.0,
+          "avg": 4.33
+        }
+      }
+    },
+    {
+      "question_id": "expert_009",
+      "systems": {
+        "llama": {
+          "correctness": 5.0,
+          "completeness": 5.0,
+          "relevance": 5.0,
+          "avg": 5.0
+        },
+        "gpt": {
+          "correctness": 5.0,
+          "completeness": 5.0,
+          "relevance": 5.0,
+          "avg": 5.0
+        },
+        "chatbot": {
+          "correctness": 3.0,
+          "completeness": 3.0,
+          "relevance": 3.0,
+          "avg": 3.0
+        }
+      }
+    },
+    {
+      "question_id": "expert_010",
+      "systems": {
+        "llama": {
+          "correctness": 3.0,
+          "completeness": 5.0,
+          "relevance": 5.0,
+          "avg": 4.33
+        },
+        "chatbot": {
+          "correctness": 5.0,
+          "completeness": 3.0,
+          "relevance": 5.0,
+          "avg": 4.33
+        },
+        "gpt": {
+          "correctness": 5.0,
+          "completeness": 5.0,
+          "relevance": 5.0,
+          "avg": 5.0
+        }
+      }
+    },
+    {
+      "question_id": "expert_011",
+      "systems": {
+        "chatbot": {
+          "correctness": 5.0,
+          "completeness": 5.0,
+          "relevance": 5.0,
+          "avg": 5.0
+        },
+        "llama": {
+          "correctness": 5.0,
+          "completeness": 5.0,
+          "relevance": 5.0,
+          "avg": 5.0
+        },
+        "gpt": {
+          "correctness": 4.0,
+          "completeness": 2.0,
+          "relevance": 2.0,
+          "avg": 2.67
+        }
+      }
+    },
+    {
+      "question_id": "expert_012",
+      "systems": {
+        "gpt": {
+          "correctness": 5.0,
+          "completeness": 5.0,
+          "relevance": 5.0,
+          "avg": 5.0
+        },
+        "llama": {
+          "correctness": 5.0,
+          "completeness": 5.0,
+          "relevance": 4.0,
+          "avg": 4.67
+        },
+        "chatbot": {
+          "correctness": 5.0,
+          "completeness": 5.0,
+          "relevance": 5.0,
+          "avg": 5.0
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,240 @@
+alloy,temperature,processing,method,status,pred_ys,actual_ys,pred_uts,actual_uts,pred_el,actual_el,pred_em,actual_em,pred_density,pred_gamma_prime,confidence_level,tcp_risk,corrections_applied,eval_time_sec,seed,pipeline_stage,envelope_overrides,prompt_tokens,completion_tokens,total_tokens,llm_requests
+NIMOCAST* 242,21.0,cast,FULL_SYSTEM,PASS,285.9,300.0,428.8,460.0,10.0,8.0,201.6,,8.38,0.0,Medium,Low,3,109.4,44,reviewer,0,46000,3160,49160,10
+NIMOCAST* 75,21.0,cast,FULL_SYSTEM,PASS,280.6,179.0,420.9,500.0,10.0,39.0,191.5213283150852,,8.26,0.0,Medium,Low,3,124.0,44,reviewer,0,51496,3924,55420,10
+INCONEL* 600,204.0,wrought,FULL_SYSTEM,PASS,278.0,,556.0,,41.0,,199.0,205.0,8.43,0.0,Medium,Low,2,142.6,44,reviewer,0,62488,3788,66276,12
+INCONEL* 600,316.0,wrought,FULL_SYSTEM,PASS,264.5,,529.1,,41.1,,191.4,199.0,8.43,0.0,Medium,Low,2,142.9,44,reviewer,0,49424,3592,53016,10
+INCONEL* 600,93.0,wrought,FULL_SYSTEM,PASS,289.6,,579.1,,41.0,,187.08153986419097,210.0,8.43,0.0,Medium,Low,2,144.2,44,reviewer,0,73818,3964,77782,14
+INCONEL* 600,427.0,wrought,FULL_SYSTEM,PASS,253.3,,506.5,,41.1,,176.4,192.0,8.43,0.0,Medium,Low,2,101.0,44,reviewer,0,34642,3252,37894,8
+INCONEL* 600,21.0,wrought,FULL_SYSTEM,PASS,295.9,285.0,591.8,660.0,40.9,45.0,188.25324744097455,214.0,8.43,0.0,Medium,Low,2,238.7,44,reviewer,0,250402,6978,257380,26
+INCONEL* 600,538.0,wrought,FULL_SYSTEM,PASS,223.2,220.0,446.4,560.0,41.2,41.0,168.3,184.0,8.43,0.0,Medium,Low,2,128.2,44,reviewer,0,63994,3776,67770,12
+INCONEL* 600,871.0,wrought,FULL_SYSTEM,PASS,127.3,75.0,144.2,140.0,57.6,80.0,146.3,157.0,8.43,0.0,Medium,Low,3,116.3,44,reviewer,0,63370,3152,66522,12
+INCONEL* 600,649.0,wrought,FULL_SYSTEM,PASS,205.8,205.0,411.6,450.0,56.9,49.0,162.3868565520945,176.0,8.43,0.0,Medium,Low,3,188.0,44,reviewer,0,241194,6346,247540,24
+HASTELLOY* X,21.0,wrought,FULL_SYSTEM,PASS,354.4,360.0,708.7,785.0,52.0,43.0,228.2,197.0,8.24,0.0,Medium,Low,0,98.2,44,reviewer,0,46006,2642,48648,10
+INCONEL* 600,982.0,wrought,FULL_SYSTEM,PASS,80.6,41.0,81.7,76.0,57.6,115.0,135.9388782780686,145.0,8.43,0.0,Medium,Low,3,155.8,44,reviewer,0,238572,4908,243480,24
+HASTELLOY* X,93.0,wrought,FULL_SYSTEM,PASS,354.6,,807.2,,49.3,,197.6,194.0,8.24,0.0,Medium,Low,1,135.6,44,reviewer,0,46638,3292,49930,10
+INCONEL* 600,760.0,wrought,FULL_SYSTEM,PASS,177.9,180.0,297.1,260.0,57.4,70.0,157.363161239626,168.0,8.43,0.0,Medium,Low,3,258.4,44,reviewer,0,272820,6398,279218,28
+HASTELLOY* X,316.0,wrought,FULL_SYSTEM,PASS,322.7,,645.4,,49.4,,186.7,178.0,8.24,0.0,Medium,Low,2,116.4,44,reviewer,0,48424,3754,52178,10
+HASTELLOY* X,204.0,wrought,FULL_SYSTEM,PASS,341.0,,682.0,,49.3,,193.4,186.0,8.24,0.0,Medium,Low,2,187.3,44,reviewer,0,55966,5934,61900,10
+HASTELLOY* X,427.0,wrought,FULL_SYSTEM,PASS,306.7,,613.4,,49.4,,181.5,170.0,8.24,0.0,Medium,Low,2,137.6,44,reviewer,0,48472,4240,52712,10
+HASTELLOY* X,538.0,wrought,FULL_SYSTEM,PASS,271.2,290.0,542.4,650.0,49.5,45.0,172.5,161.0,8.24,0.0,Medium,Low,2,121.4,44,reviewer,0,48708,3774,52482,10
+HASTELLOY* X,649.0,wrought,FULL_SYSTEM,PASS,242.9,275.0,485.9,570.0,49.8,37.0,165.6,154.0,8.24,0.0,Medium,Low,2,137.0,44,reviewer,0,62858,4098,66956,12
+HASTELLOY* X,760.0,wrought,FULL_SYSTEM,PASS,206.4,260.0,344.6,435.0,50.3,37.0,160.4,146.0,8.24,0.0,Medium,Low,2,129.8,44,reviewer,0,62622,4182,66804,12
+HASTELLOY* X,871.0,wrought,FULL_SYSTEM,PASS,156.6,180.0,177.4,255.0,50.8,50.0,147.98474768097662,137.0,8.24,0.0,Medium,Low,2,127.8,44,reviewer,0,34534,3006,37540,8
+HASTELLOY* X,982.0,wrought,FULL_SYSTEM,PASS,97.6,110.0,99.0,150.0,51.0,45.0,138.6,128.0,8.24,0.0,Medium,Low,2,153.2,44,reviewer,0,46888,3170,50058,10
+HAYNES* 242,21.0,wrought,FULL_SYSTEM,PASS,443.0,845.0,850.7,1290.0,49.8,46.0,217.4,228.0,8.69,0.0,Medium,Low,1,132.5,44,reviewer,0,47046,3012,50058,10
+HAYNES* 242,93.0,wrought,FULL_SYSTEM,PASS,442.7,,850.7,,49.8,,213.0,225.0,8.69,0.0,Medium,Low,1,140.2,44,reviewer,0,46858,3366,50224,10
+HASTELLOY* X,1093.0,wrought,FULL_SYSTEM,PASS,65.2,55.0,65.3,90.0,51.0,40.0,135.1,,8.24,0.0,Medium,Low,2,212.8,44,reviewer,0,48312,4728,53040,10
+HAYNES* 242,204.0,wrought,FULL_SYSTEM,PASS,440.0,,848.6,,49.9,,206.2,219.0,8.69,0.0,Medium,Low,1,164.4,44,reviewer,0,34464,2988,37452,8
+HAYNES* 242,316.0,wrought,FULL_SYSTEM,PASS,388.0,,837.1,,49.9,,199.1,212.0,8.69,0.0,Medium,Low,2,181.2,44,reviewer,0,84916,5148,90064,14
+HAYNES* 242,427.0,wrought,FULL_SYSTEM,PASS,368.4,,736.9,,50.0,,192.1,205.0,8.69,0.0,Medium,Low,3,159.7,44,reviewer,0,50028,4574,54602,10
+HAYNES* 242,649.0,wrought,FULL_SYSTEM,PASS,301.0,570.0,601.0,1000.0,50.7,41.0,175.5,190.0,8.69,0.0,Medium,Low,3,121.2,44,reviewer,0,51244,3620,54864,10
+HAYNES* 242,760.0,wrought,FULL_SYSTEM,PASS,254.7,310.0,425.4,730.0,51.4,54.0,168.1,177.0,8.69,0.0,Medium,Low,3,156.4,44,reviewer,0,65466,4864,70330,12
+HAYNES* 242,538.0,wrought,FULL_SYSTEM,PASS,373.7,540.0,781.3,1080.0,50.0,50.0,182.9,197.0,8.69,0.0,Medium,Low,1,236.3,44,reviewer,0,48552,5954,54506,10
+HAYNES* 242,871.0,wrought,FULL_SYSTEM,PASS,197.2,310.0,223.4,500.0,51.5,85.0,160.6,166.0,8.69,0.0,Medium,Low,3,161.5,44,reviewer,0,49974,3432,53406,10
+Alloy 718 (AMS 5596 sheet),20.0,wrought,FULL_SYSTEM,PASS,1125.0,860.0,1403.7,1100.0,21.0,30.0,200.0,,8.18,23.0,Medium,Low,0,111.4,44,reviewer,0,45940,2528,48468,10
+Alloy 725,20.0,wrought,FULL_SYSTEM,PASS,722.5,827.0,1156.0,1170.0,21.4,35.0,201.596287057,,8.31,16.4,Medium,Low,1,127.4,44,reviewer,0,45396,2840,48236,10
+HAYNES* 242,982.0,wrought,FULL_SYSTEM,PASS,128.2,210.0,130.1,290.0,51.4,97.0,152.8,154.0,8.69,0.0,Medium,Low,3,185.8,44,reviewer,0,50316,4652,54968,10
+Haynes 244,20.0,wrought,FULL_SYSTEM,PASS,486.0,860.0,907.7,1240.0,43.3,12.0,225.6,,9.28,0.0,Medium,Low,1,100.6,44,reviewer,0,61310,3446,64756,12
+ATI Allegheny Ludlum AL 22™ Nickel-Base Alloy,20.0,wrought,FULL_SYSTEM,PASS,425.3,345.0,880.7,724.0,48.0,67.0,227.0,207.0,8.71,0.0,Medium,Low,0,111.4,44,reviewer,0,65526,3304,68830,12
+ATI Allegheny Ludlum AL 276™ Nickel-Base Alloy,21.0,wrought,FULL_SYSTEM,PASS,416.3,415.0,881.7,790.0,47.6,50.0,227.1,205.0,8.84,0.0,Medium,Low,2,121.6,44,reviewer,0,50888,3302,54190,10
+ATI Allegheny Ludlum AL 276™ Nickel-Base Alloy,20.0,wrought,FULL_SYSTEM,PASS,416.3,415.0,881.7,790.0,47.6,50.0,227.1,205.0,8.84,0.0,Medium,Low,2,160.4,44,reviewer,0,62862,4254,67116,12
+ATI Allegheny Ludlum AL 276™ Nickel-Base Alloy,93.0,wrought,FULL_SYSTEM,PASS,416.2,380.0,881.7,725.0,47.6,50.0,222.5,,8.84,0.0,Medium,Low,2,124.2,44,reviewer,0,63674,2862,66536,12
+ATI Allegheny Ludlum AL 276™ Nickel-Base Alloy,204.0,wrought,FULL_SYSTEM,PASS,402.0,345.0,804.0,710.0,47.7,50.0,191.2,,8.84,0.0,Medium,Low,2,152.9,44,reviewer,0,65588,4004,69592,12
+ATI Allegheny Ludlum AL 276™ Nickel-Base Alloy,316.0,wrought,FULL_SYSTEM,PASS,381.6,315.0,763.2,675.0,47.7,55.0,186.2,,8.84,0.0,Medium,Low,2,158.2,44,reviewer,0,63968,2910,66878,12
+ATI Allegheny Ludlum AL 276™ Nickel-Base Alloy,427.0,wrought,FULL_SYSTEM,PASS,363.3,290.0,726.6,655.0,47.7,60.0,180.95251982972536,,8.84,0.0,Medium,Low,2,159.7,44,reviewer,0,48638,3482,52120,10
+ATI Allegheny Ludlum AL 601™ Nickel-Base Alloy,20.0,wrought,FULL_SYSTEM,PASS,306.4,440.0,612.7,790.0,44.3,45.0,194.29412984944588,205.0,7.99,0.0,Medium,Low,2,99.0,44,reviewer,0,48142,3256,51398,10
+ATI Allegheny Ludlum AL 276™ Nickel-Base Alloy,538.0,wrought,FULL_SYSTEM,PASS,326.8,270.0,653.5,640.0,47.8,60.0,172.6,,8.84,0.0,Medium,Low,2,145.2,44,reviewer,0,67328,4124,71452,12
+ATI Allegheny Ludlum AL 600™ Nickel-Base Alloy,20.0,wrought,FULL_SYSTEM,PASS,300.0,255.0,599.0,640.0,41.4,45.0,187.1,207.0,8.44,0.0,Medium,Low,2,166.1,44,reviewer,0,77422,5488,82910,14
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,20.0,wrought,FULL_SYSTEM,PASS,603.7,485.0,965.9,940.0,33.4,46.0,199.7,205.0,8.34,7.2,Medium,Low,1,112.4,44,reviewer,0,63612,3914,67526,12
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,21.0,wrought,FULL_SYSTEM,PASS,603.7,485.0,965.9,940.0,33.4,46.0,199.7,205.0,8.34,7.2,Medium,Low,1,109.5,44,reviewer,0,50252,3174,53426,10
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,93.0,wrought,FULL_SYSTEM,PASS,603.7,,965.9,,33.4,,198.7,200.0,8.34,7.2,Medium,Low,1,127.5,44,reviewer,0,62530,3506,66036,12
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,204.0,wrought,FULL_SYSTEM,PASS,602.5,,964.0,,33.4,,194.5,195.0,8.34,7.2,Medium,Low,1,148.2,44,reviewer,0,50178,3640,53818,10
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,316.0,wrought,FULL_SYSTEM,PASS,600.7,,961.1,,33.4,,188.7,190.0,8.34,7.2,Medium,Low,1,146.5,44,reviewer,0,49918,3412,53330,10
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,427.0,wrought,FULL_SYSTEM,PASS,600.0,,960.0,,33.4,,183.7,185.0,8.34,7.2,Medium,Low,1,120.8,44,reviewer,0,53054,3590,56644,10
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,649.0,wrought,FULL_SYSTEM,PASS,486.7,,778.7,,32.2,,168.1,170.0,8.34,7.2,Medium,Low,2,128.2,44,reviewer,0,52482,3160,55642,10
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,93.0,wrought,FULL_SYSTEM,PASS,1125.0,,1387.1,,21.0,,196.0,196.0,8.14,23.5,Medium,Low,0,100.3,44,reviewer,0,48774,2594,51368,10
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,21.0,wrought,FULL_SYSTEM,PASS,1125.0,1200.0,1386.8,1435.0,21.0,21.0,200.0,200.0,8.14,23.5,Medium,Low,0,103.8,44,reviewer,0,44572,2798,47370,10
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,538.0,wrought,FULL_SYSTEM,PASS,554.9808664970012,,888.0,,33.38326060516621,,176.13109784034015,175.0,8.34,7.2,Medium,Low,0,188.0,44,reviewer,0,225820,3210,229030,22
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,204.0,wrought,FULL_SYSTEM,PASS,1125.0,1125.0,1385.7,1365.0,21.0,20.0,190.0,190.0,8.14,23.5,Medium,Low,0,121.7,44,reviewer,0,42350,3322,45672,10
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,316.0,wrought,FULL_SYSTEM,PASS,1125.0,,1379.7,,21.0,,184.0,184.0,8.14,23.5,Medium,Low,0,116.5,44,reviewer,0,44976,3788,48764,10
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,427.0,wrought,FULL_SYSTEM,PASS,1020.0,1080.0,1310.5,1325.0,19.1,19.5,178.0,178.0,8.14,23.5,Medium,Low,0,103.5,44,reviewer,0,46134,2506,48640,10
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,649.0,wrought,FULL_SYSTEM,PASS,965.0,1020.0,1181.8,1160.0,20.0,19.0,163.0,163.0,8.14,23.5,Medium,Low,0,132.8,44,reviewer,0,44026,2874,46900,10
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,538.0,wrought,FULL_SYSTEM,PASS,1020.0,1065.0,1260.8,1280.0,20.0,19.0,171.0,171.0,8.14,23.5,Medium,Low,0,152.1,44,reviewer,0,56764,3828,60592,12
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,704.0,wrought,FULL_SYSTEM,PASS,911.7,945.0,1123.1,1005.0,18.8,20.0,164.1,,8.14,23.5,Medium,Low,0,143.4,44,reviewer,0,45564,2746,48310,10
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,760.0,wrought,FULL_SYSTEM,PASS,258.3,,413.3,,32.53144855840337,,161.43594512198402,160.0,8.34,7.2,Medium,Low,2,320.2,44,reviewer,0,327786,6628,334414,26
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,-196.0,wrought,FULL_SYSTEM,PASS,357.6,,812.4,1035.0,49.6,46.0,198.4,,8.31,0.0,Medium,Low,1,101.0,44,reviewer,0,45720,2894,48614,10
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,760.0,wrought,FULL_SYSTEM,PASS,843.1,,937.1,,29.6,,158.9,154.0,8.14,23.5,Medium,Low,1,139.5,44,reviewer,0,43456,3298,46754,10
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,-78.0,wrought,FULL_SYSTEM,PASS,357.6,,706.1,819.0,52.0,51.0,228.3,,8.31,0.0,Medium,Low,1,76.9,44,reviewer,0,48226,2936,51162,10
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,20.0,wrought,FULL_SYSTEM,PASS,357.6,324.0,812.3833167055384,720.0,49.6,,198.9908060360679,196.0,8.31,0.0,Medium,Low,1,91.2,44,reviewer,0,47120,3476,50596,10
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,200.0,wrought,FULL_SYSTEM,PASS,341.2,336.0,682.4,713.0,49.6,41.0,196.3,185.0,8.31,0.0,Medium,Low,2,128.2,44,reviewer,0,47972,3532,51504,10
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,204.0,wrought,FULL_SYSTEM,PASS,341.0,336.0,681.3,713.0,49.6,41.0,193.6,185.0,8.31,0.0,Medium,Low,2,134.5,44,reviewer,0,63706,4198,67904,12
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,649.0,wrought,FULL_SYSTEM,PASS,242.8,272.0,485.7,472.0,50.1,37.0,165.80400968007842,,8.31,0.0,Medium,Low,2,106.5,44,reviewer,0,51598,3740,55338,10
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,427.0,wrought,FULL_SYSTEM,PASS,306.5,301.0,612.9,687.0,49.8,44.0,181.7,,8.31,0.0,Medium,Low,2,130.1,44,reviewer,0,54048,4184,58232,10
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,800.0,wrought,FULL_SYSTEM,PASS,196.4,,304.5,,50.6,,160.4,143.0,8.31,0.0,Medium,Low,2,107.2,44,reviewer,0,51158,3180,54338,10
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,600.0,wrought,FULL_SYSTEM,PASS,260.7,,521.3,,50.2,,168.0,158.0,8.31,0.0,Medium,Low,2,144.3,44,reviewer,0,63206,4346,67552,12
+Haynes 625 alloy,100.0,wrought,FULL_SYSTEM,PASS,490.0,,784.0,,50.0,,204.0,201.0,8.28,6.6,Medium,Low,1,74.9,44,reviewer,0,44538,2656,47194,10
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,1000.0,wrought,FULL_SYSTEM,PASS,91.3,,92.2,,65.0,,156.7,126.0,8.31,0.0,Medium,Low,2,115.1,44,reviewer,0,59292,3886,63178,12
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,1204.0,wrought,FULL_SYSTEM,PASS,65.0,26.0,65.0,37.0,51.2,31.0,134.84913358204807,,8.31,0.0,Medium,Low,2,114.4,44,reviewer,0,50842,3838,54680,10
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,1093.0,wrought,FULL_SYSTEM,PASS,65.0,55.0,65.0,90.0,51.2,40.0,134.8,,8.31,0.0,Medium,Low,2,126.2,44,reviewer,0,59604,4122,63726,12
+Haynes 625 alloy,20.0,wrought,FULL_SYSTEM,PASS,502.0,490.0,803.2,905.0,38.5,48.5,201.2,208.0,8.28,6.6,Medium,Low,2,118.0,44,reviewer,0,43798,3506,47304,10
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,871.0,wrought,FULL_SYSTEM,PASS,156.0,177.0,176.7,252.0,51.1,51.0,148.06164975889027,,8.31,0.0,Medium,Low,2,192.7,44,reviewer,0,51730,4424,56154,10
+Haynes 625 alloy,200.0,wrought,FULL_SYSTEM,PASS,508.5,,813.6,,37.4,,198.5,199.0,8.28,6.6,Medium,Low,1,97.0,44,reviewer,0,47054,3140,50194,10
+Haynes 625 alloy,300.0,wrought,FULL_SYSTEM,PASS,497.9,,796.6,,37.4,,192.9,192.0,8.28,6.6,Medium,Low,0,112.4,44,reviewer,0,58638,3510,62148,12
+Haynes 625 alloy,400.0,wrought,FULL_SYSTEM,PASS,487.4,,779.8,,37.4,,188.2,186.0,8.28,6.6,Medium,Low,1,113.0,44,reviewer,0,43130,3512,46642,10
+Haynes 625 alloy,540.0,wrought,FULL_SYSTEM,PASS,426.9,370.0,683.0,770.0,38.5,54.0,177.2,,8.28,6.6,Medium,Low,2,102.5,44,reviewer,0,34318,3338,37656,8
+Haynes 625 alloy,600.0,wrought,FULL_SYSTEM,PASS,420.0,,672.0,,34.0,,170.0,171.0,8.28,6.6,Medium,Low,1,94.6,44,reviewer,0,47710,3142,50852,10
+Haynes 625 alloy,500.0,wrought,FULL_SYSTEM,PASS,494.0,,790.4,,38.5,,179.5,179.0,8.28,6.6,Medium,Low,2,166.9,44,reviewer,0,57672,5988,63660,12
+Haynes 625 alloy,650.0,wrought,FULL_SYSTEM,PASS,420.0,370.0,672.0,760.0,34.0,55.6,170.0,,8.28,6.6,Medium,Low,1,103.3,44,reviewer,0,34254,3440,37694,8
+Haynes 625 alloy,760.0,wrought,FULL_SYSTEM,PASS,235.8,345.0,377.3,600.0,37.2,53.1,162.9,,8.28,6.6,Medium,Low,3,82.2,44,reviewer,0,50168,3412,53580,10
+Haynes 625 alloy,700.0,wrought,FULL_SYSTEM,PASS,305.7,,489.1,,36.4,,169.2646988632488,163.0,8.28,6.6,Medium,Low,2,96.6,44,reviewer,0,46278,3426,49704,10
+Haynes 625 alloy,800.0,wrought,FULL_SYSTEM,PASS,415.0,,606.3,,45.0,,161.0,153.0,8.28,6.6,Medium,Low,0,86.1,44,reviewer,0,59412,3312,62724,12
+Haynes 625 alloy,870.0,wrought,FULL_SYSTEM,PASS,275.0,205.0,411.7,345.0,44.4,45.9,156.1356575397531,,8.28,6.6,Medium,Low,3,83.1,44,reviewer,0,61626,3534,65160,12
+Haynes 625 alloy,900.0,wrought,FULL_SYSTEM,PASS,172.8,,272.7,,44.9,,149.9,142.0,8.28,6.6,Medium,Low,3,111.5,44,reviewer,0,48696,4294,52990,10
+Haynes 625 alloy,1000.0,wrought,FULL_SYSTEM,PASS,160.7,,182.3,,48.4,,140.5678078815592,126.0,8.28,6.6,Medium,Low,3,106.2,44,reviewer,0,48446,3750,52196,10
+Haynes 718 alloy,100.0,wrought,FULL_SYSTEM,PASS,1125.0,,1353.0,,21.0,,196.0,199.0,8.11,22.2,Medium,Low,0,79.3,44,reviewer,0,43386,2452,45838,10
+Haynes 625 alloy,980.0,wrought,FULL_SYSTEM,PASS,209.4,83.0,263.6,165.0,47.8,43.8,146.9,,8.28,6.6,Medium,Low,3,143.8,44,reviewer,0,49964,4608,54572,10
+Haynes 625 alloy,1095.0,wrought,FULL_SYSTEM,PASS,122.2,39.0,176.0,95.0,38.3,44.7,137.3,,8.28,6.6,Medium,Low,2,129.4,44,reviewer,0,47154,3696,50850,10
+Haynes 718 alloy,20.0,wrought,FULL_SYSTEM,PASS,1088.2,1175.0,1328.1,1395.0,24.1,22.3,198.1,200.0,8.11,22.2,Medium,Low,1,129.5,44,reviewer,0,73316,4146,77462,14
+Haynes 718 alloy,200.0,wrought,FULL_SYSTEM,PASS,1125.0,,1348.8,,21.0,,190.0,191.0,8.11,22.2,Medium,Low,0,81.7,44,reviewer,0,43956,2854,46810,10
+Haynes 718 alloy,400.0,wrought,FULL_SYSTEM,PASS,1020.0,,1267.3,,20.0,,178.0,179.0,8.11,22.2,Medium,Low,0,86.0,44,reviewer,0,44202,2642,46844,10
+Haynes 718 alloy,600.0,wrought,FULL_SYSTEM,PASS,965.0,,1165.3,,20.0,,163.0,167.0,8.11,22.2,Medium,Low,0,77.1,44,reviewer,0,45530,2912,48442,10
+Haynes 718 alloy,300.0,wrought,FULL_SYSTEM,PASS,1020.0,,1270.0,,20.0,,184.0,185.0,8.11,22.2,Medium,Low,0,124.1,44,reviewer,0,58212,3738,61950,12
+Haynes 718 alloy,500.0,wrought,FULL_SYSTEM,PASS,1020.0,,1267.4,,20.0,,171.0,173.0,8.11,22.2,Medium,Low,0,102.0,44,reviewer,0,57316,3678,60994,12
+Haynes 718 alloy,540.0,wrought,FULL_SYSTEM,PASS,991.8,995.0,1205.4,1130.0,20.7,24.4,171.0,,8.11,22.2,Medium,Low,2,129.3,44,reviewer,0,58040,4216,62256,12
+Haynes 718 alloy,650.0,wrought,FULL_SYSTEM,PASS,940.6,1000.0,1105.0,1155.0,20.6,19.9,163.0,,8.11,22.2,Medium,Low,2,155.5,44,reviewer,0,46482,3676,50158,10
+Haynes 718 alloy,800.0,wrought,FULL_SYSTEM,PASS,800.0,,855.0,,30.0,,154.0,149.0,8.11,22.2,Medium,Low,0,98.4,44,reviewer,0,44846,2416,47262,10
+Haynes 718 alloy,870.0,wrought,FULL_SYSTEM,PASS,800.0,305.0,840.0,420.0,30.0,27.7,139.0,,8.11,22.2,Medium,Low,0,99.6,44,reviewer,0,49884,3308,53192,10
+Haynes 718 alloy,700.0,wrought,FULL_SYSTEM,PASS,965.0,,1118.4,,20.0,,163.0,159.0,8.11,22.2,Medium,Low,0,139.5,44,reviewer,0,55686,3746,59432,12
+Haynes 718 alloy,760.0,wrought,FULL_SYSTEM,PASS,800.0,750.0,855.0,855.0,30.0,10.2,154.0,,8.11,22.2,Medium,Low,0,129.4,44,reviewer,0,46246,3330,49576,10
+Haynes 718 alloy,900.0,wrought,FULL_SYSTEM,PASS,429.2,,446.4,,25.8,,142.3,134.0,8.11,22.2,Medium,Low,0,130.2,44,reviewer,0,48256,4084,52340,10
+Haynes 718 alloy,1000.0,wrought,FULL_SYSTEM,PASS,131.5,,189.4,,29.0,,131.45533368697238,117.0,8.11,22.2,Medium,Low,2,117.3,44,reviewer,0,46778,3722,50500,10
+Haynes 718 alloy,1095.0,wrought,FULL_SYSTEM,PASS,87.5,40.0,140.0,77.0,29.0,38.5,127.53393601445666,,8.11,22.2,Medium,Low,2,118.2,44,reviewer,0,76490,4106,80596,14
+Haynes 718 alloy,980.0,wrought,FULL_SYSTEM,PASS,150.2,90.0,240.3,145.0,27.5,37.0,144.0,,8.11,22.2,Medium,Low,2,126.9,44,reviewer,0,63138,4142,67280,12
+Haynes CABVAL Hastelloy® G-50™ Grade 100 Ni-Cr-Fe-Mo Alloy,23.0,wrought,FULL_SYSTEM,PASS,377.8,,843.8,,49.5,,196.9,192.0,8.16,0.0,Medium,Low,0,122.9,44,reviewer,0,46096,2864,48960,10
+Haynes Hastelloy® B-2 alloy,20.0,wrought,FULL_SYSTEM,PASS,448.5,396.0,897.1,914.0,52.0,55.0,217.1,217.0,9.14,0.0,Medium,Low,1,139.0,44,reviewer,0,61770,5148,66918,12
+Haynes Hastelloy® B-2 alloy,316.0,wrought,FULL_SYSTEM,PASS,401.7,,803.3,,45.0,,198.6,202.0,9.14,0.0,Medium,Low,3,125.3,44,reviewer,0,50250,3664,53914,10
+Haynes Hastelloy® B-2 alloy,427.0,wrought,FULL_SYSTEM,PASS,381.8,,763.5,,45.0,,191.8,196.0,9.14,0.0,Medium,Low,3,146.2,44,reviewer,0,63794,4286,68080,12
+Haynes Hastelloy® B-3® alloy,100.0,wrought,FULL_SYSTEM,PASS,424.7,,857.9,,44.5,,214.7,213.0,9.12,0.0,Medium,Low,2,158.0,44,reviewer,0,64200,3842,68042,12
+Haynes Hastelloy® B-3® alloy,20.0,wrought,FULL_SYSTEM,PASS,497.2,421.0,994.5,862.0,52.0,53.0,219.7,216.0,9.12,0.0,Medium,Low,1,238.9,44,reviewer,0,62478,3550,66028,12
+Haynes Hastelloy® B-2 alloy,538.0,wrought,FULL_SYSTEM,PASS,400.5640369821964,,782.3273584139386,,45.001794802707735,,182.7,189.0,9.14,0.0,Medium,Low,0,266.4,44,reviewer,0,231958,6134,238092,22
+Haynes Hastelloy® B-3® alloy,93.0,wrought,FULL_SYSTEM,PASS,424.7,379.0,857.9,834.0,44.5,57.0,215.1,,9.12,0.0,Medium,Low,2,260.1,44,reviewer,0,77172,5856,83028,14
+Haynes Hastelloy® B-3® alloy,204.0,wrought,FULL_SYSTEM,PASS,423.0,324.0,896.6,758.0,52.0,60.0,208.2,208.0,9.12,0.0,Medium,Low,1,189.2,44,reviewer,0,92584,3928,96512,14
+Haynes Hastelloy® B-3® alloy,300.0,wrought,FULL_SYSTEM,PASS,463.1,,845.6,,44.6,,202.1,202.0,9.12,0.0,Medium,Low,1,138.7,44,reviewer,0,76796,3712,80508,14
+Haynes Hastelloy® B-3® alloy,200.0,wrought,FULL_SYSTEM,PASS,470.0,324.0,855.7,758.0,44.5,60.0,208.6,208.0,9.12,0.0,Medium,Low,1,275.6,44,reviewer,0,94282,6248,100530,16
+Haynes Hastelloy® B-3® alloy,316.0,wrought,FULL_SYSTEM,PASS,463.1,303.0,845.6,717.0,44.6,63.0,201.0,,9.12,0.0,Medium,Low,1,124.1,44,reviewer,0,63262,3558,66820,12
+Haynes Hastelloy® B-3® alloy,427.0,wrought,FULL_SYSTEM,PASS,415.4,290.0,839.2,703.0,44.6,62.0,193.8,,9.12,0.0,Medium,Low,2,115.5,44,reviewer,0,63274,3954,67228,12
+Haynes Hastelloy® B-3® alloy,600.0,wrought,FULL_SYSTEM,PASS,399.0,,763.3,,45.0,,179.8,185.0,9.12,0.0,Medium,Low,1,89.4,44,reviewer,0,50504,2266,52770,10
+Haynes Hastelloy® B-3® alloy,500.0,wrought,FULL_SYSTEM,PASS,394.9,,789.8,,44.6,,187.6,190.0,9.12,0.0,Medium,Low,2,108.2,44,reviewer,0,53064,3920,56984,10
+Haynes Hastelloy® B-3® alloy,400.0,wrought,FULL_SYSTEM,PASS,415.4,,839.2,,44.6,,195.7,197.0,9.12,0.0,Medium,Low,2,189.2,44,reviewer,0,76548,5060,81608,14
+Haynes Hastelloy® B-3® alloy,538.0,wrought,FULL_SYSTEM,PASS,364.3,269.0,789.0143682609437,676.0,44.6,59.0,184.1,,9.12,0.0,Medium,Low,2,153.6,44,reviewer,0,53072,4124,57196,10
+Haynes Hastelloy® C-2000® alloy,316.0,wrought,FULL_SYSTEM,PASS,362.9,,725.9,,47.8,,187.4,190.0,8.47,0.0,Medium,Low,2,154.4,44,reviewer,0,61570,3072,64642,12
+Haynes Hastelloy® C-2000® alloy,25.0,wrought,FULL_SYSTEM,PASS,401.4,,789.0,,52.0,,232.3,207.0,8.47,0.0,Medium,Low,1,166.9,44,reviewer,0,72930,3522,76452,14
+Haynes Hastelloy® C-2000® alloy,538.0,wrought,FULL_SYSTEM,PASS,312.0,,624.0,,47.9,,174.0,171.0,8.47,0.0,Medium,Low,2,182.3,44,reviewer,0,52700,3062,55762,10
+Haynes Hastelloy® C-2000® alloy,427.0,wrought,FULL_SYSTEM,PASS,345.3,,690.6,,47.8,,182.4,177.0,8.47,0.0,Medium,Low,2,226.5,44,reviewer,0,74794,4290,79084,14
+Haynes Hastelloy® C-2000® alloy,649.0,wrought,FULL_SYSTEM,PASS,280.9,,561.8,,48.1,,166.2,162.0,8.47,0.0,Medium,Low,1,141.4,44,reviewer,0,37364,2564,39928,8
+Haynes Hastelloy® B-3® alloy,649.0,wrought,FULL_SYSTEM,PASS,334.5,317.0,669.1,717.0,58.0,56.0,176.5,,9.12,0.0,Medium,Low,4,448.0,44,reviewer,0,65498,4836,70334,12
+Haynes Hastelloy® C-2000® alloy,20.0,wrought,FULL_SYSTEM,PASS,401.7,393.0,875.2,779.0,47.7,68.0,225.7,,8.47,0.0,Medium,Low,2,420.2,44,reviewer,0,77516,7996,85512,14
+Haynes Hastelloy® C-22® alloy,21.0,wrought,FULL_SYSTEM,PASS,429.9,407.0,877.1,800.0,48.4,57.0,227.9,206.0,8.66,0.0,Medium,Low,2,235.7,44,reviewer,0,78430,6080,84510,14
+Haynes Hastelloy® C-22® alloy,93.0,wrought,FULL_SYSTEM,PASS,415.0,372.0,829.8,758.0,48.5,58.0,196.72585710975244,,8.66,0.0,Medium,Low,2,164.1,44,reviewer,0,76474,4698,81172,14
+Haynes Hastelloy® C-22® alloy,204.0,wrought,FULL_SYSTEM,PASS,396.8,303.0,793.6,703.0,48.5,57.0,193.0,197.0,8.66,0.0,Medium,Low,1,112.8,44,reviewer,0,50680,3344,54024,10
+Haynes Hastelloy® C-22® alloy,200.0,wrought,FULL_SYSTEM,PASS,397.4,303.0,794.8,703.0,48.5,57.0,195.2,197.0,8.66,0.0,Medium,Low,2,202.8,44,reviewer,0,63662,3776,67438,12
+Haynes Hastelloy® C-22® alloy,300.0,wrought,FULL_SYSTEM,PASS,379.6,,759.2,,48.5,,190.3,191.0,8.66,0.0,Medium,Low,1,134.7,44,reviewer,0,50354,3410,53764,10
+Haynes Hastelloy® C-22® alloy,316.0,wrought,FULL_SYSTEM,PASS,377.1,286.0,754.1,676.0,48.5,62.0,187.4,,8.66,0.0,Medium,Low,2,172.3,44,reviewer,0,50366,3464,53830,10
+Haynes Hastelloy® C-22® alloy,400.0,wrought,FULL_SYSTEM,PASS,363.6,,727.1,,48.5,,185.4,185.0,8.66,0.0,Medium,Low,1,149.9,44,reviewer,0,72356,3872,76228,14
+Haynes Hastelloy® C-22® alloy,427.0,wrought,FULL_SYSTEM,PASS,359.4,283.0,718.7,655.0,48.5,67.0,182.2,,8.66,0.0,Medium,Low,2,150.0,44,reviewer,0,50688,3584,54272,10
+Haynes Hastelloy® C-22® alloy,538.0,wrought,FULL_SYSTEM,PASS,324.1,276.0,648.2,627.0,48.6,61.0,174.3,,8.66,0.0,Medium,Low,2,122.3,44,reviewer,0,53574,3266,56840,10
+Haynes Hastelloy® C-22® alloy,500.0,wrought,FULL_SYSTEM,PASS,347.4,,694.8,,48.54346140044986,,176.26659920371856,179.0,8.66,0.0,Medium,Low,0,161.7,44,reviewer,0,229006,2772,231778,22
+Haynes Hastelloy® C-22® alloy,600.0,wrought,FULL_SYSTEM,PASS,313.2,,626.4,,48.8,,170.0,174.0,8.66,0.0,Medium,Low,2,128.2,44,reviewer,0,64120,3110,67230,12
+Haynes Hastelloy® C-22® alloy,649.0,wrought,FULL_SYSTEM,PASS,292.3,248.0,584.5,586.0,65.0,65.0,188.1,,8.66,0.0,Medium,Low,2,98.5,44,reviewer,0,50994,2860,53854,10
+Haynes Hastelloy® C-22® alloy,700.0,wrought,FULL_SYSTEM,PASS,273.7,,506.3,,48.8,,166.7,168.0,8.66,0.0,Medium,Low,2,118.7,44,reviewer,0,66188,3674,69862,12
+Haynes Hastelloy® C-22® alloy,800.0,wrought,FULL_SYSTEM,PASS,238.0,,368.0,,49.2,,160.8,160.0,8.66,0.0,Medium,Low,1,103.2,44,reviewer,0,60618,2692,63310,12
+Haynes Hastelloy® C-22® alloy,760.0,wrought,FULL_SYSTEM,PASS,249.2,241.0,416.2,524.0,49.2,63.0,160.8,,8.66,0.0,Medium,Low,2,147.8,44,reviewer,0,65794,4362,70156,12
+Haynes Hastelloy® C-22® alloy,900.0,wrought,FULL_SYSTEM,PASS,182.2,,195.7,,49.6,,148.4,152.0,8.66,0.0,Medium,Low,2,130.7,44,reviewer,0,63952,3208,67160,12
+Haynes Hastelloy® C-22® alloy,1000.0,wrought,FULL_SYSTEM,PASS,111.5,,112.6,,49.5,,138.9,144.0,8.66,0.0,Medium,Low,2,118.2,44,reviewer,0,61308,3108,64416,12
+Haynes Hastelloy® C-276 alloy,316.0,wrought,FULL_SYSTEM,PASS,386.7,,773.4,681.2,48.3,68.0,187.9,188.0,8.82,0.0,Medium,Low,2,122.5,44,reviewer,0,65672,3182,68854,12
+Haynes Hastelloy® C-276 alloy,204.0,wrought,FULL_SYSTEM,PASS,414.9,,870.3,696.4,48.2,,193.5,195.0,8.82,0.0,Medium,Low,1,128.6,44,reviewer,0,34670,3076,37746,8
+Haynes Hastelloy® C-4 alloy,20.0,wrought,FULL_SYSTEM,PASS,395.0,421.0,752.4,801.0,52.0,55.0,228.8,211.0,8.61,0.0,Medium,Low,1,205.9,44,reviewer,0,56664,3246,59910,12
+Haynes Hastelloy® C-4 alloy,204.0,wrought,FULL_SYSTEM,PASS,368.3,403.0,736.5,706.0,49.4,55.0,194.5,201.0,8.61,0.0,Medium,Low,2,187.1,44,reviewer,0,47708,3132,50840,10
+Haynes Hastelloy® C-276 alloy,427.0,wrought,FULL_SYSTEM,PASS,367.7,,735.5,,48.3,67.0,182.6,182.0,8.82,0.0,Medium,Low,2,318.7,44,reviewer,0,65684,3860,69544,12
+Haynes Hastelloy® C-276 alloy,538.0,wrought,FULL_SYSTEM,PASS,331.1,,662.2,,48.3,,174.8,176.0,8.82,0.0,Medium,Low,2,314.7,44,reviewer,0,51024,3352,54376,10
+Haynes Hastelloy® C-276 alloy,20.0,wrought,FULL_SYSTEM,PASS,418.3,364.7,873.8,826.7,48.2,61.0,227.7,205.0,8.82,0.0,Medium,Low,2,374.4,44,reviewer,0,50908,3530,54438,10
+Haynes Hastelloy® C-4 alloy,316.0,wrought,FULL_SYSTEM,PASS,349.8,371.0,699.7,675.0,49.4,61.0,188.7,194.0,8.61,0.0,Medium,Low,2,73.2,44,reviewer,0,63752,2668,66420,12
+Haynes Hastelloy® C-4 alloy,93.0,wrought,FULL_SYSTEM,PASS,385.2,,770.4,,49.4,,198.4,207.0,8.61,0.0,Medium,Low,2,245.6,44,reviewer,0,45808,4014,49822,10
+Haynes Hastelloy® C-4 alloy,427.0,wrought,FULL_SYSTEM,PASS,333.1,320.0,666.1,656.0,49.5,68.0,183.73498987455,187.0,8.61,0.0,Medium,Low,2,139.0,44,reviewer,0,61140,4466,65606,12
+Haynes Hastelloy® C-4 alloy,760.0,wrought,FULL_SYSTEM,PASS,231.0,260.0,386.0,476.0,50.7,44.0,162.1,162.0,8.61,0.0,Medium,Low,2,108.5,44,reviewer,0,60170,3806,63976,12
+Haynes Hastelloy® C-4 alloy,538.0,wrought,FULL_SYSTEM,PASS,297.9,299.0,595.8,645.0,49.5,55.0,176.2,179.0,8.61,0.0,Medium,Low,2,117.4,44,reviewer,0,66806,4110,70916,12
+Haynes Hastelloy® C-4 alloy,982.0,wrought,FULL_SYSTEM,PASS,106.0,,107.5,,50.9,,139.2,141.0,8.61,0.0,Medium,Low,2,106.5,44,reviewer,0,63342,3314,66656,12
+Haynes Hastelloy® C-4 alloy,649.0,wrought,FULL_SYSTEM,PASS,270.1,291.0,540.1,571.0,50.1,50.0,168.9,171.0,8.61,0.0,Medium,Low,2,132.9,44,reviewer,0,49126,4174,53300,10
+Haynes Hastelloy® C-4 alloy,871.0,wrought,FULL_SYSTEM,PASS,170.9,,193.6,,50.9,,149.3,152.0,8.61,0.0,Medium,Low,2,128.7,44,reviewer,0,66396,4102,70498,12
+Haynes Hastelloy® G-30® alloy,20.0,wrought,FULL_SYSTEM,PASS,379.3,338.0,745.9,689.0,52.0,56.0,230.1,202.0,8.16,0.0,Medium,Low,1,117.3,44,reviewer,0,61592,3292,64884,12
+Haynes Hastelloy® G-30® alloy,93.0,wrought,FULL_SYSTEM,PASS,379.0,290.0,823.9,655.0,44.8,54.0,197.9,,8.16,0.0,Medium,Low,1,117.0,44,reviewer,0,48958,3242,52200,10
+Haynes Hastelloy® G-30® alloy,200.0,wrought,FULL_SYSTEM,PASS,361.3,248.0,722.6,607.0,44.9,59.0,196.24836094938007,196.0,8.16,0.0,Medium,Low,2,115.3,44,reviewer,0,63174,3682,66856,12
+Haynes Hastelloy® G-30® alloy,204.0,wrought,FULL_SYSTEM,PASS,360.7,248.0,721.4,607.0,44.9,59.0,193.4,196.0,8.16,0.0,Medium,Low,1,108.8,44,reviewer,0,49768,3364,53132,10
+Haynes Hastelloy® G-30® alloy,300.0,wrought,FULL_SYSTEM,PASS,344.0,,688.0,,44.9,,190.0,195.0,8.16,0.0,Medium,Low,1,134.5,44,reviewer,0,50160,3482,53642,10
+Haynes Hastelloy® G-30® alloy,316.0,wrought,FULL_SYSTEM,PASS,341.8,228.0,683.5,572.0,44.9,59.0,186.8,,8.16,0.0,Medium,Low,2,123.9,44,reviewer,0,220534,3926,224460,22
+Haynes Hastelloy® G-30® alloy,500.0,wrought,FULL_SYSTEM,PASS,313.9,,627.9,,45.0,,174.2,187.0,8.16,0.0,Medium,Low,2,94.9,44,reviewer,0,49722,4010,53732,10
+Haynes Hastelloy® G-30® alloy,427.0,wrought,FULL_SYSTEM,PASS,324.7,214.0,649.5,552.0,45.0,60.0,181.4,,8.16,0.0,Medium,Low,2,105.1,44,reviewer,0,65958,3876,69834,12
+Haynes Hastelloy® N,20.0,wrought,FULL_SYSTEM,PASS,385.8,314.0,771.7,794.0,45.4,50.7,210.0,,8.54,0.0,Medium,Low,3,85.8,44,reviewer,0,51580,3442,55022,10
+Haynes Hastelloy® N,14.0,wrought,FULL_SYSTEM,PASS,385.8,,771.7,,45.4,,210.0,219.0,8.54,0.0,Medium,Low,3,106.2,44,reviewer,0,51780,3614,55394,10
+Haynes Hastelloy® N,410.0,wrought,FULL_SYSTEM,PASS,328.5,,657.1,,45.6,,186.8,192.0,8.54,0.0,Medium,Low,3,106.2,44,reviewer,0,61724,3962,65686,12
+Haynes Hastelloy® N,221.0,wrought,FULL_SYSTEM,PASS,357.0,,714.1,,45.5,,198.1,202.0,8.54,0.0,Medium,Low,3,132.7,44,reviewer,0,51286,3868,55154,10
+Haynes Hastelloy® G-30® alloy,538.0,wrought,FULL_SYSTEM,PASS,287.0,200.0,574.1,524.0,55.9,62.0,170.5380065182211,,8.16,0.0,Medium,Low,2,231.1,44,reviewer,0,343358,6070,349428,26
+Haynes Hastelloy® N,500.0,wrought,FULL_SYSTEM,PASS,316.0,,631.0,,45.6,,179.9,187.0,8.54,0.0,Medium,Low,3,182.1,44,reviewer,0,62844,3520,66364,12
+Haynes Hastelloy® G-30® alloy,400.0,wrought,FULL_SYSTEM,PASS,328.6,,657.2,,45.0,,184.7142373850958,192.0,8.16,0.0,Medium,Low,2,397.9,44,reviewer,0,244754,8710,253464,26
+Haynes Hastelloy® N,593.0,wrought,FULL_SYSTEM,PASS,287.0,227.0,573.1,599.0,45.8,45.3,173.3,,8.54,0.0,Medium,Low,3,187.4,44,reviewer,0,64246,3654,67900,12
+Haynes Hastelloy® N,632.0,wrought,FULL_SYSTEM,PASS,273.4,,546.8,,46.3,,170.8,181.0,8.54,0.0,Medium,Low,3,184.4,44,reviewer,0,224884,3818,228702,22
+Haynes Hastelloy® N,577.0,wrought,FULL_SYSTEM,PASS,289.2,,578.5,,45.7,,174.5,181.0,8.54,0.0,Medium,Low,3,271.8,44,reviewer,0,64418,4642,69060,12
+Haynes Hastelloy® N,704.0,wrought,FULL_SYSTEM,PASS,251.6,218.0,462.5,480.0,46.7,30.0,166.2,171.0,8.54,0.0,Medium,Low,3,156.5,44,reviewer,0,221432,3898,225330,22
+Haynes Hastelloy® N,700.0,wrought,FULL_SYSTEM,PASS,253.3,218.0,468.5,480.0,46.5,30.0,166.6,171.0,8.54,0.0,Medium,Low,3,247.7,44,reviewer,0,51528,4168,55696,10
+Haynes Hastelloy® N,800.0,wrought,FULL_SYSTEM,PASS,221.4,,343.2,,47.2,,160.2,163.0,8.54,0.0,Medium,Low,3,99.2,44,reviewer,0,52464,3860,56324,10
+Haynes Hastelloy® N,854.0,wrought,FULL_SYSTEM,PASS,193.0,,229.0,,47.2,,156.5,157.0,8.54,0.0,Medium,Low,3,85.8,44,reviewer,0,64840,3966,68806,12
+Haynes Hastelloy® N,815.0,wrought,FULL_SYSTEM,PASS,211.2,203.0,297.3,385.0,47.1,24.3,159.1,,8.54,0.0,Medium,Low,3,131.4,44,reviewer,0,63548,4430,67978,12
+Haynes Hastelloy® N,927.0,wrought,FULL_SYSTEM,PASS,152.4,179.0,159.0,234.0,47.2,30.0,151.6,,8.54,0.0,Medium,Low,3,108.9,44,reviewer,0,64612,3782,68394,12
+Haynes Hastelloy® N,904.0,wrought,FULL_SYSTEM,PASS,169.3,,180.9,,47.3,,153.3,151.0,8.54,0.0,Medium,Low,3,160.0,44,reviewer,0,223628,3878,227506,22
+Haynes Hastelloy® N,954.0,wrought,FULL_SYSTEM,PASS,138.0,,141.5,,47.2,,150.0,143.0,8.54,0.0,Medium,Low,3,101.1,44,reviewer,0,51554,3502,55056,10
+Haynes Hastelloy® N,1049.0,wrought,FULL_SYSTEM,PASS,100.0,,100.0,,47.2,,126.5,122.0,8.54,0.0,Medium,Low,2,109.3,44,reviewer,0,63744,3360,67104,12
+Nickel Alloy 59,20.0,wrought,FULL_SYSTEM,PASS,412.3,320.0,899.8,690.0,47.1,40.0,198.2,210.0,8.52,0.0,Medium,Low,1,110.9,44,reviewer,0,62466,4084,66550,12
+Special Metals INCOLOY® alloy 890 Ni-Cr-Fe Superalloy,300.0,wrought,FULL_SYSTEM,PASS,282.7,,565.5,,49.5,,186.5,180.0,7.74,0.0,Medium,Low,2,70.1,44,reviewer,0,34428,2706,37134,8
+Haynes Hastelloy® N,1000.0,wrought,FULL_SYSTEM,PASS,113.0,,114.0,,47.2,,146.6,136.0,8.54,0.0,Medium,Low,3,179.0,44,reviewer,0,240630,6086,246716,24
+Special Metals INCOLOY® alloy 890 Ni-Cr-Fe Superalloy,100.0,wrought,FULL_SYSTEM,PASS,310.2,,620.5,,49.4,,193.1,191.0,7.74,0.0,Medium,Low,2,94.4,44,reviewer,0,47756,3546,51302,10
+Special Metals INCOLOY® alloy 890 Ni-Cr-Fe Superalloy,22.0,wrought,FULL_SYSTEM,PASS,318.9,272.0,637.7,652.0,49.4,46.6,194.5,195.1,7.74,0.0,Medium,Low,2,108.4,44,reviewer,0,63026,3572,66598,12
+Special Metals INCOLOY® alloy 890 Ni-Cr-Fe Superalloy,500.0,wrought,FULL_SYSTEM,PASS,258.0,,515.9,,49.6,,169.32564464205575,166.9,7.74,0.0,Medium,Low,2,112.9,44,reviewer,0,50052,4020,54072,10
+Special Metals INCOLOY® alloy 890 Ni-Cr-Fe Superalloy,700.0,wrought,FULL_SYSTEM,PASS,199.0,,368.1,,50.5,,158.9,151.7,7.74,0.0,Medium,Low,2,117.6,44,reviewer,0,48570,3468,52038,10
+Special Metals INCONEL® 622 Nickel Superalloy (UNS N06022) Plate 0.250 in (6.4 mm),20.0,wrought,FULL_SYSTEM,PASS,419.3,311.0,869.6,699.8,48.6,69.0,227.2,209.0,8.72,0.0,Medium,Low,2,157.0,44,reviewer,0,65154,3520,68674,12
+Special Metals INCOLOY® alloy 890 Ni-Cr-Fe Superalloy,870.0,wrought,FULL_SYSTEM,PASS,146.2,110.0,166.1,132.0,52.1,84.8,150.01231486364867,,7.74,0.0,Medium,Low,2,255.6,44,reviewer,0,63614,3592,67206,12
+Special Metals INCOLOY® alloy 890 Ni-Cr-Fe Superalloy,1100.0,wrought,FULL_SYSTEM,PASS,57.1,44.0,57.2,62.0,52.4,83.6,132.7,,7.74,0.0,Medium,Low,2,247.3,44,reviewer,0,64416,3768,68184,12
+Special Metals INCOLOY® alloy 890 Ni-Cr-Fe Superalloy,980.0,wrought,FULL_SYSTEM,PASS,95.7,66.0,97.2,92.0,52.4,98.0,142.3,,7.74,0.0,Medium,Low,2,262.1,44,reviewer,0,49596,3658,53254,10
+Special Metals INCONEL® 725 Nickel Superalloy (UNS N07725),20.0,wrought,FULL_SYSTEM,PASS,719.0,427.0,1150.4,855.0,20.4,57.0,201.6,204.0,8.24,15.3,Medium,Low,1,204.1,44,reviewer,0,48576,3266,51842,10
+Special Metals INCONEL® Alloy 686 Nickel Superalloy Sheet (UNS N06686),20.0,wrought,FULL_SYSTEM,PASS,451.0,421.0,913.2,848.0,43.4,59.0,230.0,207.0,8.75,0.0,Medium,Low,1,153.0,44,reviewer,0,75780,3836,79616,14
+Special Metals INCOLOY® alloy 890 Ni-Cr-Fe Superalloy,900.0,wrought,FULL_SYSTEM,PASS,130.8,,140.6,,52.2,,144.8,138.6,7.74,0.0,Medium,Low,2,403.0,44,reviewer,0,75518,3588,79106,14
+Special Metals INCONEL® Alloy 686 Nickel Superalloy Sheet (UNS N06686),100.0,wrought,FULL_SYSTEM,PASS,439.9,,879.8,,43.4,,224.9,205.0,8.75,0.0,Medium,Low,3,170.0,44,reviewer,0,64804,3812,68616,12
+Special Metals INCONEL® Alloy 686 Nickel Superalloy Sheet (UNS N06686),400.0,wrought,FULL_SYSTEM,PASS,386.5,,773.1,,43.4,,184.9,185.0,8.75,0.0,Medium,Low,2,132.7,44,reviewer,0,60990,3992,64982,12
+Special Metals INCONEL® Alloy 686 Nickel Superalloy Sheet (UNS N06686),200.0,wrought,FULL_SYSTEM,PASS,422.3,,844.7,,43.4,,194.1,197.0,8.75,0.0,Medium,Low,2,169.0,44,reviewer,0,62494,3938,66432,12
+Special Metals INCONEL® Alloy 686 Nickel Superalloy Sheet (UNS N06686),300.0,wrought,FULL_SYSTEM,PASS,404.0,,807.0,,43.4,,189.7,193.0,8.75,0.0,Medium,Low,2,186.9,44,reviewer,0,76788,4084,80872,14
+Special Metals INCONEL® Alloy 686 Nickel Superalloy Sheet (UNS N06686),500.0,wrought,FULL_SYSTEM,PASS,369.5,,739.0,,43.4,,175.6,183.0,8.75,0.0,Medium,Low,2,135.8,44,reviewer,0,230032,3624,233656,22
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,21.0,wrought,FULL_SYSTEM,PASS,417.0,403.0,837.0,824.0,47.0,46.0,229.9,212.0,8.85,0.0,Medium,Low,1,83.0,44,reviewer,0,36714,3036,39750,8
+Special Metals INCONEL® Alloy 686 Nickel Superalloy Sheet (UNS N06686),600.0,wrought,FULL_SYSTEM,PASS,339.9,,679.8,,56.2,,169.3,173.0,8.75,0.0,Medium,Low,3,113.2,44,reviewer,0,65388,4948,70336,12
+Special Metals INCONEL® Alloy 686 Nickel Superalloy Sheet (UNS N06686),700.0,wrought,FULL_SYSTEM,PASS,297.6,,550.6,,57.5,,166.3,165.0,8.75,0.0,Medium,Low,3,135.2,44,reviewer,0,64966,4178,69144,12
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,22.0,wrought,FULL_SYSTEM,PASS,417.0,403.0,837.0,824.0,47.0,46.0,229.8,212.0,8.85,0.0,Medium,Low,0,143.1,44,reviewer,0,65752,5320,71072,12
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,200.0,wrought,FULL_SYSTEM,PASS,417.0,386.0,837.0,772.0,47.0,45.0,200.0,203.0,8.85,0.0,Medium,Low,0,92.3,44,reviewer,0,46044,3020,49064,10
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,300.0,wrought,FULL_SYSTEM,PASS,417.0,,837.0,,47.0,,192.0,199.0,8.85,0.0,Medium,Low,0,104.5,44,reviewer,0,35270,2494,37764,8
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,204.0,wrought,FULL_SYSTEM,PASS,387.2,386.0,774.4,772.0,52.0,45.0,217.8,203.0,8.85,0.0,Medium,Low,0,159.7,44,reviewer,0,63600,4214,67814,12
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,316.0,wrought,FULL_SYSTEM,PASS,360.8,372.0,767.0,758.0,48.8,46.0,192.0,,8.85,0.0,Medium,Low,0,150.3,44,reviewer,0,80598,3446,84044,14
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,427.0,wrought,FULL_SYSTEM,PASS,417.0,359.0,837.0,745.0,47.0,48.0,185.0,,8.85,0.0,Medium,Low,0,125.3,44,reviewer,0,35906,2876,38782,8
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,400.0,wrought,FULL_SYSTEM,PASS,340.9,,681.8,,52.0,,209.8,194.0,8.85,0.0,Medium,Low,0,189.3,44,reviewer,0,35406,2560,37966,8
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,500.0,wrought,FULL_SYSTEM,PASS,294.0,,690.0,,51.0,,179.0,188.0,8.85,0.0,Medium,Low,0,175.5,44,reviewer,0,61482,3642,65124,12
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,538.0,wrought,FULL_SYSTEM,PASS,294.0,310.0,690.0,724.0,51.0,40.0,179.0,,8.85,0.0,Medium,Low,0,130.3,44,reviewer,0,61834,3324,65158,12
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,649.0,wrought,FULL_SYSTEM,PASS,291.0,290.0,666.0,724.0,56.0,50.0,172.0,,8.85,0.0,Medium,Low,0,123.1,44,reviewer,0,74332,3160,77492,14
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,600.0,wrought,FULL_SYSTEM,PASS,292.88480240127984,,673.9427787573213,,49.32528669731586,,168.59492342702657,183.0,8.85,0.0,Medium,Low,0,195.1,44,reviewer,0,175214,4304,179518,22
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,100.0,wrought,FULL_SYSTEM,PASS,411.8,,823.6,,52.0,,224.8,208.0,8.85,0.0,Medium,Low,0,457.3,44,reviewer,0,63168,4084,67252,12
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,871.0,wrought,FULL_SYSTEM,PASS,177.0,193.0,353.0,234.0,54.0,90.0,149.5,,8.85,0.0,Medium,Low,3,128.7,44,reviewer,0,66096,3496,69592,12
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,700.0,wrought,FULL_SYSTEM,PASS,252.0,,466.2,,49.7,,165.2,175.0,8.85,0.0,Medium,Low,2,252.9,44,reviewer,0,46302,3954,50256,10
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,800.0,wrought,FULL_SYSTEM,PASS,220.0,,341.0,,51.5,,163.0,167.0,8.85,0.0,Medium,Low,3,219.8,44,reviewer,0,67964,5070,73034,12
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,760.0,wrought,FULL_SYSTEM,PASS,232.4,290.0,388.1,517.0,51.5,70.0,159.4,,8.85,0.0,Medium,Low,3,268.0,44,reviewer,0,78296,4498,82794,14
+Special Metals INCONEL® C276 Nickel Superalloy Sheet,20.0,wrought,FULL_SYSTEM,PASS,406.0,376.0,811.9,796.3,48.8,60.0,198.7,205.0,8.65,0.0,Medium,Low,2,178.9,44,reviewer,0,47530,3790,51320,10
+Special Metals NIMONIC® Alloy 86,20.0,wrought,FULL_SYSTEM,PASS,356.3,410.0,712.6,825.0,50.7,42.0,199.7,210.0,8.5,0.0,Medium,Low,2,78.0,44,reviewer,0,43062,2930,45992,10
+Special Metals INCONEL® G-3 Nickel Superalloy (UNS N06985),550.0,wrought,FULL_SYSTEM,PASS,267.3,190.0,534.7,500.0,50.0,65.0,169.5,,8.23,0.0,Medium,Low,2,94.6,44,reviewer,0,49498,3436,52934,10
+Special Metals INCONEL® G-3 Nickel Superalloy (UNS N06985),20.0,wrought,FULL_SYSTEM,PASS,363.5,320.0,727.1,690.0,49.8,60.0,197.7,199.0,8.23,0.0,Medium,Low,2,147.7,44,reviewer,0,50484,3398,53882,10
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,1090.0,wrought,FULL_SYSTEM,PASS,83.1,55.2,83.2,82.7,47.6,70.0,140.7197887304002,,8.85,0.0,Medium,Low,3,269.6,44,reviewer,0,65882,4620,70502,12
+Special Metals NIMONIC® Alloy 86,650.0,wrought,FULL_SYSTEM,PASS,239.6,240.0,541.0,620.0,51.5,50.0,167.40966322612434,,8.5,0.0,Medium,Low,2,133.5,44,reviewer,0,47352,3354,50706,10
+Special Metals NIMONIC® Alloy 86,23.0,wrought,FULL_SYSTEM,PASS,356.2,410.0,712.4,825.0,50.7,42.0,199.7,210.0,8.5,0.0,Medium,Low,2,160.5,44,reviewer,0,59164,3230,62394,12

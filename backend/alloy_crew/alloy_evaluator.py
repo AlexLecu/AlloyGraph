@@ -10,6 +10,7 @@ from .tools.rag_tools import AlloySearchTool
 from .tools.ml_tools import AlloyPredictorTool
 from .tools.analysis_tool import AlloyAnalysisTool as AnalysisTool
 from .schemas import (
+    PropertyCorrection,
     PhysicsAuditWithCorrectionsOutput,
     AuditPenalty
 )
@@ -21,6 +22,7 @@ from .tools.metallurgy_tools import (
 )
 from .tools.calibration_fix import apply_calibration_safe
 from .config.alloy_parameters import (
+    KG_ANCHOR_MAX_DISTANCE,
     CORRECTION_THRESHOLDS, UTS_YS_RATIO, ELONGATION, AGENT_TRUST, SSS,
     is_sss_alloy, is_sc_ds_alloy, get_em_temp_factor,
 )
@@ -29,6 +31,16 @@ from .models.feature_engineering import compute_alloy_features, calculate_em_rul
 
 class TrustDecision(Enum):
     TRUST_PROPOSAL = "trust_proposal"
+
+
+#: How far past the min/max of the evidence anchors an agent value may sit
+#: before it is treated as unsupported. 50% is loose enough to allow genuine
+#: agent judgement and tight enough to catch invented magnitudes.
+ENVELOPE_TOLERANCE = 0.50
+
+#: Marker written into PropertyCorrection.physics_constraint when the envelope
+#: guard fires, so occurrences can be counted across a campaign.
+ENVELOPE_CORRECTION_TYPE = "evidence_envelope_override"
 
 
 def _slim_kg_context(kg_json_str: str, target_temp: int = 20) -> str:
@@ -76,7 +88,21 @@ def _slim_kg_context(kg_json_str: str, target_temp: int = 20) -> str:
         return kg_json_str[:1500] if len(kg_json_str) > 1500 else kg_json_str
 
 class AlloyEvaluationCrew:
-    def __init__(self, llm_config=None, agents=None):
+    def __init__(self, llm_config=None, agents=None, skip_reviewer: bool = False):
+        """skip_reviewer runs the Analyst-only ablation.
+
+        The Analyst's output goes straight to deterministic post-processing:
+        every guard, the evidence envelope, the trust system and the correction
+        reconciliation still run, exactly as in the full pipeline. Nothing else
+        changes -- same agents, same prompts, same tools, same anchors. The only
+        difference is that the Reviewer task is not in the crew, which isolates
+        what the second agent contributes from what the deterministic layer does.
+
+        Runs in this mode are tagged pipeline_stage="analyst_ablation", kept
+        distinct from the pre-existing "analyst_only", which means something
+        else entirely: the Reviewer ran but its output could not be parsed and
+        the code fell back to the Analyst's.
+        """
         if agents:
             self.agents_map = agents
         else:
@@ -84,6 +110,7 @@ class AlloyEvaluationCrew:
         self.analyst = self.agents_map['analyst']
         self.reviewer = self.agents_map['reviewer']
         self.llm = self.agents_map.get('llm')  # For direct summary call
+        self.skip_reviewer = skip_reviewer
 
     @staticmethod
     def validate_composition(composition: Dict[str, float]) -> Dict[str, Any]:
@@ -142,9 +169,20 @@ class AlloyEvaluationCrew:
 
             prop_str = ", ".join(prop_parts) if prop_parts else "no property data"
             rank = ["Closest", "2nd", "3rd"][i]
-            lines.append(
-                f"{rank}: {name} (dist={dist:.2f}, {proc_match} processing). {prop_str}."
-            )
+            # Flag neighbours past the anchoring cutoff. Distance here is
+            # Euclidean wt%, unbounded; a match at 9 wt% shares almost no
+            # chemistry with the query and its measured values must not be
+            # carried across.
+            if isinstance(dist, (int, float)) and dist >= KG_ANCHOR_MAX_DISTANCE:
+                lines.append(
+                    f"{rank}: {name} (dist={dist:.2f}, {proc_match} processing) "
+                    f"— TOO FAR TO ANCHOR (cutoff {KG_ANCHOR_MAX_DISTANCE}); "
+                    f"reference only, do not adopt: {prop_str}."
+                )
+            else:
+                lines.append(
+                    f"{rank}: {name} (dist={dist:.2f}, {proc_match} processing). {prop_str}."
+                )
 
         return " ".join(lines)
 
@@ -191,10 +229,29 @@ class AlloyEvaluationCrew:
 
         kg = preds.get("kg")
         if kg and kg.get("matched"):
-            lines.append(f"KG: '{kg.get('name', '?')}' (dist={kg.get('distance', 999):.2f})")
+            # Show whether the anchoring gate accepted this match. Previously the
+            # rejection was logged but never surfaced here, so a neighbour the
+            # gate had thrown out still appeared as authoritative "(experimental)"
+            # data. On HASTELLOY X at 21C the Analyst copied UDIMET 630 verbatim
+            # from a match 9.14 wt% away, returning YS 1310 against a measured 360.
+            gate = analysis.get("kg_gate") or {}
+            allowed = gate.get("allowed")
+            if allowed is False:
+                reason = gate.get("reject_detail") or gate.get("reject_code") or "gate rejected"
+                lines.append(
+                    f"KG: '{kg.get('name', '?')}' (dist={kg.get('distance', 999):.2f}) "
+                    f"— REJECTED FOR ANCHORING ({reason})"
+                )
+                lines.append(
+                    "  DO NOT use these values. This alloy is too dissimilar to inform "
+                    "the query; they are shown only so you can see what was considered."
+                )
+            else:
+                lines.append(f"KG: '{kg.get('name', '?')}' (dist={kg.get('distance', 999):.2f})")
             for prop, val in kg.get("properties", {}).items():
                 if isinstance(val, (int, float)):
-                    lines.append(f"  {prop}: {val:.1f} {_UNITS.get(prop, '')} (experimental)")
+                    tag = "(rejected — do not use)" if allowed is False else "(experimental)"
+                    lines.append(f"  {prop}: {val:.1f} {_UNITS.get(prop, '')} {tag}")
 
         disc = analysis.get("discrepancy", {})
         if disc.get("detected"):
@@ -419,8 +476,9 @@ class AlloyEvaluationCrew:
                 f"3. Select the best value for each property using the decision rules below.\n\n"
                 f"DECISION RULES:\n"
                 f"- KG match (distance < 2.0): treat experimental values as ground truth\n"
-                f"- KG match (distance 2.0-4.0): weight KG evidence — closer = more trusted\n"
-                f"- KG match (distance > 4.0): note findings but rely on ML/physics\n"
+                f"- KG match (distance 2.0-{KG_ANCHOR_MAX_DISTANCE}): weight KG evidence — closer = more trusted\n"
+                f"- KG match (distance > {KG_ANCHOR_MAX_DISTANCE}): note findings but rely on ML/physics. "
+                f"Matches past this cutoff are rejected for anchoring — do NOT adopt their values.\n"
                 f"- Sources agree (within 15%) and no close KG match: use ML value\n"
                 f"- SSS alloy + disagreement: prefer Physics (Labusch-Nabarro is calibrated)\n"
                 f"- γ' alloy + disagreement: use proposed correction if available\n"
@@ -466,17 +524,42 @@ class AlloyEvaluationCrew:
             context=[task_analysis]
         )
 
-        evaluation_crew = Crew(
-            agents=[self.analyst, self.reviewer],
-            tasks=[task_analysis, task_review],
-            process=Process.sequential,
-            verbose=True
-        )
+        if self.skip_reviewer:
+            # Ablation: the Reviewer task is built above but never enters the
+            # crew, so the prompts stay byte-identical to the full pipeline.
+            evaluation_crew = Crew(
+                agents=[self.analyst],
+                tasks=[task_analysis],
+                process=Process.sequential,
+                verbose=True
+            )
+        else:
+            evaluation_crew = Crew(
+                agents=[self.analyst, self.reviewer],
+                tasks=[task_analysis, task_review],
+                process=Process.sequential,
+                verbose=True
+            )
+
+        token_usage = {}
+        pipeline_stage = "analyst_ablation" if self.skip_reviewer else "reviewer"
 
         try:
             crew_output = evaluation_crew.kickoff()
 
+            # Token accounting for cost/throughput measurement. CrewOutput
+            # carries a UsageMetrics object; store it as a plain dict so it
+            # survives model_dump() and CSV serialisation.
+            try:
+                tu = getattr(crew_output, "token_usage", None)
+                if tu is not None:
+                    token_usage = tu.model_dump() if hasattr(tu, "model_dump") else dict(tu)
+            except Exception:
+                token_usage = {}
+
             output = None
+            pipeline_stage = ("analyst_ablation" if self.skip_reviewer
+                              else "reviewer")   # full Analyst -> Reviewer path
             if hasattr(crew_output, "pydantic") and crew_output.pydantic:
                 output = crew_output.pydantic
             elif hasattr(crew_output, "raw"):
@@ -488,15 +571,20 @@ class AlloyEvaluationCrew:
                     output = None
 
             if output is None:
-                review_task_output = task_review.output
+                review_task_output = None if self.skip_reviewer else task_review.output
                 if review_task_output and review_task_output.pydantic:
                     output = review_task_output.pydantic
+                    pipeline_stage = "reviewer_task_output"
                 else:
                     logger.warning("Reviewer task failed, falling back to Analyst output...")
                     analyst_task_output = task_analysis.output
                     if analyst_task_output and analyst_task_output.pydantic:
                         output = analyst_task_output.pydantic
-                        output.reviewer_assessment = "Review skipped due to parsing failure."
+                        if not self.skip_reviewer:
+                            pipeline_stage = "analyst_only"
+                            output.reviewer_assessment = "Review skipped due to parsing failure."
+                        else:
+                            output.reviewer_assessment = "Reviewer disabled (analyst-only ablation)."
                     elif ml_fallback:
                         logger.warning("Analyst also failed, using ML fallback...")
                         output = PhysicsAuditWithCorrectionsOutput(
@@ -507,6 +595,7 @@ class AlloyEvaluationCrew:
                             analyst_reasoning="Agent pipeline failed. Using raw ML predictions.",
                             reviewer_assessment="Review not performed.",
                         )
+                        pipeline_stage = "ml_fallback"
                     else:
                         raise ValueError("Could not recover output from any pipeline stage.")
 
@@ -725,9 +814,76 @@ class AlloyEvaluationCrew:
                     )
                     output.properties["Elongation"] = cap
 
+        # === EVIDENCE ENVELOPE (YS/UTS may not float free of the anchors) ===
+        # The agents may pick any value they can justify, but nothing previously
+        # bounded the magnitude of Yield Strength or Tensile Strength. The
+        # UTS/YS ratio check passes any internally consistent pair, so a wholly
+        # invented pair survives: HASTELLOY X at 21C returned YS 1310 / UTS 1520
+        # against ML 394 / physics 354 and a measured 360.
+        #
+        # A gate-rejected knowledge-graph match is deliberately NOT part of the
+        # envelope. Including it would let the very value that caused that
+        # failure define its own ceiling and the guard would pass it.
+        _preds = (analysis_anchors or {}).get("predictions") or {}
+        _ml = _preds.get("ml") if isinstance(_preds.get("ml"), dict) else {}
+        _phys = _preds.get("physics") if isinstance(_preds.get("physics"), dict) else {}
+        envelope_sources = [d for d in (_ml, _phys) if d]
+        kg_anchor = _preds.get("kg")
+        kg_gate_state = (analysis_anchors or {}).get("kg_gate") or {}
+        if kg_anchor and kg_gate_state.get("allowed") is True:
+            envelope_sources.append(kg_anchor.get("properties") or {})
+
+        for prop in ("Yield Strength", "Tensile Strength"):
+            agent_val = output.properties.get(prop)
+            if not isinstance(agent_val, (int, float)) or agent_val <= 0:
+                continue
+            anchors = [s.get(prop) for s in envelope_sources
+                       if isinstance(s.get(prop), (int, float)) and s.get(prop) > 0]
+            if not anchors:
+                continue
+            lo, hi = min(anchors), max(anchors)
+            if lo * (1 - ENVELOPE_TOLERANCE) <= agent_val <= hi * (1 + ENVELOPE_TOLERANCE):
+                continue
+
+            fallback = None
+            for src in (_ml, _phys):
+                if isinstance(src, dict) and isinstance(src.get(prop), (int, float)) and src[prop] > 0:
+                    fallback = float(src[prop])
+                    break
+            if fallback is None:
+                continue
+
+            logger.warning(
+                "[ENVELOPE] %s=%.1f outside anchor envelope [%.1f, %.1f] "
+                "+/-%.0f%% — falling back to %.1f",
+                prop, agent_val, lo, hi, ENVELOPE_TOLERANCE * 100, fallback,
+            )
+            output.properties[prop] = round(fallback, 1)
+            output.corrections_applied.append(PropertyCorrection(
+                property_name=prop,
+                original_value=float(agent_val),
+                corrected_value=round(fallback, 1),
+                correction_reason=(
+                    f"Agent value {agent_val:.0f} lies outside the evidence envelope "
+                    f"[{lo:.0f}, {hi:.0f}] by more than {ENVELOPE_TOLERANCE:.0%}; "
+                    f"reverted to the ML/physics anchor."
+                ),
+                physics_constraint=ENVELOPE_CORRECTION_TYPE,
+            ))
+
         # === EM ENFORCEMENT (override if >15% from VRH bound) ===
+        # Not applied to single crystals or DS alloys: Voigt-Reuss-Hill averages
+        # over randomly oriented grains, which those alloys do not have, so it
+        # does not estimate the measured [001] modulus at all. See
+        # physics_corrections.CorrectionProfile.skip_em_override_for_sc_ds.
         em_val = output.properties.get("Elastic Modulus")
-        if isinstance(em_val, (int, float)) and em_val > 0:
+        _em_sc_ds, _em_sc_reason = is_sc_ds_alloy(composition, processing)
+        if _em_sc_ds and isinstance(em_val, (int, float)) and em_val > 0:
+            logger.info(
+                f"[EM_OVERRIDE_SKIPPED] SC/DS alloy ({_em_sc_reason}) — keeping "
+                f"EM={em_val:.1f} GPa; VRH is undefined for single-crystal moduli"
+            )
+        elif isinstance(em_val, (int, float)) and em_val > 0:
             em_rt = calculate_em_rule_of_mixtures(composition)
             em_temp_factor = get_em_temp_factor(temperature)
             em_physics = round(em_rt * em_temp_factor, 1)
@@ -832,6 +988,11 @@ class AlloyEvaluationCrew:
 
         # === BUILD RESULT ===
         result = output.model_dump()
+        result["token_usage"] = token_usage
+        # Which stage actually produced these numbers. Without this a row that
+        # silently degraded to Analyst-only or to raw ML is indistinguishable
+        # from a full Analyst->Reviewer result in the evaluation CSVs.
+        result["pipeline_stage"] = pipeline_stage
 
         if extra_output_fields:
             result.update(extra_output_fields)

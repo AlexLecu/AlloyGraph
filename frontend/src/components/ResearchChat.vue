@@ -1,7 +1,7 @@
 <script setup>
 defineOptions({ name: 'ResearchChat' })
 
-import { ref, nextTick, onMounted, onUnmounted, onActivated } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, onActivated } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 
@@ -42,7 +42,7 @@ const saveHistory = () => {
   try {
     const toSave = messages.value.map(m => ({
       role: m.role, text: m.text, display: m.display,
-      timestamp: m.timestamp, error: m.error, retryPrompt: m.retryPrompt
+      timestamp: m.timestamp, error: m.error, incomplete: m.incomplete, retryPrompt: m.retryPrompt
     }))
     localStorage.setItem(CHAT_KEY, JSON.stringify({ sessionId: sessionId.value, messages: toSave }))
   } catch { /* quota exceeded */ }
@@ -61,6 +61,14 @@ const restoreHistory = () => {
 }
 const input = ref('')
 const loading = ref(false)
+
+// True once the in-flight reply has produced visible text. The skeleton is a
+// placeholder for content that has not arrived; once tokens are streaming it
+// would otherwise sit underneath the growing reply for the whole response.
+const isStreamingContent = computed(() => {
+  const last = messages.value[messages.value.length - 1]
+  return !!(last && last.role === 'assistant' && last.display)
+})
 const messagesContainer = ref(null)
 const inputField = ref(null)
 const emit = defineEmits(['design'])
@@ -285,6 +293,15 @@ const sendMessage = async () => {
       assistantMsg.alloys = pendingAlloys
     }
 
+    // A stream can close having delivered knowledge-graph rows but no prose --
+    // e.g. the language model is unavailable while retrieval still works. The
+    // bubble would then render blank, or vanish entirely under v-show, leaving
+    // the question apparently unanswered. Say so, and offer the retry.
+    if (assistantMsg && !String(assistantMsg.text || '').trim()) {
+      assistantMsg.incomplete = true
+      assistantMsg.retryPrompt = prompt
+    }
+
     scrollToBottom(true)
     saveHistory()
   } catch (error) {
@@ -353,6 +370,7 @@ const retryMessage = (msg) => {
   // Remove the failed message, then resend
   const idx = messages.value.indexOf(msg)
   if (idx > -1) messages.value.splice(idx, 1)
+  msg.incomplete = false
   input.value = msg.retryPrompt
   sendMessage()
 }
@@ -390,7 +408,7 @@ const useSuggestion = (text) => {
         v-for="(msg, i) in messages"
         :key="msg.id || i"
         :class="['msg', msg.role]"
-        v-show="msg.display || msg.text || msg.error || (msg.alloys && msg.alloys.length)"
+        v-show="msg.display || msg.text || msg.error || msg.incomplete || (msg.alloys && msg.alloys.length)"
       >
         <!-- Avatar -->
         <div class="avatar">
@@ -410,6 +428,16 @@ const useSuggestion = (text) => {
           </div>
 
           <div class="text" v-else-if="msg.display || msg.text" v-html="formatText(msg.display || msg.text)"></div>
+
+          <!-- Retrieval succeeded but no answer text arrived -->
+          <div v-else-if="msg.incomplete" class="incomplete-bubble">
+            <span class="incomplete-text">
+              {{ (msg.alloys && msg.alloys.length)
+                 ? 'Found matching alloys, but no written answer came back.'
+                 : 'No answer came back for that question.' }}
+            </span>
+            <button class="retry-btn" @click="retryMessage(msg)">Retry</button>
+          </div>
 
           <!-- Copy button (assistant only) -->
           <button
@@ -448,8 +476,8 @@ const useSuggestion = (text) => {
         </div>
       </div>
 
-      <!-- Skeleton Loader (with cancel) -->
-      <div v-if="loading" class="msg assistant">
+      <!-- Skeleton Loader (with cancel) — only while waiting for first content -->
+      <div v-if="loading && !isStreamingContent" class="msg assistant">
         <div class="avatar"><span>🤖</span></div>
         <div class="content">
           <div class="skeleton-block">
@@ -782,6 +810,18 @@ const useSuggestion = (text) => {
 }
 
 /* Error Bubble with Retry */
+.incomplete-bubble {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.7rem 0.9rem;
+  border: 1px dashed var(--border-subtle);
+  border-radius: 10px;
+  background: var(--bg-subtle, rgba(128, 128, 128, 0.06));
+}
+.incomplete-text { font-size: 0.9rem; color: var(--text-muted); }
+
 .error-bubble {
   display: flex;
   align-items: flex-start;

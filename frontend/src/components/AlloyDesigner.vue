@@ -4,6 +4,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import { API_BASE_URL } from '../config'
 import { useToast } from '../composables/useToast'
+import { BUILTIN_PRESETS, DEFAULT_PRESET } from '../presets'
 import CompositionEditor from './CompositionEditor.vue'
 import TargetPropertyForm from './TargetPropertyForm.vue'
 import ResultsDashboard from './ResultsDashboard.vue'
@@ -22,6 +23,19 @@ const mode = ref('manual')
 const loading = ref(false)
 const logs = ref([])
 const result = ref(null)
+
+// --- REQUEST LIFETIME ---
+// Agent runs are slow but not unbounded. Without an explicit timeout axios waits
+// forever, so a backend that stalls leaves the UI spinning with no way out.
+// Design scales with the iteration count; evaluation is a single pass.
+const VALIDATE_TIMEOUT_MS = 6 * 60 * 1000
+const DESIGN_TIMEOUT_BASE_MS = 5 * 60 * 1000
+const DESIGN_TIMEOUT_PER_ITER_MS = 5 * 60 * 1000
+let inFlight = null
+
+const cancelRun = () => {
+  if (inFlight) { inFlight.abort(); inFlight = null }
+}
 
 // --- ERROR STATE ---
 const error = ref(null)
@@ -55,9 +69,13 @@ const designSteps = [
 const currentSteps = computed(() => mode.value === 'manual' ? evaluationSteps : designSteps)
 
 // --- MANUAL MODE STATE ---
-const manualComp = ref({ Ni: 60, Cr: 20, Al: 10, Ti: 5, Co: 5 })
+// Open on a real alloy rather than a synthetic one. The previous default
+// (Ni 60 / Cr 20 / Al 10 / Ti 5 / Co 5) summed to 100 but carried 15 wt% of
+// gamma-prime formers -- above anything that can actually be produced -- so the
+// first thing a visitor evaluated was a composition the system would reject.
+const manualComp = ref({ ...BUILTIN_PRESETS[DEFAULT_PRESET].composition })
 const manualTemp = ref(20)
-const manualProcessing = ref('cast')
+const manualProcessing = ref(BUILTIN_PRESETS[DEFAULT_PRESET].processing)
 
 // --- AUTO MODE STATE ---
 const targets = ref({ yield: 0, tensile: 0, elongation: 0, elastic_modulus: 0, density: 0, gamma_prime: 0 })
@@ -152,29 +170,64 @@ const startLoading = () => {
 const stopLoading = () => {
   loading.value = false
   loadingStep.value = 0
+  inFlight = null
   if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null }
 }
 
 // --- ERROR HELPERS ---
 const classifyError = (err) => {
-  if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) return 'timeout'
-  if (err.code === 'ERR_NETWORK' || err.message.includes('Network Error')) return 'network'
-  if (!err.response) return 'no_response'
+  const msg = String(err?.message || '')
+  if (err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError' || msg === 'canceled') return 'cancelled'
+  if (err?.code === 'ECONNABORTED' || msg.includes('timeout')) return 'timeout'
+  if (err?.code === 'ERR_NETWORK' || msg.includes('Network Error')) return 'network'
+  if (!err?.response) return 'no_response'
   if (err.response?.status >= 400 && err.response?.status < 500) return 'validation'
   if (err.response?.status >= 500) return 'server'
   return 'unknown'
 }
 
+// The backend returns str(exception) in its 500 handler, so `data.error` can be
+// a raw Python message ("KeyError: 'Yield Strength'", a litellm traceback line).
+// Surface a short technical detail for the curious, never the raw string as the
+// primary message, and never anything that looks like a stack trace.
+const MAX_DETAIL_CHARS = 100
+
+const technicalDetail = (err) => {
+  const raw = err?.response?.data?.error || err?.message || ''
+  let first = String(raw).split('\n').find(l => l.trim()) || ''
+  if (!first) return ''
+  if (/Traceback|File "|  at /.test(first)) return ''
+  // Upstream errors often append a serialised payload -- a Python dict or a
+  // JSON body. The prose before it is the useful part; the structure is noise
+  // that reads like a stack trace to anyone who is not debugging this.
+  first = first.split(/[{[]/)[0].trim().replace(/[\s:,-]+$/, '')
+  if (!first) return ''
+  return first.length > MAX_DETAIL_CHARS ? `${first.slice(0, MAX_DETAIL_CHARS)}\u2026` : first
+}
+
+// A 200 response can still carry result.error: the agent pipeline reports an
+// upstream failure (provider unreachable, model missing) in-band. That is a
+// backend-side problem, not something wrong with the user's input, so it is
+// classified as 'server' and put through the same sanitiser as a thrown error.
+const messageFromResultError = (raw) => {
+  const detail = technicalDetail({ message: String(raw || '') })
+  const base = 'The backend hit an error while running this analysis.'
+  return detail ? `${base} (${detail})` : base
+}
+
 const getErrorMessage = (type, err) => {
   const messages = {
-    network: 'Network error: Unable to connect to backend. Check if backend is running.',
-    no_response: 'Connection error: Request sent but no response received.',
-    timeout: 'Request timed out. The server took too long to respond.',
-    validation: `Invalid request: ${err.response?.data?.error || err.message}`,
-    server: `Server error: ${err.response?.data?.error || err.message}`,
-    unknown: `Unexpected error: ${err.message}`
+    network: 'Could not reach the backend. Check that it is running, then try again.',
+    no_response: 'The backend accepted the request but never replied. It may still be starting up.',
+    timeout: 'This run took longer than expected and was stopped. Try fewer iterations, or run it again.',
+    validation: 'The backend rejected this request. Check the composition and target values.',
+    server: 'The backend hit an error while running this analysis.',
+    cancelled: 'Run cancelled.',
+    unknown: 'Something went wrong while running this analysis.'
   }
-  return messages[type] || messages.unknown
+  const base = messages[type] || messages.unknown
+  const detail = type === 'cancelled' ? '' : technicalDetail(err)
+  return detail ? `${base} (${detail})` : base
 }
 
 const clearError = () => { error.value = null; errorType.value = null }
@@ -239,19 +292,26 @@ const runValidation = async (isRetry = false) => {
   logs.value.push(`Validating Composition at ${manualTemp.value}\u00B0C (${manualProcessing.value})...`)
 
   try {
+    inFlight = new AbortController()
     const res = await axios.post(`${API_BASE_URL}/api/validate`, {
       composition: manualComp.value, temp: manualTemp.value, processing: manualProcessing.value
-    })
+    }, { timeout: VALIDATE_TIMEOUT_MS, signal: inFlight.signal })
     if (res.data?.result?.error) {
-      stopLoading(); errorType.value = 'validation'; error.value = res.data.result.error; return
+      stopLoading()
+      errorType.value = 'server'
+      error.value = messageFromResultError(res.data.result.error)
+      return
     }
     result.value = res.data.result
     logs.value.push('Prediction Complete.')
     if (res.data.result?.properties) saveToHistory(res.data.result)
     stopLoading(); retryCount.value = 0
   } catch (err) {
-    stopLoading(); console.error('Validation error:', err)
-    errorType.value = classifyError(err); error.value = getErrorMessage(errorType.value, err)
+    stopLoading()
+    const kind = classifyError(err)
+    if (kind === 'cancelled') { logs.value.push('Evaluation cancelled.'); return }
+    console.error('Validation error:', err)
+    errorType.value = kind; error.value = getErrorMessage(kind, err)
   }
 }
 
@@ -276,11 +336,20 @@ const runDesign = async (isRetry = false) => {
     if (targets.value.tensile > 0) target_props['Tensile Strength'] = targets.value.tensile
     if (targets.value.elongation > 0) target_props['Elongation'] = targets.value.elongation
     if (targets.value.elastic_modulus > 0) target_props['Elastic Modulus'] = targets.value.elastic_modulus
-    if (targets.value.density < 99) target_props['Density'] = targets.value.density
+    // The form states "Set to 0 to skip any property", and every other target
+    // honours that. Density used `< 99` alone, so the default 0 was sent as a
+    // real ceiling of 0 g/cm3 -- a target nothing can meet.
+    if (targets.value.density > 0 && targets.value.density < 99) {
+      target_props['Density'] = targets.value.density
+    }
     if (targets.value.gamma_prime > 0) target_props['Gamma Prime'] = targets.value.gamma_prime
 
+    inFlight = new AbortController()
     const response = await axios.post(`${API_BASE_URL}/api/design`, {
       target_props, processing: autoProcessing.value, temp: autoTemp.value, max_iter: autoIterations.value
+    }, {
+      timeout: DESIGN_TIMEOUT_BASE_MS + DESIGN_TIMEOUT_PER_ITER_MS * Math.max(1, Number(autoIterations.value) || 1),
+      signal: inFlight.signal,
     })
     const designResult = response.data.result
     result.value = designResult
@@ -296,8 +365,11 @@ const runDesign = async (isRetry = false) => {
     if (designResult.composition) saveToHistory(designResult)
     stopLoading(); retryCount.value = 0
   } catch (err) {
-    stopLoading(); console.error('Design error:', err)
-    errorType.value = classifyError(err); error.value = getErrorMessage(errorType.value, err)
+    stopLoading()
+    const kind = classifyError(err)
+    if (kind === 'cancelled') { logs.value.push('Design cancelled.'); return }
+    console.error('Design error:', err)
+    errorType.value = kind; error.value = getErrorMessage(kind, err)
   }
 }
 
@@ -425,6 +497,7 @@ onUnmounted(() => {
       :manualComp="manualComp"
       :retryCount="retryCount"
       :maxRetries="maxRetries"
+      @cancel="cancelRun"
       @retry="mode === 'manual' ? retryValidation() : retryDesign()"
       @dismiss-error="clearError"
       @copy-to-evaluation="copyToEvaluation"

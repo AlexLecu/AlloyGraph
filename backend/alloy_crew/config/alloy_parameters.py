@@ -309,7 +309,11 @@ def get_temperature_factor(temp_c: float, alloy_class: str, gp_fraction: float =
         return max(factor, SC_DS["TEMP_MIN_FACTOR"])
 
     else:  # gp (polycrystalline γ' alloys)
-        gp = GP_TEMP["GP_REF"]
+        # Use the caller's γ' estimate. This previously read GP_TEMP["GP_REF"]
+        # unconditionally, so gp_fraction was accepted and silently discarded:
+        # every γ' alloy collapsed onto the 25 vol% reference curve with a
+        # constant 900 °C solvus, regardless of its actual γ' content.
+        gp = GP_TEMP["GP_REF"] if gp_fraction is None else gp_fraction
         gp = max(2.0, min(70.0, gp))
         gp_ref = GP_TEMP["GP_REF"]
 
@@ -445,6 +449,38 @@ def compress_uts_ys_ratio(rt_ratio: float, temperature_c: float) -> float:
     t_excess_800 = temperature_c - 800
     return 1.0 + (ratio_at_800 - 1.0) * math.exp(-t_excess_800 / 50)
 
+
+# =============================================================================
+# KG ANCHORING DISTANCE — boundary between "trust the KG neighbour" and
+# "fall back to systematic calibration"
+#
+# The distance is the Euclidean (L2) distance between wt%-normalised
+# compositions computed by rag_tools._composition_distance — units are wt%,
+# so the value is NOT bounded to [0, 2] the way a cosine distance would be.
+#
+# Below this boundary a KG neighbour may be blended in (sigmoid-weighted);
+# at or above it the neighbour is considered too far to anchor on and the
+# processing-level systematic calibration factors apply instead. Both sides
+# of the boundary must use this constant so they cannot drift apart.
+# =============================================================================
+
+KG_ANCHOR_MAX_DISTANCE = 4.5
+
+# Hard gate when the knowledge-graph match has an incompatible processing route.
+KG_ANCHOR_MAX_DISTANCE_INCOMPATIBLE = 3.0
+
+# Sigmoid that converts a composition distance into a knowledge-graph weight:
+#     w_KG = 1 / (1 + exp((d - MIDPOINT) / SLOPE))
+# Decays fast: d=2.0 -> 73%, d=2.5 -> 50%, d=3.0 -> 27%, d=4.0 -> 5%, d=4.5 -> 2%.
+KG_SIGMOID_MIDPOINT = 2.5
+KG_SIGMOID_SLOPE = 0.5
+
+# Minimum ML-vs-KG disagreement (percent) before a calibration proposal is made.
+KG_ANCHOR_MIN_DIVERGENCE_PCT = 15.0
+
+# Maximum gamma-prime difference (vol%) between query and KG match before the
+# match is treated as a different alloy class and anchoring is skipped.
+KG_ANCHOR_MAX_GP_DIFF = 10.0
 
 # =============================================================================
 # CORRECTION THRESHOLDS — minimum change to consider a correction meaningful

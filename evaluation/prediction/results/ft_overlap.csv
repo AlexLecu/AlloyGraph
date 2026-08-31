@@ -1,0 +1,89 @@
+alloy,in_ft_train_by_name,ft_name_match,nearest_ft_alloy,distance_to_ft,ft_stratum
+AF2-1DA,False,,RENÉ* 125,3.69,MID
+ASTROLOY,True,ASTROLOY,ASTROLOY,0.0,NEAR
+ATI Allegheny Ludlum AL 22™ Nickel-Base Alloy,False,,INCONEL* 625,6.948,FAR
+ATI Allegheny Ludlum AL 276™ Nickel-Base Alloy,False,,HASTELLOY* S,10.997,FAR
+ATI Allegheny Ludlum AL 600™ Nickel-Base Alloy,False,,INCONEL* 600,0.295,NEAR
+ATI Allegheny Ludlum AL 601™ Nickel-Base Alloy,False,,INCONEL* 601,0.311,NEAR
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,False,,INCONEL* 625,4.643,FAR
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,False,,INCONEL* 718,0.818,NEAR
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,False,,HASTELLOY* X,0.644,NEAR
+ATI Allegheny Ludlum Altemp® X-750 Nickel-Based superalloy,False,,INCONEL* X750,2.803,MID
+Alloy 263 (C263),False,,NIMONIC* 263,0.98,NEAR
+Alloy 718 (AMS 5596 sheet),False,,INCONEL* 718,0.365,NEAR
+Alloy 725,False,,INCONEL* 625,8.311,FAR
+CM 247 LC,False,,MAR-M* 247,2.962,MID
+CMSX-10,False,,TAZ-8B(DS),8.657,FAR
+CMSX-8,False,,CMSX-4*(SC),3.544,MID
+D-979,True,D-979,D-979,0.0,NEAR
+DD5,False,,RENÉ* N5(SC),3.601,MID
+DD6,False,,TRW-NASA VI A,3.47,MID
+DD9,False,,PWA*1484*(SC),6.354,FAR
+DD98M,False,,TRW-NASA VI A,7.37,FAR
+GTD-111,False,,IN-792,2.289,MID
+GTD-262,False,,WASPALOY*,3.986,MID
+GTD-444,False,,RENÉ* N4 (SC),4.236,MID
+HASTELLOY* X,True,HASTELLOY* X,HASTELLOY* X,0.0,NEAR
+HAYNES* 242,True,HAYNES* 242,HAYNES* 242,0.0,NEAR
+Haynes 214® alloy,False,,HAYNES* 214 (sheet),0.526,NEAR
+Haynes 233,False,,RENÉ* 88DT (forged),5.544,FAR
+Haynes 244,False,,HAYNES* 242,6.93,FAR
+Haynes 263® alloy,False,,NIMONIC* 263,1.145,NEAR
+Haynes 282,False,,NIMOCAST* 242,3.117,MID
+Haynes 625 alloy,False,,INCONEL* 625,3.679,MID
+Haynes 718 alloy,False,,Cast Alloy 718,1.663,NEAR
+Haynes CABVAL Hastelloy® G-50™ Grade 100 Ni-Cr-Fe-Mo Alloy,False,,HASTELLOY* X,3.704,MID
+Haynes Hastelloy® B-2 alloy,False,,HAYNES* 242,8.802,FAR
+Haynes Hastelloy® B-3® alloy,False,,HAYNES* 242,8.172,FAR
+Haynes Hastelloy® C-2000® alloy,False,,INCONEL* 625,9.621,FAR
+Haynes Hastelloy® C-22® alloy,False,,NIMOCAST* 242,8.86,FAR
+Haynes Hastelloy® C-276 alloy,False,,PYROMET* 860,10.671,FAR
+Haynes Hastelloy® C-4 alloy,False,,HASTELLOY* S,8.197,FAR
+Haynes Hastelloy® G-30® alloy,False,,HASTELLOY* X,11.587,FAR
+Haynes Hastelloy® N,False,,HASTELLOY* S,9.866,FAR
+Haynes R-41 alloy,False,,NIMOCAST* 242,7.628,FAR
+IN-731,True,IN-731,IN-731,0.0,NEAR
+IN-738,False,,MAR-M* 421,3.199,MID
+INCONEL* 600,True,INCONEL* 600,INCONEL* 600,0.0,NEAR
+Inconel 718Plus,False,,RENÉ* 220C,11.315,FAR
+Inconel X-750,True,INCONEL* X750,INCONEL* X750,0.757,NEAR
+MAR-M 002,False,,MAR-M* 247,3.855,MID
+MAR-M* 200,True,MAR-M* 200,MAR-M* 200,0.0,NEAR
+MAR-M* 247,True,MAR-M* 247,MAR-M* 247,0.0,NEAR
+MERL 76,False,,ASTROLOY,3.666,MID
+NIMOCAST* 242,True,NIMOCAST* 242,NIMOCAST* 242,0.0,NEAR
+NIMOCAST* 263,True,NIMOCAST* 263,NIMOCAST* 263,0.0,NEAR
+NIMOCAST* 75,False,,NIMOCAST* 80,3.584,MID
+NIMONIC* 81,True,NIMONIC* 81,NIMONIC* 81,0.0,NEAR
+NIMONIC* 90,True,NIMONIC* 90,NIMONIC* 90,0.0,NEAR
+NIMONIC* 901,True,NIMONIC* 901,NIMONIC* 901,0.0,NEAR
+NIMONIC* PE16,True,NIMONIC* PE16,NIMONIC* 901,5.921,FAR
+Nickel Alloy 59,False,,INCONEL* 625,8.151,FAR
+PWA 1497,False,,PWA*1484*(SC),11.931,FAR
+PWA*1480(SC),False,,TRW-NASA VI A,6.282,FAR
+RENÉ* N5(SC),True,RENÉ* N5(SC),RENÉ* N5(SC),0.0,NEAR
+RGT* 13,True,RGT* 13,RGT* 13,0.0,NEAR
+RR1000,False,,UDIMET* 700,2.678,MID
+RR3000,False,,PWA*1484*(SC),3.998,MID
+RR3010,False,,RENÉ* N5(SC),6.77,FAR
+Rene 100,False,,NIMONIC* 115,5.261,FAR
+Rene 108,False,,MAR-M* 247,2.704,MID
+Rene 95,False,,RENÉ* 95,0.107,NEAR
+Rene N500,False,,TRW-NASA VI A,4.518,FAR
+Rene N6,False,,PWA*1484*(SC),8.074,FAR
+Special Metals INCOLOY® alloy 890 Ni-Cr-Fe Superalloy,False,,HAYNES* HR-120,8.177,FAR
+Special Metals INCONEL® 622 Nickel Superalloy (UNS N06022) Plate 0.250 in (6.4 mm),False,,INCONEL* 625,8.418,FAR
+Special Metals INCONEL® 725 Nickel Superalloy (UNS N07725),False,,INCONEL* 625,8.566,FAR
+Special Metals INCONEL® Alloy 686 Nickel Superalloy Sheet (UNS N06686),False,,INCONEL* 625,9.915,FAR
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,False,,HAYNES* 230,3.298,MID
+Special Metals INCONEL® C276 Nickel Superalloy Sheet,False,,PYROMET* 860,9.76,FAR
+Special Metals INCONEL® G-3 Nickel Superalloy (UNS N06985),False,,HASTELLOY* X,4.297,MID
+Special Metals INCONEL® alloy 693,False,,INCONEL* 690,6.839,FAR
+Special Metals INCONEL® alloy 740 Precipitation-Hardenable Ni-Cr-Co Superalloy,False,,IN-939,4.654,FAR
+Special Metals NIMONIC® Alloy 86,False,,INCONEL* 625,6.285,FAR
+TMS-138,False,,TAZ-8B(DS),6.511,FAR
+TMS-162,False,,TRW-NASA VI A,9.665,FAR
+TRW-NASA VI A,True,TRW-NASA VI A,TRW-NASA VI A,0.0,NEAR
+UDIMET* 520,False,,M-252,3.617,MID
+Udimet 720,False,,UDIMET* 720CR,2.056,MID
+WASPALOY*,True,WASPALOY*,WASPALOY*,0.0,NEAR

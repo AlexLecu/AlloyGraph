@@ -1,0 +1,7 @@
+{
+  "python": "3.12.12",
+  "scikit_learn": "1.9.0",
+  "xgboost": "3.4.1",
+  "numpy": "2.5.2",
+  "note": "Stack used to train saved_models_v2 and the v1 control in metrics_v1_control.json. Absolute metrics are version-sensitive; compare v2 only against a v1 refit on this same stack."
+}

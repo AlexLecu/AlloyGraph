@@ -75,7 +75,7 @@ Evaluated on **88 independent alloys** from manufacturer datasheets (Special Met
 
 ### Prerequisites
 - [Docker](https://docs.docker.com/get-docker/) and Docker Compose
-- [Groq API key](https://groq.com) (free tier available) or any OpenAI-compatible endpoint
+- A [DeepInfra API key](https://deepinfra.com) (or Together AI / OpenAI / Groq — any OpenAI-compatible endpoint)
 
 ### Setup
 
@@ -86,7 +86,8 @@ cd AlloyGraph
 
 # 2. Configure
 cp .env.example .env
-# Edit .env and add your GROQ_API_KEY
+# Edit .env and add a provider key (DEEPINFRA_API_KEY, or another supported provider).
+# .env belongs in the repository root — that is the only location the app reads.
 
 # 3. Launch
 docker compose up -d
@@ -161,6 +162,8 @@ Registered at [w3id.org/alloygraph/ont](https://w3id.org/alloygraph/ont) under C
 
 ## 📦 Data
 
+Data provenance, every correction applied to the alloy data, and the checks that verify the committed training set is reproducible from its sources are documented in [`docs/data_curation.md`](docs/data_curation.md).
+
 All data used in this project is publicly available. The complete archive (KG data, evaluation sets, ontology, and trained models) is hosted on [figshare](https://doi.org/10.6084/m9.figshare.31860466).
 
 | Resource | Description | Link |
@@ -178,7 +181,7 @@ All data used in this project is publicly available. The complete archive (KG da
 | 🐍 Backend | Python, Flask, CrewAI, XGBoost, scikit-learn, owlready2, rdflib |
 | 🖥️ Frontend | Vue.js, Nginx |
 | 🗄️ Databases | Weaviate 1.33, GraphDB 10.8 |
-| 🤖 LLM | Llama 3.3-70B (Groq API or Ollama for local deployment) |
+| 🤖 LLM | Llama 3.3-70B via any OpenAI-compatible provider (currently DeepInfra); Ollama for local deployment |
 | 📐 Ontology | OWL 2 DL, HermiT reasoner, Protégé |
 
 ---

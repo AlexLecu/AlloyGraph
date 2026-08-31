@@ -190,6 +190,9 @@ class IterativeDesignCrew:
         # Compute implied γ' from YS target (empirical: YS = BASE + COEFF × γ')
         implied_gp = None
         if self.min_yield > 0:
+            # No gp_fraction here on purpose: this is inverting a YS target to
+            # infer γ', so no γ' estimate exists yet. The 25 vol% reference
+            # curve is the intended default.
             temp_factor = get_temperature_factor(temperature, "gp")
             if processing in ("wrought", "forged"):
                 ys_rt_needed = self.min_yield / temp_factor if temp_factor > 0 else self.min_yield

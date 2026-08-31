@@ -1,0 +1,5 @@
+property,unit,archived_rows,rerun_rows,archived_distinct_values,rerun_distinct_values,n_common_scored,archived_mae,rerun_mae,mae_ratio
+YS,MPa,466,329,93,13,197,113.7,195.61,1.72
+UTS,MPa,466,329,97,13,197,125.7,241.82,1.92
+EL,%,466,329,69,15,195,10.71,21.74,2.03
+EM,GPa,466,329,58,26,219,8.22,12.95,1.58

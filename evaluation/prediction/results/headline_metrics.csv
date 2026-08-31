@@ -1,0 +1,41 @@
+arm,property,unit,n_seeds,n_rows,n_common_rows,mae,mae_sd,r2,pre_erratum
+ML-only,YS,MPa,1,285,471,98.73,,0.845,False
+ML-only,UTS,MPa,1,290,471,112.96,,0.846,False
+ML-only,EL,%,1,284,471,13.84,,0.246,False
+ML-only,EM,GPa,1,304,471,12.86,,0.48,False
+ML+physics,YS,MPa,1,285,471,98.73,,0.845,False
+ML+physics,UTS,MPa,1,290,471,113.25,,0.846,False
+ML+physics,EL,%,1,284,471,13.8,,0.246,False
+ML+physics,EM,GPa,1,304,471,8.21,,0.83,False
+ML+physics+KG,YS,MPa,1,285,471,92.37,,0.858,False
+ML+physics+KG,UTS,MPa,1,290,471,112.75,,0.848,False
+ML+physics+KG,EL,%,1,284,471,12.82,,0.403,False
+ML+physics+KG,EM,GPa,1,304,471,8.21,,0.83,False
+Full system (5 seeds),YS,MPa,5,285,471,78.84,1.13,0.874,False
+Full system (5 seeds),UTS,MPa,5,290,471,96.44,0.93,0.863,False
+Full system (5 seeds),EL,%,5,284,471,12.56,0.12,0.412,False
+Full system (5 seeds),EM,GPa,5,304,471,8.94,0.06,0.775,False
+GPT-4.1-mini (stock),YS,MPa,1,285,471,197.69,,0.365,False
+GPT-4.1-mini (stock),UTS,MPa,1,290,471,176.06,,0.606,False
+GPT-4.1-mini (stock),EL,%,1,284,471,23.69,,-0.36,False
+GPT-4.1-mini (stock),EM,GPa,1,304,471,16.12,,0.26,False
+Llama-3.3-70B (DeepInfra),YS,MPa,1,285,471,265.04,,-0.097,False
+Llama-3.3-70B (DeepInfra),UTS,MPa,1,290,471,290.36,,0.131,False
+Llama-3.3-70B (DeepInfra),EL,%,1,284,471,24.12,,-0.376,False
+Llama-3.3-70B (DeepInfra),EM,GPa,1,304,471,22.55,,-0.185,False
+GBM raw features,YS,MPa,1,285,471,102.76,,0.81,False
+GBM raw features,UTS,MPa,1,290,471,109.39,,0.837,False
+GBM raw features,EL,%,1,284,471,14.45,,0.248,False
+GBM raw features,EM,GPa,1,304,471,15.05,,0.346,False
+RF raw features,YS,MPa,1,285,471,93.57,,0.836,False
+RF raw features,UTS,MPa,1,290,471,110.81,,0.831,False
+RF raw features,EL,%,1,284,471,14.53,,0.238,False
+RF raw features,EM,GPa,1,304,471,18.9,,-0.013,False
+GPR raw features,YS,MPa,1,285,471,119.33,,0.754,False
+GPR raw features,UTS,MPa,1,290,471,132.9,,0.767,False
+GPR raw features,EL,%,1,284,471,14.35,,0.285,False
+GPR raw features,EM,GPa,1,304,471,16.62,,0.266,False
+GPR physics features,YS,MPa,1,285,471,232.55,,0.076,False
+GPR physics features,UTS,MPa,1,290,471,279.12,,0.073,False
+GPR physics features,EL,%,1,284,471,23.06,,-0.122,False
+GPR physics features,EM,GPa,1,304,471,38.74,,-3.154,False

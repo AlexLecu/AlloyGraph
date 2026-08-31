@@ -1,27 +1,56 @@
-import os
-from groq import Groq
+import logging
+
+from openai import OpenAI
+
+from alloy_crew.agents import resolve_chat_endpoint
+
+logger = logging.getLogger(__name__)
 
 
 class LLMConfig:
-    """LLM model and parameter settings"""
-    MODEL = "llama-3.3-70b-versatile"
+    """LLM model and parameter settings.
+
+    The client is an OpenAI-compatible one pointed at whichever provider
+    ``resolve_chat_endpoint()`` selects (DeepInfra > Together > Groq > OpenAI >
+    local Ollama) -- the same order the CrewAI agents resolve. It used to be
+    the Groq SDK pinned to ``llama-3.3-70b-versatile``, which Groq
+    decommissioned on 2026-08-16, so Research Chat 404'd while the Evaluator
+    and Designer worked.
+
+    ``MODEL`` is therefore no longer a constant: it is whatever the resolved
+    provider serves, and is populated on first ``get_client()``. Read it via
+    ``get_model()`` rather than the attribute, so resolution has run.
+    """
     ROUTING_TEMPERATURE = 0.0
     ROUTING_MAX_TOKENS = 250
     RESPONSE_TEMPERATURE = 0.2
     RESPONSE_MAX_TOKENS = 800
     STREAM_ENABLED = True
 
+    MODEL = None
+    PROVIDER = None
+
     _client = None
 
     @classmethod
-    def get_client(cls) -> Groq | None:
-        """Return a singleton Groq client, or None if no API key."""
+    def get_client(cls) -> OpenAI | None:
+        """Return a singleton chat client, or None if no provider is usable."""
         if cls._client is None:
-            key = os.getenv("GROQ_API_KEY")
-            if not key:
+            resolved = resolve_chat_endpoint()
+            if resolved is None:
                 return None
-            cls._client = Groq(api_key=key)
+            base_url, api_key, model, provider = resolved
+            cls.MODEL = model
+            cls.PROVIDER = provider
+            cls._client = OpenAI(api_key=api_key, base_url=base_url)
         return cls._client
+
+    @classmethod
+    def get_model(cls) -> str | None:
+        """The model id of the resolved provider, resolving it if needed."""
+        if cls.MODEL is None:
+            cls.get_client()
+        return cls.MODEL
 
 
 class SearchConfig:

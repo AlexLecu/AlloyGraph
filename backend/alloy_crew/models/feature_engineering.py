@@ -1,6 +1,9 @@
+import logging
 from typing import Dict, Any
 
 from ..config.alloy_parameters import classify_tcp_risk
+
+logger = logging.getLogger(__name__)
 
 # Physical constants
 ATOMIC_WEIGHTS = {
@@ -170,19 +173,48 @@ def estimate_partitioning(at_percent: Dict[str, float], gamma_prime_vol_frac: fl
     return c_gamma, c_gamma_prime
 
 
-# Lattice parameter coefficients (Å per at% from pure Ni, a₀=3.524Å)
+# Vegard coefficients: d(a)/d(atomic fraction), in Å per unit atomic fraction,
+# relative to pure Ni (a₀ = 3.524 Å). Applied as a = a₀ + Σ (Xᵢ/100) · kᵢ, so a
+# coefficient of 0.179 means 10 at% Al expands the lattice by 0.0179 Å.
+#
+# Ni is the REFERENCE element and must be 0.0 — a₀ already is pure Ni. It was
+# previously absent from this table and picked up the dict default (0.1), which
+# added a spurious expansion term proportional to Ni content. Because γ' is
+# Ni₃X (~67-75 at% Ni) and γ is ~54 at% Ni, that term did not cancel between
+# the phases: it inflated δ by roughly +0.36 vol% on every γ'-strengthened
+# alloy, tripling the mean error against literature mismatch values.
 LATTICE_COEFFS = {
+    "Ni": 0.0,  # reference element — a₀ IS pure Ni; must stay 0.0
     "Al": 0.179, "Ti": 0.422, "Cr": 0.113, "Mo": 0.467, "W": 0.575,
     "Ta": 0.670, "Nb": 0.700, "Re": 0.528, "Co": 0.010, "Fe": 0.050,
     "Hf": 0.850, "V": 0.150, "C": 0.0, "B": 0.0, "Zr": 0.9
 }
 
+# Elements seen without a Vegard coefficient, so the warning fires once each
+# rather than on every call.
+_UNKNOWN_LATTICE_ELEMENTS: set = set()
+
+
 def calculate_lattice_parameter(composition_at: Dict[str, float]) -> float:
-    """Calculate FCC lattice parameter: a = a_Ni + Σ(Xi × ki)"""
-    return 3.524 + sum(
-        (amt / 100.0) * LATTICE_COEFFS.get(el, 0.1)
-        for el, amt in composition_at.items()
-    )
+    """Calculate FCC lattice parameter: a = a_Ni + Σ(Xi × ki)
+
+    Elements without a tabulated coefficient contribute 0.0 (treated as
+    Ni-like) and are warned about once. The previous 0.1 fallback silently
+    invented an expansion term for any unlisted element.
+    """
+    total = 0.0
+    for el, amt in composition_at.items():
+        if el in LATTICE_COEFFS:
+            total += (amt / 100.0) * LATTICE_COEFFS[el]
+        else:
+            if el not in _UNKNOWN_LATTICE_ELEMENTS:
+                _UNKNOWN_LATTICE_ELEMENTS.add(el)
+                logger.warning(
+                    "No Vegard coefficient for '%s'; contributing 0.0 to the "
+                    "lattice parameter. Add it to LATTICE_COEFFS if it is "
+                    "present in meaningful amounts.", el
+                )
+    return 3.524 + total
 
 def calculate_lattice_mismatch(c_gamma: Dict[str, float], c_gamma_prime: Dict[str, float]) -> float:
     """Calculate lattice mismatch δ = 2(a_γ' - a_γ)/(a_γ' + a_γ) in percent."""

@@ -1,0 +1,172 @@
+<mxfile host="65bd71144e">
+    <diagram name="Agent Workflow" id="agent-workflow-v1">
+        <mxGraphModel dx="1400" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+
+                <!-- ══════════════════════════════════════════════ -->
+                <!-- TITLE LABELS                                   -->
+                <!-- ══════════════════════════════════════════════ -->
+                <mxCell id="title_eval" value="&lt;b&gt;Evaluation Mode&lt;/b&gt;" style="text;html=1;fontSize=20;fontColor=#023d7b;align=left;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="30" width="250" height="36" as="geometry"/>
+                </mxCell>
+                <mxCell id="title_design" value="&lt;b&gt;Design Mode&lt;/b&gt;" style="text;html=1;fontSize=20;fontColor=#023d7b;align=left;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="340" width="250" height="36" as="geometry"/>
+                </mxCell>
+
+                <!-- ══════════════════════════════════════════════ -->
+                <!-- EVALUATION MODE (top half)                     -->
+                <!-- ══════════════════════════════════════════════ -->
+
+                <!-- Input -->
+                <mxCell id="eval_in" value="&lt;b&gt;Composition&lt;br&gt;Temperature&lt;br&gt;Processing&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#023d7b;fontSize=16;arcSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="86" width="160" height="80" as="geometry"/>
+                </mxCell>
+
+                <!-- Pre-analysis -->
+                <mxCell id="eval_pre" value="&lt;b&gt;AlloyAnalysisTool&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:13px'&gt;ML predictions&lt;br&gt;Physics models&lt;br&gt;KG search&lt;br&gt;Discrepancy detection&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eaf5e9;strokeColor=#82b366;fontColor=#1a5e20;fontSize=16;arcSize=8;" parent="1" vertex="1">
+                    <mxGeometry x="250" y="70" width="200" height="112" as="geometry"/>
+                </mxCell>
+
+                <!-- Analyst -->
+                <mxCell id="eval_analyst" value="&lt;b&gt;Analyst Agent&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:13px'&gt;Triangulates sources&lt;br&gt;Proposes corrections&lt;br&gt;Documents reasoning&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#3d1a78;fontSize=16;arcSize=8;" parent="1" vertex="1">
+                    <mxGeometry x="500" y="70" width="200" height="112" as="geometry"/>
+                </mxCell>
+
+                <!-- Reviewer -->
+                <mxCell id="eval_reviewer" value="&lt;b&gt;Reviewer Agent&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:13px'&gt;Validates bounds&lt;br&gt;Checks coherency&lt;br&gt;TCP risk assessment&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#3d1a78;fontSize=16;arcSize=8;" parent="1" vertex="1">
+                    <mxGeometry x="750" y="70" width="200" height="112" as="geometry"/>
+                </mxCell>
+
+                <!-- Deterministic validation -->
+                <mxCell id="eval_det" value="&lt;b&gt;Deterministic&lt;br&gt;Validation&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:13px'&gt;Safety net&lt;br&gt;Physics enforcement&lt;br&gt;Calibration&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#7a6000;fontSize=16;arcSize=8;" parent="1" vertex="1">
+                    <mxGeometry x="1000" y="70" width="200" height="112" as="geometry"/>
+                </mxCell>
+
+                <!-- Output -->
+                <mxCell id="eval_out" value="&lt;b&gt;Properties&lt;br&gt;Confidence&lt;br&gt;Intervals&lt;br&gt;TCP Risk&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#1a5e20;fontSize=16;arcSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="1250" y="76" width="140" height="100" as="geometry"/>
+                </mxCell>
+
+                <!-- Evaluation arrows -->
+                <mxCell id="ea1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#666;strokeWidth=2.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;" parent="1" source="eval_in" target="eval_pre" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ea2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#666;strokeWidth=2.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;" parent="1" source="eval_pre" target="eval_analyst" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ea3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#666;strokeWidth=2.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;" parent="1" source="eval_analyst" target="eval_reviewer" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ea4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#666;strokeWidth=2.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;" parent="1" source="eval_reviewer" target="eval_det" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ea5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#666;strokeWidth=2.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;" parent="1" source="eval_det" target="eval_out" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <!-- Separator line -->
+                <mxCell id="sep" value="" style="shape=line;strokeColor=#999999;strokeWidth=1;dashed=1;dashPattern=6 4;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="220" width="1350" height="10" as="geometry"/>
+                </mxCell>
+
+                <!-- Phase labels -->
+                <mxCell id="phase_label" value="&lt;font style='font-size:13px;color:#888888'&gt;Pre-computation&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="260" y="185" width="180" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="agent_label" value="&lt;font style='font-size:13px;color:#888888'&gt;LLM Agents (sequential)&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="560" y="185" width="240" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="det_label" value="&lt;font style='font-size:13px;color:#888888'&gt;Post-processing&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="1010" y="185" width="180" height="20" as="geometry"/>
+                </mxCell>
+
+                <!-- ══════════════════════════════════════════════ -->
+                <!-- DESIGN MODE (bottom half)                      -->
+                <!-- ══════════════════════════════════════════════ -->
+
+                <!-- Input -->
+                <mxCell id="des_in" value="&lt;b&gt;Target YS&lt;br&gt;Target UTS&lt;br&gt;Target EL, EM&lt;br&gt;Processing&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#023d7b;fontSize=16;arcSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="396" width="160" height="96" as="geometry"/>
+                </mxCell>
+
+                <!-- Phase 1 -->
+                <mxCell id="des_p1" value="&lt;b&gt;Phase 1&lt;br&gt;LLM Designer&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:13px'&gt;Composition synthesis&lt;br&gt;QuickCheck validation&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#3d1a78;fontSize=16;arcSize=8;" parent="1" vertex="1">
+                    <mxGeometry x="250" y="386" width="200" height="112" as="geometry"/>
+                </mxCell>
+
+                <!-- Phase 2 -->
+                <mxCell id="des_p2" value="&lt;b&gt;Phase 2&lt;br&gt;Optimizer&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:13px'&gt;Guard: constraint fixes&lt;br&gt;Tuner: ±3 wt% adjust&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#7a6000;fontSize=16;arcSize=8;" parent="1" vertex="1">
+                    <mxGeometry x="500" y="386" width="200" height="112" as="geometry"/>
+                </mxCell>
+
+                <!-- Phase 3 -->
+                <mxCell id="des_p3" value="&lt;b&gt;Phase 3&lt;br&gt;Full Evaluation&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:13px'&gt;Analyst → Reviewer&lt;br&gt;(same as above)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#3d1a78;fontSize=16;arcSize=8;" parent="1" vertex="1">
+                    <mxGeometry x="750" y="386" width="200" height="112" as="geometry"/>
+                </mxCell>
+
+                <!-- Decision diamond -->
+                <mxCell id="des_check" value="&lt;b&gt;Targets&lt;br&gt;met?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=16;arcSize=8;" parent="1" vertex="1">
+                    <mxGeometry x="1010" y="402" width="130" height="90" as="geometry"/>
+                </mxCell>
+
+                <!-- Output -->
+                <mxCell id="des_out" value="&lt;b&gt;Designed&lt;br&gt;Composition&lt;br&gt;+ Properties&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#1a5e20;fontSize=16;arcSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="1210" y="402" width="160" height="86" as="geometry"/>
+                </mxCell>
+
+                <!-- Design arrows -->
+                <mxCell id="da1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#666;strokeWidth=2.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;" parent="1" source="des_in" target="des_p1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="da2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#666;strokeWidth=2.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;" parent="1" source="des_p1" target="des_p2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="da3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#666;strokeWidth=2.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;" parent="1" source="des_p2" target="des_p3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="da4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#666;strokeWidth=2.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;" parent="1" source="des_p3" target="des_check" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <!-- Yes arrow to output -->
+                <mxCell id="da_yes" value="&lt;font style='font-size:14px;color:#2d7a2d'&gt;&lt;b&gt;Yes&lt;/b&gt;&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#2d7a2d;strokeWidth=2.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;" parent="1" source="des_check" target="des_out" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <!-- No arrow — feedback loop back to Phase 1 -->
+                <mxCell id="da_no" value="&lt;font style='font-size:14px;color:#cc0000'&gt;&lt;b&gt;No&lt;/b&gt;&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#cc0000;strokeWidth=2;dashed=1;dashPattern=8 4;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;endArrow=blockThin;endFill=1;" parent="1" source="des_check" target="des_p1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1075" y="530"/>
+                            <mxPoint x="350" y="530"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+
+                <!-- Feedback label -->
+                <mxCell id="feedback_label" value="&lt;font style='font-size:13px;color:#cc0000'&gt;&lt;i&gt;Feedback: specific guidance (e.g. &amp;quot;reduce W to lower Md&amp;quot;)&lt;/i&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="450" y="536" width="500" height="24" as="geometry"/>
+                </mxCell>
+
+                <!-- Iteration label -->
+                <mxCell id="iter_label" value="&lt;font style='font-size:13px;color:#888888'&gt;Max 3–5 iterations&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="1050" y="500" width="160" height="20" as="geometry"/>
+                </mxCell>
+
+                <!-- Phase labels for design -->
+                <mxCell id="dp1_label" value="&lt;font style='font-size:13px;color:#888888'&gt;LLM creative&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="270" y="500" width="160" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="dp2_label" value="&lt;font style='font-size:13px;color:#888888'&gt;Deterministic&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="520" y="500" width="160" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="dp3_label" value="&lt;font style='font-size:13px;color:#888888'&gt;Full agent eval&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="770" y="500" width="160" height="20" as="geometry"/>
+                </mxCell>
+
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

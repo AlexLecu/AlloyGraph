@@ -264,10 +264,10 @@ class QuickCheckTool(BaseTool):
         else:
             estimated_el = max(4.0, 18 - 0.25 * gp)
 
-        # Estimated Elastic Modulus from Reuss bound
-        em_reuss = calculate_em_rule_of_mixtures(composition)
+        # Estimated Elastic Modulus from the Voigt-Reuss-Hill average
+        em_vrh = calculate_em_rule_of_mixtures(composition)
         em_temp = get_em_temp_factor(temperature_c)
-        estimated_em = em_reuss * em_temp
+        estimated_em = em_vrh * em_temp
 
         has_critical = any(w.startswith("CRITICAL") for w in warnings)
 

@@ -793,16 +793,24 @@ onUnmounted(() => {
   .tab-nav {
     gap: 4px;
     padding: 4px;
+    flex-wrap: wrap;
     margin-bottom: var(--space-sm);
   }
 
   .tab-button {
-    padding: var(--space-sm);
-    gap: 0;
+    padding: var(--space-sm) var(--space-xs);
+    gap: 2px;
+    flex-direction: column;
+    min-width: 0;
   }
 
+  /* Labels stay: at 320px and 375px the nav measures no overflow with them
+     shown, and two unlabelled emoji are not a usable way to tell the tabs
+     apart. flex-wrap is the safety valve if a future label is longer. */
   .tab-label {
-    display: none;
+    font-size: 0.72rem;
+    line-height: 1.15;
+    text-align: center;
   }
 
   .tab-icon {
