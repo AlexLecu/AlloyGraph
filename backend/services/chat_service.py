@@ -382,7 +382,25 @@ def process_target_query(params: dict, retriever: AlloyRetriever) -> list[AlloyD
 # ── Main streaming generator ────────────────────────────────────────────
 
 def stream_chat_response(prompt: str, session_id: str, history: list):
-    """Generator that streams alloy data + LLM response as NDJSON chunks."""
+    """Generator that streams alloy data + LLM response as NDJSON chunks.
+
+    The first line out is a keepalive, emitted before any work begins. Nothing
+    else here yields until the Weaviate connection is open and the routing LLM
+    call has returned -- measured at 2.9-4.4 s, but bounded only by provider
+    latency. The public site sits behind the CloudUT reverse proxy, which cuts
+    connections at roughly 60 s; a stalled routing call would therefore turn
+    into a 504 with no response at all. Once the first byte is out, the proxy's
+    read timeout measures the gap between reads rather than total duration, and
+    tokens then flow continuously, so this single line removes the whole class
+    of failure.
+
+    "keepalive" is a type the client does not know. The reader JSON-parses each
+    line, creates the assistant bubble only for data/chunk/error, and falls
+    through its if/else chain for anything else -- so this is inert on the
+    frontend by construction, and streaming behaviour is unchanged.
+    """
+
+    yield json.dumps({"type": "keepalive"}) + "\n"
 
     try:
         yield from _stream_chat_inner(prompt, session_id, history)
@@ -427,6 +445,10 @@ def _stream_chat_inner(prompt: str, session_id: str, history: list):
                     stream=True,
                 )
                 for chunk in stream:
+                    # Terminal/usage frames carry an empty choices list; see
+                    # the note at the third occurrence of this guard below.
+                    if not chunk.choices:
+                        continue
                     content = chunk.choices[0].delta.content
                     if content:
                         yield json.dumps({"type": "chunk", "content": content}) + "\n"
@@ -568,6 +590,10 @@ def _stream_chat_inner(prompt: str, session_id: str, history: list):
                     stream=True,
                 )
                 for chunk in stream:
+                    # Terminal/usage frames carry an empty choices list; see
+                    # the note at the third occurrence of this guard below.
+                    if not chunk.choices:
+                        continue
                     content = chunk.choices[0].delta.content
                     if content:
                         yield json.dumps({"type": "chunk", "content": content}) + "\n"
@@ -606,6 +632,18 @@ def _stream_chat_inner(prompt: str, session_id: str, history: list):
         )
 
         for chunk in stream:
+            # DeepInfra's OpenAI-compatible stream ends with a frame whose
+            # `choices` list is empty (it carries usage, not content).
+            # Indexing [0] on it raised IndexError on EVERY chat request, which
+            # the outer handler turned into a trailing
+            # "[Error: ... list index out of range]" appended to the finished
+            # answer in the UI. The Groq SDK this replaced did not surface
+            # those frames, so the bug arrived with the provider switch.
+            #
+            # Skipping them is not a behaviour change: they never carried any
+            # content to stream.
+            if not chunk.choices:
+                continue
             content = chunk.choices[0].delta.content
             if content:
                 yield json.dumps({"type": "chunk", "content": content}) + "\n"

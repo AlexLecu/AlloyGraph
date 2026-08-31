@@ -33,9 +33,32 @@ const DESIGN_TIMEOUT_BASE_MS = 5 * 60 * 1000
 const DESIGN_TIMEOUT_PER_ITER_MS = 5 * 60 * 1000
 let inFlight = null
 
+// Evaluation is now a background job: POST returns a job id in well under a
+// second and we poll for the outcome. This exists because the CloudUT reverse
+// proxy in front of the public site cuts connections at roughly 60 s, while a
+// real evaluation takes 100-200 s -- so the old single long request returned
+// 504 in the browser even though the backend was working fine. Nothing about
+// the UI changes: the progress indicator is driven by an elapsed-time timer,
+// not by the request, so it behaves identically while polling.
+const POLL_INTERVAL_MS = 2500
+// Individual HTTP calls are all short now, so they get short timeouts. The
+// overall patience for a job is VALIDATE_TIMEOUT_MS, enforced across polls.
+const SUBMIT_TIMEOUT_MS = 20 * 1000
+const POLL_TIMEOUT_MS = 15 * 1000
+// A transient network blip mid-poll should not kill a job that is still running
+// server-side; give up only after this many consecutive failed polls.
+const MAX_POLL_FAILURES = 5
+
+// Set by cancelRun so an in-progress polling loop stops between requests, not
+// just when a single HTTP call is aborted.
+let pollCancelled = false
+
 const cancelRun = () => {
+  pollCancelled = true
   if (inFlight) { inFlight.abort(); inFlight = null }
 }
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 
 // --- ERROR STATE ---
 const error = ref(null)
@@ -285,29 +308,104 @@ const clearHistory = () => {
   localStorage.removeItem('alloyDesignHistory')
 }
 
-// --- API: VALIDATE ---
+// --- API: VALIDATE (submit job, then poll) ---
+
+// Thrown when the job itself reports failure, so the polling loop can hand the
+// server's own message to the error panel instead of a generic HTTP message.
+class JobFailedError extends Error {}
+
+// Poll until the job reaches a terminal state. Returns the result object.
+//
+// `kind` selects the status endpoint ('validate' | 'design'); `patienceMs` is
+// how long to keep polling before giving up. Design gets a much larger window
+// than evaluation: it runs up to max_iterations full evaluations back to back.
+// `runningMessage` is pushed to the log on the pending -> running transition.
+const pollForResult = async (jobId, kind, patienceMs, runningMessage) => {
+  const deadline = Date.now() + patienceMs
+  let consecutiveFailures = 0
+  let lastStatus = null
+
+  while (Date.now() < deadline) {
+    await sleep(POLL_INTERVAL_MS)
+    if (pollCancelled) { const e = new Error('canceled'); e.code = 'ERR_CANCELED'; throw e }
+
+    let res
+    try {
+      inFlight = new AbortController()
+      res = await axios.get(`${API_BASE_URL}/api/${kind}/status/${jobId}`,
+        { timeout: POLL_TIMEOUT_MS, signal: inFlight.signal })
+      consecutiveFailures = 0
+    } catch (err) {
+      // A cancel or a genuine 404 is final; anything else may be transient.
+      if (classifyError(err) === 'cancelled') throw err
+      if (err?.response?.status === 404) {
+        throw new JobFailedError(
+          err.response.data?.error ||
+          'The server lost track of this analysis. Please run it again.')
+      }
+      if (++consecutiveFailures >= MAX_POLL_FAILURES) throw err
+      continue
+    }
+
+    const { status, result: jobResult, error: jobError } = res.data || {}
+
+    if (status !== lastStatus) {
+      lastStatus = status
+      if (status === 'running' && runningMessage) logs.value.push(runningMessage)
+    }
+
+    if (status === 'done') return jobResult
+    if (status === 'failed') {
+      throw new JobFailedError(jobError || 'The analysis failed on the server.')
+    }
+  }
+
+  const e = new Error('timeout')
+  e.code = 'ECONNABORTED'
+  throw e
+}
+
 const runValidation = async (isRetry = false) => {
   startLoading()
+  pollCancelled = false
   if (!isRetry) { logs.value = []; result.value = null; retryCount.value = 0 }
   logs.value.push(`Validating Composition at ${manualTemp.value}\u00B0C (${manualProcessing.value})...`)
 
   try {
     inFlight = new AbortController()
-    const res = await axios.post(`${API_BASE_URL}/api/validate`, {
+    const submit = await axios.post(`${API_BASE_URL}/api/validate`, {
       composition: manualComp.value, temp: manualTemp.value, processing: manualProcessing.value
-    }, { timeout: VALIDATE_TIMEOUT_MS, signal: inFlight.signal })
-    if (res.data?.result?.error) {
+    }, { timeout: SUBMIT_TIMEOUT_MS, signal: inFlight.signal })
+
+    const jobId = submit.data?.job_id
+    if (!jobId) throw new JobFailedError('The server did not return a job id.')
+    logs.value.push('Analysis queued on the server.')
+
+    const jobResult = await pollForResult(
+      jobId, 'validate', VALIDATE_TIMEOUT_MS,
+      'Agents are analysing the composition...')
+
+    // A completed job can still carry an in-band error from the pipeline; this
+    // is the same result.error contract the synchronous endpoint had.
+    if (jobResult?.error) {
       stopLoading()
       errorType.value = 'server'
-      error.value = messageFromResultError(res.data.result.error)
+      error.value = messageFromResultError(jobResult.error)
       return
     }
-    result.value = res.data.result
+
+    result.value = jobResult
     logs.value.push('Prediction Complete.')
-    if (res.data.result?.properties) saveToHistory(res.data.result)
+    if (jobResult?.properties) saveToHistory(jobResult)
     stopLoading(); retryCount.value = 0
   } catch (err) {
     stopLoading()
+    if (err instanceof JobFailedError) {
+      console.error('Validation job failed:', err.message)
+      errorType.value = 'server'
+      error.value = messageFromResultError(err.message)
+      return
+    }
     const kind = classifyError(err)
     if (kind === 'cancelled') { logs.value.push('Evaluation cancelled.'); return }
     console.error('Validation error:', err)
@@ -327,6 +425,7 @@ const retryValidation = async () => {
 // --- API: DESIGN ---
 const runDesign = async (isRetry = false) => {
   startLoading()
+  pollCancelled = false
   if (!isRetry) { logs.value = []; result.value = null; retryCount.value = 0 }
   logs.value.push('Starting Inverse Design Agent...')
 
@@ -344,17 +443,34 @@ const runDesign = async (isRetry = false) => {
     }
     if (targets.value.gamma_prime > 0) target_props['Gamma Prime'] = targets.value.gamma_prime
 
+    // Patience is sized to the worst case the form allows: iterations are
+    // capped at 10, and each one is a Designer LLM call plus a full
+    // Analyst -> Reviewer evaluation (~300 s at the slow end of provider
+    // latency). Same base + per-iteration budget the single long request used,
+    // now spent across polls instead of one open connection.
+    const designPatienceMs = DESIGN_TIMEOUT_BASE_MS +
+      DESIGN_TIMEOUT_PER_ITER_MS * Math.max(1, Number(autoIterations.value) || 1)
+
     inFlight = new AbortController()
-    const response = await axios.post(`${API_BASE_URL}/api/design`, {
+    const submit = await axios.post(`${API_BASE_URL}/api/design`, {
       target_props, processing: autoProcessing.value, temp: autoTemp.value, max_iter: autoIterations.value
-    }, {
-      timeout: DESIGN_TIMEOUT_BASE_MS + DESIGN_TIMEOUT_PER_ITER_MS * Math.max(1, Number(autoIterations.value) || 1),
-      signal: inFlight.signal,
-    })
-    const designResult = response.data.result
+    }, { timeout: SUBMIT_TIMEOUT_MS, signal: inFlight.signal })
+
+    const jobId = submit.data?.job_id
+    if (!jobId) throw new JobFailedError('The server did not return a job id.')
+    logs.value.push('Design queued on the server.')
+
+    const designResult = await pollForResult(
+      jobId, 'design', designPatienceMs,
+      'Designing and evaluating candidate compositions...')
     result.value = designResult
 
-    if (designResult.design_status === 'incomplete' && designResult.issues?.length > 0) {
+    if (designResult.design_status === 'unreviewed') {
+      // The composition is valid; only the agent review failed to parse. Not
+      // "completed with issues" -- that phrasing describes a design that ran
+      // and missed its targets, which is a different thing entirely.
+      logs.value.push('Design complete, but the agent review did not finish - showing physics estimates.')
+    } else if (designResult.design_status === 'incomplete' && designResult.issues?.length > 0) {
       logs.value.push('Design completed with issues.')
     } else if (designResult.error) {
       logs.value.push('Error: ' + designResult.error)
@@ -366,6 +482,12 @@ const runDesign = async (isRetry = false) => {
     stopLoading(); retryCount.value = 0
   } catch (err) {
     stopLoading()
+    if (err instanceof JobFailedError) {
+      console.error('Design job failed:', err.message)
+      errorType.value = 'server'
+      error.value = messageFromResultError(err.message)
+      return
+    }
     const kind = classifyError(err)
     if (kind === 'cancelled') { logs.value.push('Design cancelled.'); return }
     console.error('Design error:', err)
