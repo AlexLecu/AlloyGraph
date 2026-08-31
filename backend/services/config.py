@@ -1,4 +1,5 @@
 import logging
+import threading
 
 from openai import OpenAI
 
@@ -31,18 +32,29 @@ class LLMConfig:
     PROVIDER = None
 
     _client = None
+    # Guards construction below. Under gthread every chat request is a thread,
+    # so the check-then-act on _client is genuinely concurrent.
+    _client_lock = threading.Lock()
 
     @classmethod
     def get_client(cls) -> OpenAI | None:
-        """Return a singleton chat client, or None if no provider is usable."""
+        """Return a singleton chat client, or None if no provider is usable.
+
+        Double-checked locking: constructing two OpenAI clients would be
+        harmless in itself (the client is thread-safe and cheap), but MODEL and
+        PROVIDER are published as class attributes and a second concurrent
+        resolution could interleave with a reader of get_model().
+        """
         if cls._client is None:
-            resolved = resolve_chat_endpoint()
-            if resolved is None:
-                return None
-            base_url, api_key, model, provider = resolved
-            cls.MODEL = model
-            cls.PROVIDER = provider
-            cls._client = OpenAI(api_key=api_key, base_url=base_url)
+            with cls._client_lock:
+                if cls._client is None:
+                    resolved = resolve_chat_endpoint()
+                    if resolved is None:
+                        return None
+                    base_url, api_key, model, provider = resolved
+                    cls.MODEL = model
+                    cls.PROVIDER = provider
+                    cls._client = OpenAI(api_key=api_key, base_url=base_url)
         return cls._client
 
     @classmethod

@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import joblib
 import os
+import threading
 import logging
 from .feature_engineering import compute_alloy_features
 
@@ -22,6 +23,8 @@ def flatten_dict(d, parent_key='', sep='_'):
 
 # Singleton Trace
 _SHARED_PREDICTOR = None
+# Guards construction of the singleton above; see get_shared_predictor.
+_PREDICTOR_LOCK = threading.Lock()
 
 # Active model generation. v2 was trained after the Vegard/lattice-mismatch fix
 # (Ni given its correct 0.0 coefficient, unlisted elements no longer picking up
@@ -73,14 +76,35 @@ def resolve_model_dir(model_dir=None):
 class AlloyPredictor:
     @staticmethod
     def get_shared_predictor(model_dir=None):
-        """Returns a singleton instance of AlloyPredictor to avoid reloading models."""
+        """Returns a singleton instance of AlloyPredictor to avoid reloading models.
+
+        Locked because this is a check-then-act on shared state and the server
+        is multi-threaded: background job threads already call it concurrently,
+        and under gthread request threads do too. Unsynchronised, two threads
+        arriving together both saw None and both constructed -- each loading
+        four model pickles, ~275 MB and a couple of seconds, for a result one of
+        them then discarded. Worse, `_SHARED_PREDICTOR` was published before
+        `_model_dir` was attached, so a third thread could observe the instance
+        mid-initialisation and take the mismatch-warning branch against a
+        missing attribute.
+
+        Double-checked inside the lock so the steady-state path stays a plain
+        attribute read for all but the first caller.
+        """
         model_dir = resolve_model_dir(model_dir)
 
         global _SHARED_PREDICTOR
         if _SHARED_PREDICTOR is None:
-            _SHARED_PREDICTOR = AlloyPredictor(model_dir)
-            _SHARED_PREDICTOR._model_dir = model_dir
-        elif getattr(_SHARED_PREDICTOR, '_model_dir', None) != model_dir:
+            with _PREDICTOR_LOCK:
+                if _SHARED_PREDICTOR is None:
+                    predictor = AlloyPredictor(model_dir)
+                    # Attach before publishing, so no thread can see a
+                    # half-initialised singleton.
+                    predictor._model_dir = model_dir
+                    _SHARED_PREDICTOR = predictor
+                    return _SHARED_PREDICTOR
+
+        if getattr(_SHARED_PREDICTOR, '_model_dir', None) != model_dir:
             logger.warning(
                 "AlloyPredictor singleton already initialized with model_dir=%s; "
                 "ignoring request for %s",
