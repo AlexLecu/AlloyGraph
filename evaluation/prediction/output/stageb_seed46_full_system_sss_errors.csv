@@ -1,0 +1,2 @@
+alloy,temperature,error,stage
+ATI Allegheny Ludlum AL 276™ Nickel-Base Alloy,538.0,litellm.InternalServerError: InternalServerError: DeepinfraException - Connection error.,crew_execution

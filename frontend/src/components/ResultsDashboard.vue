@@ -22,7 +22,7 @@ const props = defineProps({
   maxRetries: { type: Number, default: 3 },
 })
 
-const emit = defineEmits(['retry', 'dismiss-error', 'copy-to-evaluation'])
+const emit = defineEmits(['retry', 'dismiss-error', 'copy-to-evaluation', 'cancel'])
 
 // --- HELPERS ---
 const parseVal = (v) => {
@@ -66,6 +66,23 @@ const hasUsefulPredictionInfo = (results) => {
   return hasMatch || hasTcpWarning
 }
 
+// A run can return HTTP 200 with a result object that carries nothing usable:
+// the agent pipeline failed, status is FAIL/UNKNOWN and properties is empty.
+// Reproduced against the live backend. Every panel below is guarded on its own
+// content, so such a result previously rendered a dashboard containing only a
+// status chip -- an apparently successful run with no output.
+const hasNoUsableOutput = (results) => {
+  if (!results) return false
+  return results.formattedProps.length === 0
+    && !results.comp
+    && results.physicsMetrics.length === 0
+    && results.issues.length === 0
+    && !results.explanation
+    && !results.summary
+    && !results.analystReasoning
+    && !results.reviewerAssessment
+}
+
 const formatMetricLabel = (key) => {
   const labelMap = {
     'md_average': 'Md Temperature (avg)', 'sss_wt_pct': 'Solid Solution Strengthening (wt%)',
@@ -94,20 +111,38 @@ const getOverestimationWarning = (prop, actual, upper, confidence) => {
 }
 
 const getErrorTitle = (type) => {
-  const titles = { network: 'Connection Error', timeout: 'Timeout Error', validation: 'Validation Error', server: 'Server Error' }
-  return titles[type] || 'Unexpected Error'
+  const titles = {
+    network: "Can't reach the backend",
+    no_response: 'No response from the backend',
+    timeout: 'This run took too long',
+    validation: 'Check the inputs',
+    server: 'The backend hit an error',
+    cancelled: 'Run cancelled',
+  }
+  return titles[type] || 'Something went wrong'
 }
 
+// Advice has to match the mode. Evaluation has no iteration count and no
+// targets, so suggesting "increase max iterations" there sends the user looking
+// for a control that is not on screen.
 const getErrorRecoveryActions = (type) => {
-  const actions = {
-    network: ['Check your internet connection', 'Verify backend is running on port 5001', 'Retry the operation'],
-    no_response: ['Check browser console for detailed error', 'Verify backend is running', 'Check for CORS issues', 'Retry the operation'],
-    timeout: ['Reduce max iterations', 'Try with simpler targets', 'Retry the operation'],
-    validation: ['Increase max iterations (try 5-10)', 'Relax target constraints', 'Try different starting composition', 'Adjust gamma prime target if needed'],
-    server: ['Wait a moment and retry', 'Check backend logs', 'Contact support if persists'],
-    unknown: ['Retry the operation', 'Check browser console for details', 'Contact support']
+  const design = props.mode === 'auto'
+  const shared = {
+    network: ['Check that the backend is running', 'Check your network connection', 'Retry'],
+    no_response: ['The backend may still be starting up', 'Give it a moment, then retry'],
+    server: ['This is a backend-side failure, not your input', 'Wait a moment and retry',
+             'If it persists, check the backend logs'],
+    cancelled: ['Retry when ready'],
+    unknown: ['Retry', 'If it persists, check the backend logs']
   }
-  return actions[type] || actions.unknown
+  const byMode = design ? {
+    timeout: ['Reduce the iteration count', 'Relax the target properties', 'Retry'],
+    validation: ['Check the target values are reachable', 'Relax the tightest target', 'Retry'],
+  } : {
+    timeout: ['Retry — the model may be warming up', 'Try a lower temperature value'],
+    validation: ['Check the composition sums to about 100%', 'Check for out-of-range element values'],
+  }
+  return { ...shared, ...byMode }[type] || shared.unknown
 }
 
 // --- PROPERTY COMPARISONS (design mode) ---
@@ -128,7 +163,10 @@ const propertyComparisons = computed(() => {
   ]
 
   for (const prop of propMap) {
-    if (prop.target > 0 || (prop.isMax && prop.target < 99)) {
+    // Same convention as the form: 0 means "not set", for maximum-type targets
+    // too. Without the > 0 test a density target of 0 produced a comparison row
+    // reading "Target: <= 0 g/cm3" with actual/0 rendered as "Infinity%".
+    if (prop.target > 0 && (!prop.isMax || prop.target < 99)) {
       const actualVal = parseVal(lookUpProp(actualProps, prop.key))
       if (actualVal !== null) {
         const interval = propertyIntervals[prop.key] || {}
@@ -138,7 +176,7 @@ const propertyComparisons = computed(() => {
         }
 
         let met, status, exceeds = false
-        let percentage = Math.round((actualVal / prop.target) * 100)
+        let percentage = prop.target ? Math.round((actualVal / prop.target) * 100) : 0
 
         if (prop.isMax) {
           met = actualVal <= prop.target; exceeds = !met; status = met ? 'In Range' : 'Too High'
@@ -174,7 +212,12 @@ const parsedResults = computed(() => {
   if (!props.result) return null
   const data = props.result
 
-  let comp = data.composition || props.manualComp
+  // In design mode the composition must come from the backend. Falling back to
+  // the user's own input would label what they typed as the "Suggested
+  // Composition" the designer produced -- which is worse than showing nothing.
+  const returnedComp = data.composition && Object.keys(data.composition).length
+    ? data.composition : null
+  let comp = props.mode === 'auto' ? returnedComp : (returnedComp || props.manualComp)
   const rawProps = data.properties || {}
   const propertyIntervals = data.property_intervals || {}
   const confidence = data.confidence || {}
@@ -316,6 +359,7 @@ const copyToEvaluation = () => {
       </div>
       <div class="pipeline-footer">
         <span class="elapsed-time">{{ elapsedSeconds }}s elapsed</span>
+        <button class="pipeline-cancel" @click="emit('cancel')" title="Stop this run">Stop</button>
       </div>
       <div v-if="logs.length > 0" class="logs-scroll">
         <div v-for="(log, i) in logs" :key="i" class="log-line">{{ log }}</div>
@@ -323,7 +367,24 @@ const copyToEvaluation = () => {
     </div>
 
     <!-- RESULTS DASHBOARD -->
-    <div v-if="parsedResults" class="results-dashboard">
+    <div v-if="parsedResults && hasNoUsableOutput(parsedResults)" class="empty-result glass-card" role="status">
+      <div class="empty-result-icon">⚠️</div>
+      <h3 class="empty-result-title">The run finished without producing a prediction</h3>
+      <p class="empty-result-body">
+        The request reached the backend and returned, but the analysis pipeline
+        came back empty<span v-if="parsedResults.status && parsedResults.status !== 'UNKNOWN'">
+        (status: {{ parsedResults.status }})</span>. This usually means the
+        agent stage could not complete.
+      </p>
+      <div class="empty-result-actions">
+        <button class="retry-btn" @click="emit('retry')">Try again</button>
+      </div>
+      <div v-if="logs.length > 0" class="logs-scroll">
+        <div v-for="(log, i) in logs" :key="i" class="log-line">{{ log }}</div>
+      </div>
+    </div>
+
+    <div v-else-if="parsedResults" class="results-dashboard">
       <div class="dashboard-header">
         <h3>Analysis Complete at {{ result.temperature || temperature }}°C</h3>
         <p class="summary-text">{{ parsedResults.summary }}</p>
@@ -346,7 +407,7 @@ const copyToEvaluation = () => {
       </div>
 
       <!-- Composition (design mode) -->
-      <div v-if="parsedResults.comp && mode === 'auto'" class="final-comp-section">
+      <div v-if="parsedResults.comp && Object.keys(parsedResults.comp).length && mode === 'auto'" class="final-comp-section">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
           <h4 style="margin: 0;">Suggested Composition</h4>
           <button @click="copyToEvaluation" class="copy-btn" title="Copy to Evaluation Mode">Copy to Evaluation</button>
@@ -372,7 +433,7 @@ const copyToEvaluation = () => {
               <span class="comparison-target">Target: {{ comp.isMax ? '\u2264' : '\u2265' }} {{ comp.target }} {{ comp.unit }}</span>
               <span class="comparison-actual">
                 Predicted: <AnimatedNumber :value="comp.actual" :decimals="comp.key.includes('Density') ? 2 : 1" /> {{ comp.unit }}
-                <span v-if="comp.plusMinus" class="comparison-interval-discrete">\u00B1{{ comp.plusMinus }}</span>
+                <span v-if="comp.plusMinus" class="comparison-interval-discrete">±{{ comp.plusMinus }}</span>
               </span>
             </div>
             <div class="comparison-bar-container">
@@ -394,7 +455,7 @@ const copyToEvaluation = () => {
               <AnimatedNumber :value="prop.val" :decimals="prop.label.includes('Density') ? 2 : 1" />
               <small>{{ prop.unit }}</small>
             </div>
-            <div v-if="prop.interval" class="prop-interval-discrete">\u00B1{{ prop.interval }} {{ prop.unit }}</div>
+            <div v-if="prop.interval" class="prop-interval-discrete">±{{ prop.interval }} {{ prop.unit }}</div>
           </div>
         </div>
       </div>
@@ -421,7 +482,7 @@ const copyToEvaluation = () => {
         <div class="issues-list">
           <div v-for="(penalty, i) in parsedResults.auditPenalties" :key="'penalty-'+i" class="issue-item severity-high">
             <div class="issue-header">
-              <span class="issue-icon">\uD83D\uDD34</span>
+              <span class="issue-icon">🔴</span>
               <span class="issue-type">{{ penalty.name }}</span>
               <span class="issue-severity">{{ penalty.value }}</span>
             </div>
@@ -449,7 +510,7 @@ const copyToEvaluation = () => {
           <div v-for="(corr, i) in parsedResults.correctionsApplied" :key="'corr-'+i" class="correction-item">
             <div class="correction-header">
               <span class="correction-prop">{{ corr.property_name }}</span>
-              <span class="correction-arrow">{{ (Number(corr.original_value) || 0).toFixed(1) }} \u2192 {{ (Number(corr.corrected_value) || 0).toFixed(1) }}</span>
+              <span class="correction-arrow">{{ (Number(corr.original_value) || 0).toFixed(1) }} → {{ (Number(corr.corrected_value) || 0).toFixed(1) }}</span>
             </div>
             <div class="correction-reason">{{ corr.correction_reason }}</div>
             <div v-if="corr.physics_constraint" class="correction-constraint">{{ corr.physics_constraint }}</div>
@@ -546,11 +607,34 @@ const copyToEvaluation = () => {
 .pipeline-track { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; }
 .pipeline-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-subtle); transition: all 0.3s ease; }
 .pipeline-dot.active { width: 10px; height: 10px; background: var(--primary, #00d4ff); box-shadow: 0 0 8px rgba(0, 212, 255, 0.5); }
-.pipeline-footer { display: flex; align-items: center; justify-content: center; padding-top: 0.5rem; border-top: 1px solid var(--border-subtle); }
-.pipeline-footer .elapsed-time { font-size: 0.8rem; color: var(--text-muted); font-family: monospace; }
+.pipeline-footer { display: flex; align-items: center; justify-content: center; gap: 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--border-subtle); }
+.pipeline-footer .pipeline-cancel {
+  background: transparent;
+  border: 1px solid var(--border-color, rgba(128, 128, 128, 0.35));
+  color: var(--text-secondary, #888);
+  border-radius: 6px;
+  padding: 3px 12px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.pipeline-cancel:hover {
+  background: rgba(220, 80, 80, 0.12);
+  border-color: rgba(220, 80, 80, 0.5);
+  color: #d9534f;
+}
+
+.elapsed-time { font-size: 0.8rem; color: var(--text-muted); font-family: monospace; }
 .logs-scroll { max-height: 150px; overflow-y: auto; text-align: left; font-family: monospace; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-subtle); padding-top: 10px; }
 
 /* Results Dashboard */
+.empty-result { text-align: center; padding: 2rem 1.5rem; }
+.empty-result-icon { font-size: 2rem; line-height: 1; margin-bottom: 0.6rem; }
+.empty-result-title { font-size: 1.05rem; margin: 0 0 0.5rem; color: var(--text-primary); }
+.empty-result-body { font-size: 0.9rem; color: var(--text-secondary); max-width: 46ch; margin: 0 auto 1rem; line-height: 1.6; }
+.empty-result-actions { display: flex; justify-content: center; gap: 0.6rem; }
+.empty-result-actions .retry-btn { flex: 0 0 auto; min-width: 140px; }
+
 .results-dashboard { color: var(--text-primary); }
 .dashboard-header { border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; margin-bottom: 1.5rem; }
 .summary-text { font-style: italic; color: var(--text-secondary); margin-top: 0.5rem; font-size: 1.1rem; line-height: 1.4; }

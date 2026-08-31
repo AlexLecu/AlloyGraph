@@ -93,10 +93,14 @@ const updateField = (field, val) => {
 .small-input, .small-select { width: 100px; background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-primary); padding: var(--space-xs) var(--space-sm); font-size: var(--font-size-sm); }
 
 
-.primary-btn { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: transform 0.1s; }
+.primary-btn { background: var(--primary); color: white; border: none; padding: var(--space-sm) var(--space-lg); border-radius: var(--radius-lg); font-size: var(--font-size-md, 1rem); font-weight: var(--font-weight-semibold); font-family: var(--font-family); cursor: pointer; transition: transform var(--transition-base), background var(--transition-base); }
 .primary-btn:hover { background: var(--primary-dark); transform: scale(1.02); }
 .primary-btn:disabled { background: var(--bg-elevated); color: var(--text-muted); cursor: not-allowed; }
-.magic-btn { background: linear-gradient(135deg, #6610f2, #d63384); }
+/* Design is the app's other primary action; it keeps the gradient that
+   already marks primary actions elsewhere (.retry-btn), but drawn from the
+   theme palette rather than the off-palette Bootstrap indigo/pink it used. */
+.magic-btn { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
+.magic-btn:hover:not(:disabled) { background: linear-gradient(135deg, var(--primary-light), var(--secondary)); }
 
 @media (max-width: 768px) {
   .panel { padding: 1rem; }

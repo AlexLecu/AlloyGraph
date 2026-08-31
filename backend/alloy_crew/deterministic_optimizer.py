@@ -267,10 +267,11 @@ def _get_blended_predictions(composition: dict, temperature_c: int,
             empirical_el = max(4.0, 18 - 0.25 * gp)
         blended_el = 0.50 * ml_el + 0.50 * empirical_el
 
-    # EM: always blend with Reuss bound (matches evaluator's EM enforcement)
-    em_reuss = calculate_em_rule_of_mixtures(composition)
+    # EM: always blend with the Voigt-Reuss-Hill average (matches the
+    # evaluator's EM enforcement)
+    em_vrh = calculate_em_rule_of_mixtures(composition)
     em_temp_factor = get_em_temp_factor(temperature_c)
-    physics_em = em_reuss * em_temp_factor
+    physics_em = em_vrh * em_temp_factor
     blended_em = 0.30 * ml_em + 0.70 * physics_em
 
     return {

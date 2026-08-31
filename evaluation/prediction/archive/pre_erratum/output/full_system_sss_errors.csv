@@ -1,0 +1,51 @@
+alloy,temperature,error,stage
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,538.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,649.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,760.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,21.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,93.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,204.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,316.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,427.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,538.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,649.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,704.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,760.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,-196.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,-78.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,20.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,200.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,204.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,427.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,600.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,649.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,800.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,871.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,1000.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,1093.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,1204.0,"litellm.BadRequestError: GroqException - {""error"":{""message"":""Organization has blocked API access because a spend alert threshold was met. Please visit https://console.groq.com/settings/billing to manage your spend alerts."",""type"":""invalid_request_error"",""code"":""spend_limit_reached""}}
+",crew_execution

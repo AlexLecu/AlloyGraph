@@ -1,0 +1,172 @@
+{
+  "description": "Every record that a source file offers and the evaluation set does not take. Two kinds: records a stated rule removes, and records removed by the original curation for which the rule, if there was one, did not survive. Both are declared here rather than left to be rediscovered by arithmetic. Same contract as errata_ledger.json: a change means an entry, not new logic.",
+  "sources": [
+    "backend/alloy_crew/models/training_data/test_split_30.jsonl",
+    "backend/superalloy_preprocess/output_data/matweb_original_alloys.jsonl",
+    "backend/superalloy_preprocess/output_data/matweb_alloys.jsonl"
+  ],
+  "targets": [
+    "evaluation/prediction/data/SSS.jsonl",
+    "evaluation/prediction/data/precip.jsonl",
+    "evaluation/prediction/data/sc_ds.jsonl",
+    "evaluation/prediction/data/other.jsonl"
+  ],
+  "rules": [
+    {
+      "id": "R1",
+      "name": "unfeaturisable",
+      "test": "composition is empty",
+      "rationale": "Every model in the comparison reads composition. A record without one cannot be featurised by any arm, so scoring it would measure the fallback path rather than the method. Note this is not what the untouched classifier did: it read the absent nickel as Ni = 0, fell through to 'Ni < 40', and filed the record as Fe-Ni base. The outcome was right by accident and the reason recorded was wrong."
+    },
+    {
+      "id": "R2",
+      "name": "nial_intermetallic",
+      "test": "Al >= 7.0 wt%",
+      "rationale": "Conventional gamma-prime superalloys carry roughly 2-6 wt% Al; above that the strengthening phase is bulk beta-NiAl rather than gamma-prime precipitates in a gamma matrix, and the physics the platform encodes -- gamma-prime volume fraction, lattice mismatch, Morinaga Md -- does not describe the alloy. Tested against both the shipped evaluation set and the 77 training alloys: it removes nothing else from either."
+    },
+    {
+      "id": "R4",
+      "name": "exact_duplicate",
+      "test": "composition distance < 0.01 to a record already accepted",
+      "rationale": "The same alloy reaching the corpus twice under two vendor names or two product descriptions. Scoring both double-counts one alloy and inflates whichever stratum it lands in. Tested against the shipped set: no two accepted records share a composition, so the rule removes nothing that is currently kept."
+    }
+  ],
+  "entries": [
+    {
+      "id": "X01",
+      "alloy": "UNITEMP* AF2-1DA",
+      "source": "test_split_30",
+      "processing": "wrought",
+      "form": "Sheet",
+      "removed_by": "R1",
+      "status": "rule",
+      "rationale": "Composition is an empty object. Yield strength, tensile strength and elongation are present at five temperatures, so the record looks complete until the composition is read.",
+      "disposition": "other"
+    },
+    {
+      "id": "X02",
+      "alloy": "NX188(DS)",
+      "source": "test_split_30",
+      "processing": "cast",
+      "form": null,
+      "removed_by": "R2",
+      "status": "rule",
+      "rationale": "Ni 74, Mo 18, Al 8, C 0.04. A NiAl-based directionally solidified eutectic, not a gamma-prime superalloy: 8 wt% Al is above the conventional range and there is no chromium at all. Independently supported by alloy identity; R2 catches it from composition alone.",
+      "disposition": "dropped"
+    },
+    {
+      "id": "X03",
+      "alloy": "INCONEL* MA758",
+      "source": "test_split_30",
+      "processing": "wrought",
+      "form": null,
+      "removed_by": "declared",
+      "status": "declared",
+      "rationale": "Oxide-dispersion strengthened: mechanically alloyed Ni-30Cr with a Y2O3 dispersion, a strengthening mechanism the platform does not model. The dispersoid is absent from the stored composition, which reads Ni 69 / Cr 30 / Nb 3 / Al 0.3 / Ti 0.5 / Fe 1 / C 0.05 and closes to 103.8 wt%, so no composition-based rule can identify it. Declared by alloy identity rather than derived, and recorded as such.",
+      "why_not_a_rule": "Every composition test that catches this record does collateral damage: 'composition sum > 103 wt%' would also remove 12 shipped evaluation alloys and UDIMET* 630 from the frozen training set.",
+      "disposition": "dropped"
+    },
+    {
+      "id": "X04",
+      "alloy": "TD NiCr",
+      "source": "test_split_30",
+      "processing": "wrought",
+      "form": "Sheet",
+      "removed_by": "declared",
+      "status": "declared",
+      "rationale": "Oxide-dispersion strengthened: thoria-dispersed Ni-20Cr. Same situation as X03 -- the ThO2 is absent from the stored composition, which reads Ni 78 / Cr 20 and nothing else. Declared by alloy identity.",
+      "why_not_a_rule": "'fewer than 3 elements' catches it but would also remove TD Nickel from the training set, which is frozen and must not change.",
+      "disposition": "dropped"
+    },
+    {
+      "id": "X05",
+      "alloy": "MC-102*",
+      "source": "test_split_30",
+      "processing": "cast",
+      "form": null,
+      "removed_by": "historical",
+      "status": "historical",
+      "rationale": "Excluded by the original curation with no surviving rationale, and recorded as a historical exclusion rather than justified after the fact. On the evidence this alloy is IN SCOPE: Ni 64 / Cr 20 / Mo 6 / W 2.5 / Nb 6 / Ta 0.6 / Mn 0.3 / Si 0.25 / C 0.04, closing to 99.7 wt%, with yield strength, tensile strength and elongation at six temperatures. It is a conventional cast Ni-Cr-Mo-Nb alloy of the 625 family; its nearest neighbour in the corpus is Cast Alloy 625 at d = 5.13. By the project's own gamma-prime former index, Al+Ti+Ta+0.35*Nb = 2.70, it is gamma-prime class -- create_categorized_datasets.classify_alloy files it as solid-solution only because that test reads Al and Ti and ignores Nb and Ta.",
+      "why_not_a_rule": "No rule excludes it, and none should. It is kept out only so that the committed results stay reproducible; re-admitting it would change every shipped metric.",
+      "disclosure": "The effect of including it is measured and reported rather than assumed negligible. See evaluation/prediction/results/mc102_sensitivity.md and scripts/mc102_sensitivity.py.",
+      "revisit": "Re-admit at the next results freeze. The evaluation set becomes 89 alloys and every metric moves.",
+      "disposition": "dropped"
+    },
+    {
+      "id": "X06",
+      "alloy": "Haynes CABVAL Hastelloy® G-50™ Grade 140 Ni-Cr-Fe-Mo Alloy",
+      "source": "matweb_alloys",
+      "removed_by": "R4",
+      "status": "rule",
+      "rationale": "Composition identical (d = 0.00) to Grade 100 of the same alloy, which is kept. It also carries no yield strength, tensile strength or elongation at all -- only a modulus -- so it could not be scored on any strength property.",
+      "disposition": "dropped"
+    },
+    {
+      "id": "X07",
+      "alloy": "MM-200",
+      "source": "matweb_original",
+      "removed_by": "R4",
+      "status": "rule",
+      "rationale": "MM-200 is MAR-M* 200 under its abbreviated designation; composition identical (d = 0.00) to the MAR-M* 200 record that is kept.",
+      "disposition": "dropped"
+    },
+    {
+      "id": "X08",
+      "alloy": "Special Metals INCONEL® 622 Nickel Superalloy (UNS N06022) Sheet 0.060 in (1.5 mm)",
+      "source": "matweb_alloys",
+      "removed_by": "R4",
+      "status": "rule",
+      "rationale": "A product-form listing of INCONEL 622, composition identical (d = 0.00) to the INCONEL 622 record that is kept.",
+      "disposition": "dropped"
+    },
+    {
+      "id": "X09",
+      "alloy": "Special Metals INCONEL® Alloy 686 Nickel Superalloy 10% Cold Worked (UNS N06686)",
+      "source": "matweb_alloys",
+      "removed_by": "declared",
+      "status": "declared",
+      "rationale": "A temper listing of INCONEL 686, composition identical (d = 0.00) to the INCONEL 686 record that is kept. R4 does not reach it: the kept record appears later in the source file, so at the moment this one is read there is nothing yet accepted to match against. Declared by alloy identity so the outcome does not depend on file order.",
+      "disposition": "dropped"
+    },
+    {
+      "id": "X10",
+      "alloy": "Special Metals INCONEL® HX Nickel Superalloy (UNS N06002)",
+      "source": "matweb_alloys",
+      "removed_by": "declared",
+      "status": "declared",
+      "rationale": "The same alloy as ATI Altemp® HX (UNS N06002), which is kept: one specification listed by two suppliers. Composition distance is 0.42, not zero, because the two datasheets round differently, so R4 does not reach it and it is declared by UNS number instead.",
+      "disposition": "dropped"
+    },
+    {
+      "id": "X11",
+      "alloy": "TRW-NASA VIA",
+      "source": "matweb_original",
+      "removed_by": "declared",
+      "status": "declared",
+      "rationale": "The same alloy as TRW-NASA VI A, which is kept; the two names differ by a space. Composition distance is 3.40 because this transcription closes to only 95.3 wt% against 99.1 for the kept record, so it is both a duplicate and the poorer of the two transcriptions.",
+      "disposition": "dropped"
+    },
+    {
+      "id": "X12",
+      "alloy": "ATI Allegheny Ludlum AL 825™ Nickel Alloy",
+      "source": "matweb_alloys",
+      "removed_by": "declared",
+      "status": "declared",
+      "rationale": "Composition closes to 67.9 wt%: the record names nickel, chromium and a few minors and omits the balance, which for alloy 825 is roughly 30 wt% iron. The record is incomplete rather than merely impure.",
+      "why_not_a_rule": "A closure threshold cannot separate this from what is kept. Special Metals INCOLOY® alloy 803 is shipped and closes to 65.6 wt%, below both this record and X13, so any rule catching them removes a kept alloy too.",
+      "disposition": "dropped"
+    },
+    {
+      "id": "X13",
+      "alloy": "Special Metals INCOLOY® alloy 908",
+      "source": "matweb_alloys",
+      "removed_by": "declared",
+      "status": "declared",
+      "rationale": "Composition closes to 61.2 wt%, the iron balance omitted. Same defect as X12.",
+      "why_not_a_rule": "See X12.",
+      "disposition": "dropped"
+    }
+  ],
+  "disposition_note": "`disposition` says where an excluded record goes. `other` means it is written to other.jsonl, the bucket for records carried but never evaluated; `dropped` means it leaves the corpus entirely. Only X01 is routed rather than dropped, because that is what the committed other.jsonl holds.",
+  "value_provenance_note": "This list governs MEMBERSHIP only. The category files' cell VALUES are not derivable from the committed sources: 20 of 99 records carry 397 cells the sources do not match, because manufacturer datasheets were read directly between the January extraction and the March evaluation files and no intermediate was kept. It is not a newer MatWeb pass -- MatWeb never held those temperature series. The category files are the artefact of record for their values. See docs/data_curation.md."
+}

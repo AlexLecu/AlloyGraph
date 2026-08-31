@@ -1,0 +1,4 @@
+alloy,temperature,error,stage
+TRW-NASA VI A,21.0,litellm.InternalServerError: InternalServerError: DeepinfraException - Connection error.,crew_execution
+TRW-NASA VI A,1093.0,litellm.InternalServerError: InternalServerError: DeepinfraException - Connection error.,crew_execution
+MAR-M* 200,871.0,litellm.InternalServerError: InternalServerError: DeepinfraException - Connection error.,crew_execution

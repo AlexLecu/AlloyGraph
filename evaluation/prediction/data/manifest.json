@@ -1,0 +1,34 @@
+{
+  "description": "Categorized evaluation datasets for AlloyGraph",
+  "generated_by": "evaluation/prediction/scripts/rebuild_categorized_index.py",
+  "note": "Derived view. The four category files are authoritative; this index is their concatenation and must never be edited directly.",
+  "categories": {
+    "precip_poly": {
+      "name": "Precipitation-hardened Polycrystalline",
+      "criteria": "Ni > 40%, Al+Ti >= 2%, not SC/DS",
+      "count": 38,
+      "file": "precip.jsonl"
+    },
+    "precip_sc_ds": {
+      "name": "Precipitation-hardened SC/DS",
+      "criteria": "Ni > 40%, Al+Ti >= 2%, SC/DS processing",
+      "count": 15,
+      "file": "sc_ds.jsonl"
+    },
+    "solid_solution": {
+      "name": "Solid-Solution Strengthened",
+      "criteria": "Ni > 40%, Al+Ti < 2%",
+      "count": 35,
+      "file": "SSS.jsonl"
+    },
+    "other": {
+      "name": "Other Nickel Alloys",
+      "criteria": "Ni < 40% or Cu > 20% or Ni > 95%",
+      "count": 11,
+      "file": "other.jsonl"
+    }
+  },
+  "evaluated_alloys": 88,
+  "total_records": 99,
+  "generated": "2026-08-23T22:52:51.575830+00:00"
+}

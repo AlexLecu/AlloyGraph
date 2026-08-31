@@ -1,0 +1,17 @@
+alloy,temperature,processing,method,status,pred_ys,actual_ys,pred_uts,actual_uts,pred_el,actual_el,pred_em,actual_em,pred_density,pred_gamma_prime,confidence_level,tcp_risk,corrections_applied,eval_time_sec
+Alloy 783,20.0,wrought,LLM_ONLY,SUCCESS,750,800.0,900,1180.0,20,25.0,210,,,,LOW,N/A,0,7.0
+FSX-414,20.0,cast,LLM_ONLY,SUCCESS,550,1004.0,750,1160.0,10,5.0,210,,,,LOW,N/A,0,5.5
+Haynes 188,20.0,wrought,LLM_ONLY,SUCCESS,850,483.0,1000,965.0,18,45.0,220,,,,LOW,N/A,0,5.7
+L-605,20.0,wrought,LLM_ONLY,SUCCESS,850,520.0,1000,1000.0,20,45.0,240,,,,LOW,N/A,0,6.3
+MM-509,20.0,cast,LLM_ONLY,SUCCESS,650,550.0,900,750.0,10,6.0,210,,,,LOW,N/A,0,5.5
+ATI Allegheny Ludlum AL 200™ Nickel Alloy,20.0,wrought,LLM_ONLY,SUCCESS,90,148.0,250,462.0,50,47.0,200000,81.0,,,LOW,N/A,0,7.1
+ATI Allegheny Ludlum AL 201™ Nickel Alloy,20.0,wrought,LLM_ONLY,SUCCESS,60,103.0,250,403.0,45,50.0,200,81.0,,,LOW,N/A,0,8.8
+ATI Allegheny Ludlum AL 400™ Nickel-Base Alloy,20.0,wrought,LLM_ONLY,SUCCESS,250,240.0,550,520.0,40,45.0,200,180.0,,,LOW,N/A,0,10.0
+Special Metals INCONEL® alloy 783 Ni-Co-Fe Alloy,21.0,wrought,LLM_ONLY,SUCCESS,850,779.0,1100,1194.0,20,24.0,210,67.8,,,LOW,N/A,0,6.1
+Special Metals INCONEL® alloy 783 Ni-Co-Fe Alloy,93.0,wrought,LLM_ONLY,SUCCESS,750,,900,,20,,210,67.0,,,LOW,N/A,0,5.2
+Special Metals INCONEL® alloy 783 Ni-Co-Fe Alloy,316.0,wrought,LLM_ONLY,SUCCESS,800,,1000,,20,,210,65.0,,,LOW,N/A,0,5.8
+Special Metals INCONEL® alloy 783 Ni-Co-Fe Alloy,427.0,wrought,LLM_ONLY,SUCCESS,800,717.0,1000,1076.0,20,25.0,200,,,,LOW,N/A,0,8.3
+Special Metals INCONEL® alloy 783 Ni-Co-Fe Alloy,538.0,wrought,LLM_ONLY,SUCCESS,700,686.0,800,1034.0,18,25.0,200,62.8,,,LOW,N/A,0,5.2
+Special Metals INCONEL® alloy 783 Ni-Co-Fe Alloy,649.0,wrought,LLM_ONLY,SUCCESS,650,683.0,850,979.0,15,28.0,200,,,,LOW,N/A,0,5.3
+Special Metals INCONEL® alloy 783 Ni-Co-Fe Alloy,704.0,wrought,LLM_ONLY,SUCCESS,450,607.0,600,807.0,18,39.0,160,58.6,,,LOW,N/A,0,6.0
+Special Metals INCONEL® alloy 783 Ni-Co-Fe Alloy,927.0,wrought,LLM_ONLY,SUCCESS,350,,500,,20,,130,49.8,,,LOW,N/A,0,6.2

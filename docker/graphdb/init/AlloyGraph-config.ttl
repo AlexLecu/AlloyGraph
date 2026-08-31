@@ -1,0 +1,37 @@
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rep: <http://www.openrdf.org/config/repository#> .
+@prefix sr: <http://www.openrdf.org/config/repository/sail#> .
+@prefix sail: <http://www.openrdf.org/config/sail#> .
+@prefix graphdb: <http://www.ontotext.com/config/graphdb#> .
+
+[] a rep:Repository ;
+    rep:repositoryID "AlloyGraph" ;
+    rdfs:label "AlloyGraph - Nickel Superalloy Knowledge Graph" ;
+    rep:repositoryImpl [
+        rep:repositoryType "graphdb:SailRepository" ;
+        sr:sailImpl [
+            sail:sailType "graphdb:Sail" ;
+
+            # Enable RDFS reasoning
+            graphdb:ruleset "rdfs" ;
+
+            # Enable OWL reasoning (basic)
+            graphdb:check-for-inconsistencies "true" ;
+
+            # Query optimization
+            graphdb:query-timeout "0" ;
+            graphdb:query-limit-results "0" ;
+
+            # Entity indexing
+            graphdb:entity-index-size "10000000" ;
+            graphdb:entity-id-size "32" ;
+
+            # Full-text search
+            graphdb:enableFtsIndex "true" ;
+            graphdb:fts-indexes ("default" "iri") ;
+
+            # Performance settings
+            graphdb:throw-QueryEvaluationException-on-timeout "false" ;
+            graphdb:read-only "false" ;
+        ]
+    ] .

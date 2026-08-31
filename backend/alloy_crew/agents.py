@@ -1,6 +1,7 @@
 from crewai import Agent
 import os
 import logging
+from pathlib import Path
 from dotenv import load_dotenv
 from crewai import LLM
 
@@ -11,7 +12,25 @@ from .tools.rag_tools import AlloySearchTool
 
 from .tools.quick_check_tool import QuickCheckTool
 
-load_dotenv()
+#: The one place .env is allowed to live: the repository root.
+#:
+#: This was a bare load_dotenv(), which walks up from the *current working
+#: directory*. Whether the keys were found therefore depended on where the
+#: process happened to be launched from -- `python backend/app.py` from the root
+#: worked, other entry points silently found nothing and the provider resolution
+#: fell through to a local Ollama model that is not installed. Resolving the
+#: path from this file removes the cwd dependency entirely.
+REPO_ROOT = Path(__file__).resolve().parents[2]
+ENV_PATH = REPO_ROOT / ".env"
+load_dotenv(ENV_PATH)
+
+#: Cap on tool-use iterations per agent. CrewAI defaults to 25, which lets the
+#: Analyst and Reviewer together reach ~56 LLM calls on a single row -- observed
+#: at ~2M prompt tokens, 32x the median row and 76% of projected campaign spend.
+#: The runaway is stochastic rather than tied to particular alloys, so a hard cap
+#: is the only reliable bound. Healthy rows use 8-12 calls across both agents,
+#: so 8 per agent leaves normal work untouched.
+MAX_AGENT_ITER = 8
 
 # ---------------------------------------------------------
 # AGENT 1: The Designer (Synthesis Lead)
@@ -32,7 +51,7 @@ def create_designer_agent(llm=None, memory=False):
 
             "PROPERTY FORMULAS (use to compute required γ'):\n"
             "- Wrought: YS ≈ 520+13×γ'%, EL ≈ 28-0.28×γ'%. Cast: YS ≈ 400+10×γ'%, EL ≈ 18-0.25×γ'%.\n"
-            "- UTS ≈ YS × 1.3-1.5 (wrought), × 1.1-1.3 (cast). EM ≈ Reuss bound; W(411), Mo(329) boost it.\n"
+            "- UTS ≈ YS × 1.3-1.5 (wrought), × 1.1-1.3 (cast). EM ≈ Voigt-Reuss-Hill average; W(411), Mo(329) boost it.\n"
             "- Match ALL targets within ±10%. Do not over-engineer.\n\n"
 
             "ALLOY CLASSES:\n"
@@ -50,6 +69,7 @@ def create_designer_agent(llm=None, memory=False):
         tools=[QuickCheckTool()],
         verbose=True,
         allow_delegation=False,
+        max_iter=MAX_AGENT_ITER,
         memory=memory,
         llm=llm
     )
@@ -81,6 +101,7 @@ def create_analyst_agent(llm=None, memory=False):
         tools=[AlloySearchTool()],
         verbose=True,
         allow_delegation=False,
+        max_iter=MAX_AGENT_ITER,
         memory=memory,
         llm=llm
     )
@@ -108,40 +129,174 @@ def create_reviewer_agent(llm=None, memory=False):
         tools=[MetallurgyVerifierTool(), AlloySearchTool()],
         verbose=True,
         allow_delegation=False,
+        max_iter=MAX_AGENT_ITER,
         memory=memory,
         llm=llm
     )
+
+
 
 # ---------------------------------------------------------
 # Agent Factories
 # ---------------------------------------------------------
 
+class _CacheBreakpointSafeLLM(LLM):
+    """CrewAI LLM that strips the ``cache_breakpoint`` marker before dispatch.
+
+    crewai >= 1.15 tags stable prompt prefixes with ``cache_breakpoint: True``
+    so provider adapters can translate it into their own caching directive.
+    The adapters strip it in ``base_llm``, but the litellm-backed ``LLM`` class
+    used for Groq and other pass-through providers never does, so the flag
+    reaches the API as an unknown message property. Groq rejects it outright:
+
+        GroqException - 'messages.0' : for 'role:system' the following must be
+        satisfied[('messages.0' : property 'cache_breakpoint' is unsupported)]
+
+    Stripping here is safe for every provider: the marker is metadata for
+    adapters, never content, and dropping it only forgoes an optional caching
+    optimisation. Remove this shim once crewai strips it on the litellm path.
+    """
+
+    def _format_messages_for_provider(self, messages):
+        formatted = super()._format_messages_for_provider(messages)
+        return [
+            {k: v for k, v in m.items() if k != "cache_breakpoint"}
+            if isinstance(m, dict) else m
+            for m in formatted
+        ]
+
+
+#: Minimum plausible length and required prefix for each provider's API key.
+#: A value that fails this is treated as absent rather than passed to the API,
+#: so provider selection can never be hijacked by a placeholder such as "sk-".
+_KEY_SHAPES = {
+    # DeepInfra keys carry no distinctive prefix, so length is the only check.
+    "DEEPINFRA_API_KEY": ("", 24),
+    "TOGETHER_API_KEY": ("tgp_", 30),
+    "GROQ_API_KEY": ("gsk_", 20),
+    "OPENAI_API_KEY": ("sk-", 20),
+}
+
+
+def _sanitised_key(env_var: str) -> str:
+    """The key value if it looks real, otherwise an empty string.
+
+    Private on purpose. It returns secret material, so it is named to make that
+    obvious at the call site and is only used where the value is actually
+    needed -- constructing the LLM client. Use ``valid_api_key`` for checks.
+
+    Placeholder values are common in checked-in .env templates ("sk-",
+    "your-key-here", ""). Left unchecked they are truthy, so a bare "sk-" will
+    silently win provider selection over an unset-but-intended provider and
+    every call then fails 401. Failing fast here is much cheaper than
+    discovering it part-way through a campaign.
+    """
+    raw = (os.getenv(env_var) or "").strip().strip("\"'")
+    if not raw:
+        return ""
+
+    prefix, min_len = _KEY_SHAPES.get(env_var, ("", 20))
+    placeholder = raw.lower() in {"none", "null", "changeme", "todo"} or "your" in raw.lower()
+
+    if placeholder or len(raw) < min_len or (prefix and not raw.startswith(prefix)):
+        logger.warning(
+            "%s is set but does not look like a real key (len=%d, expected prefix %r, "
+            "minimum length %d) — ignoring it for provider selection.",
+            env_var, len(raw), prefix, min_len,
+        )
+        return ""
+    return raw
+
+
+def valid_api_key(env_var: str) -> bool:
+    """True when the environment holds a plausibly real key for ``env_var``.
+
+    Returns a boolean and never the secret. It previously returned the key
+    itself, which reads as a predicate at every call site: writing
+    ``print(valid_api_key("DEEPINFRA_API_KEY"))`` to check configuration
+    printed the key. That happened, and the key had to be rotated.
+    """
+    return bool(_sanitised_key(env_var))
+
+
 def _resolve_llm(llm=None, temperature=0.1):
-    """Resolve LLM instance. Priority: Groq > OpenAI > Local Ollama."""
+    """Resolve the agent LLM. Priority: DeepInfra > Together > Groq > OpenAI > Ollama.
+
+    The published configuration is Llama 3.3 70B. Groq decommissioned that
+    model on 2026-08-16. DeepInfra and Together both serve the same weights as
+    meta-llama/Llama-3.3-70B-Instruct-Turbo; DeepInfra is preferred on cost.
+    Groq remains in the chain for other models and for accounts holding access.
+
+    Only keys passing valid_api_key() are considered, so a malformed value is
+    skipped rather than selected and then rejected by the provider.
+
+    ALLOYGRAPH_LLM_MODEL overrides the model for whichever provider is chosen.
+    Give it the provider-native id (e.g. meta-llama/Llama-3.3-70B-Instruct);
+    the litellm provider prefix is added automatically. Any override must be
+    recorded with the results -- it is not the published configuration.
+    """
     if llm is not None:
         return llm
 
-    groq_key = os.getenv("GROQ_API_KEY")
-    openai_key = os.getenv("OPENAI_API_KEY")
+    # ALLOYGRAPH_LLM_TEMPERATURE overrides the caller's default. The evaluation
+    # harness sets it when --seed is given: previously the harness only built an
+    # explicit LLM when --llm was also passed, so a seeded run silently used the
+    # 0.1 default while printing "sampling temperature forced to 0.0".
+    _t_override = (os.getenv("ALLOYGRAPH_LLM_TEMPERATURE") or "").strip()
+    if _t_override:
+        try:
+            temperature = float(_t_override)
+        except ValueError:
+            logger.warning("ALLOYGRAPH_LLM_TEMPERATURE=%r is not a number; ignoring.", _t_override)
 
-    if groq_key:
-        logger.info("Using Groq Cloud Inference: llama-3.3-70b-versatile (T=%.1f)", temperature)
-        return LLM(
-            model="groq/llama-3.3-70b-versatile",
+    deepinfra_key = _sanitised_key("DEEPINFRA_API_KEY")
+    together_key = _sanitised_key("TOGETHER_API_KEY")
+    groq_key = _sanitised_key("GROQ_API_KEY")
+    openai_key = _sanitised_key("OPENAI_API_KEY")
+
+    override = (os.getenv("ALLOYGRAPH_LLM_MODEL") or "").strip()
+
+    if deepinfra_key:
+        model = override or "meta-llama/Llama-3.3-70B-Instruct-Turbo"
+        logger.info("LLM provider: DeepInfra — %s (T=%.1f)", model, temperature)
+        return _CacheBreakpointSafeLLM(
+            model=f"deepinfra/{model}",
+            api_key=deepinfra_key,
+            temperature=temperature,
+            num_retries=3,
+        )
+    elif together_key:
+        model = override or "meta-llama/Llama-3.3-70B-Instruct-Turbo"
+        logger.info("LLM provider: Together AI — %s (T=%.1f)", model, temperature)
+        return _CacheBreakpointSafeLLM(
+            model=f"together_ai/{model}",
+            api_key=together_key,
+            temperature=temperature,
+            num_retries=3,
+        )
+    elif groq_key:
+        model = override or "llama-3.3-70b-versatile"
+        logger.info("LLM provider: Groq — %s (T=%.1f)", model, temperature)
+        return _CacheBreakpointSafeLLM(
+            model=f"groq/{model}",
             api_key=groq_key,
             temperature=temperature,
             num_retries=3,
         )
     elif openai_key:
-        logger.info("Using OpenAI: gpt-4o-mini (T=%.1f)", temperature)
-        return LLM(
-            model="gpt-4o-mini",
+        model = override or "gpt-4o-mini"
+        logger.info("LLM provider: OpenAI — %s (T=%.1f)", model, temperature)
+        return _CacheBreakpointSafeLLM(
+            model=model,
             api_key=openai_key,
             temperature=temperature,
         )
     else:
-        logger.info("Using Local Inference: ollama/llama3.1:8b (T=%.1f)", temperature)
-        return LLM(
+        logger.warning(
+            "LLM provider: local Ollama — llama3.1:8b (T=%.1f). No usable cloud API "
+            "key was found; results will NOT be comparable to a hosted run.", temperature
+        )
+        return _CacheBreakpointSafeLLM(
             model="ollama/llama3.1:8b",
             temperature=temperature,
         )
@@ -182,7 +337,11 @@ def get_design_agents(llm=None):
     design_llm = _resolve_llm(llm, temperature=0.4)
 
     return {
-        "designer": create_designer_agent(design_llm, memory=True),
+        # memory=False: the docstring on get_evaluation_agents promises "No
+        # memory - ensures deterministic, reproducible results", but the Designer
+        # was carrying a persistent read-write LanceDB store that survives across
+        # runs, so identical inputs could yield different compositions.
+        "designer": create_designer_agent(design_llm, memory=False),
         "analyst": create_analyst_agent(eval_llm, memory=False),
         "reviewer": create_reviewer_agent(eval_llm, memory=False),
         "llm": eval_llm,  # For direct summary call
