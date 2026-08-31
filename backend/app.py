@@ -108,13 +108,14 @@ def validate_alloy():
     return jsonify({"job_id": job_id, "status": job_store.STATUS_PENDING}), 202
 
 
-@app.route('/api/validate/status/<job_id>', methods=['GET'])
-def validate_status(job_id):
-    """Report a job's state, with the result when done or the error when failed.
+def _job_status_response(job_id, expected_kind):
+    """Shared status handler for every job kind.
 
     404 for an unknown id. That covers a typo, an id from before a container
     restart (the store is deliberately non-durable), and one whose finished row
-    has passed its TTL.
+    has passed its TTL. A real id polled at the wrong kind's URL is also a 404:
+    ids are unique across kinds, so this can only be a client bug, and saying
+    "unknown here" beats returning a design result to code expecting a validate.
     """
     try:
         job = job_store.get_job(job_id)
@@ -122,7 +123,10 @@ def validate_status(job_id):
         logger.error("Job store read failed for %s: %s", job_id, e)
         return jsonify({"error": "Could not read job state."}), 500
 
-    if job is None:
+    if job is None or job["kind"] != expected_kind:
+        if job is not None:
+            logger.warning("Job %s is kind=%s but was polled as %s",
+                           job_id, job["kind"], expected_kind)
         return jsonify({
             "error": "Unknown job id. It may have expired or the server "
                      "restarted; please run the analysis again.",
@@ -138,11 +142,92 @@ def validate_status(job_id):
 
     return jsonify(payload), 200
 
+
+@app.route('/api/validate/status/<job_id>', methods=['GET'])
+def validate_status(job_id):
+    """Status of an evaluation job."""
+    return _job_status_response(job_id, "validate")
+
+
+@app.route('/api/design/status/<job_id>', methods=['GET'])
+def design_status(job_id):
+    """Status of an inverse-design job."""
+    return _job_status_response(job_id, "design")
+
+def _run_design(target_props, processing, temperature, max_iter):
+    """The actual inverse design. Runs on a background thread, not in the
+    request.
+
+    Raises on failure; job_store records the exception as the job's error.
+    """
+    logger.info(f"🎨 DESIGN REQUEST: Targets={target_props}, Processing={processing}, Temp={temperature}°C")
+
+    crew = IterativeDesignCrew(target_props)
+    result = crew.loop(max_iterations=max_iter, processing=processing, temperature=temperature)
+
+    # Validate composition if present
+    composition_status = "UNKNOWN"
+    if result.get("composition"):
+        try:
+            validation = AlloyEvaluationCrew.validate_composition(result.get("composition"))
+            if validation.get("warnings"):
+                composition_status = "WARNING"
+            else:
+                composition_status = "VALID"
+        except Exception as e:
+            composition_status = "INVALID"
+            result["composition_validation_error"] = str(e)
+
+    # Sanitize response - include ALL fields to match evaluate mode
+    sanitized_result = {
+        "composition": result.get("composition", {}),
+        "properties": result.get("properties", {}),
+        "property_intervals": result.get("property_intervals", {}),
+        "tcp_risk": result.get("tcp_risk", "Unknown"),
+        "confidence": result.get("confidence", {}),
+        "design_status": result.get("design_status", "success"),
+        "composition_status": composition_status,
+        "status": result.get("status", "UNKNOWN"),
+        "issues": result.get("issues", []),
+        "recommendations": result.get("recommendations", []),
+        "explanation": result.get("explanation", ""),
+        "audit_penalties": result.get("audit_penalties", []),
+        "metallurgy_metrics": result.get("metallurgy_metrics", {}),
+        "penalty_score": result.get("penalty_score", 0.0),
+        "corrections_applied": result.get("corrections_applied", []),
+        "corrections_explanation": result.get("corrections_explanation", ""),
+        "analyst_reasoning": result.get("analyst_reasoning", ""),
+        "reviewer_assessment": result.get("reviewer_assessment", ""),
+        "investigation_findings": result.get("investigation_findings", ""),
+        "source_reliability": result.get("source_reliability", ""),
+    }
+
+    # Include error field if present (for backwards compatibility)
+    if "error" in result:
+        sanitized_result["error"] = result["error"]
+
+    # Include composition validation error if present
+    if "composition_validation_error" in result:
+        sanitized_result["composition_validation_error"] = result["composition_validation_error"]
+
+    # Optionally include reasoning for debugging (but keep it short)
+    if "reasoning" in result and len(str(result["reasoning"])) < 500:
+        sanitized_result["reasoning"] = result["reasoning"]
+
+    return sanitized_result
+
+
 @app.route('/api/design', methods=['POST'])
 def design():
-    """Design alloy based on target properties"""
-    data = request.json
-    
+    """Start an inverse-design job and return its id immediately.
+
+    Same reason as /api/validate: design is even slower (up to max_iterations
+    evaluations, each one a full Analyst -> Reviewer pass), so it could never
+    have survived the CloudUT proxy's ~60 s cutoff. Poll
+    GET /api/design/status/<job_id> for the outcome.
+    """
+    data = request.json or {}
+
     # Extract target_props as a dict
     target_props = data.get('target_props', {})
     target_props = {k: v for k, v in target_props.items() if v and float(v) > 0}
@@ -160,71 +245,27 @@ def design():
             target_props['Density'] = data['density']
         if data.get('gamma_prime') and float(data['gamma_prime']) > 0:
             target_props['Gamma Prime'] = data['gamma_prime']
-    
+
     processing = data.get('processing', 'cast')
     temperature = data.get('temp', 900)
     max_iter = data.get('max_iter', 3)
 
-    logger.info(f"🎨 DESIGN REQUEST: Targets={target_props}, Processing={processing}, Temp={temperature}°C")
-
     try:
-        crew = IterativeDesignCrew(target_props)
-        result = crew.loop(max_iterations=max_iter, processing=processing, temperature=temperature)
+        job_store.cleanup()
+    except Exception as e:  # noqa: BLE001 - never fail a submission over this
+        logger.warning("Job store cleanup failed (continuing): %s", e)
 
-        # Validate composition if present
-        composition_status = "UNKNOWN"
-        if result.get("composition"):
-            try:
-                validation = AlloyEvaluationCrew.validate_composition(result.get("composition"))
-                if validation.get("warnings"):
-                    composition_status = "WARNING"
-                else:
-                    composition_status = "VALID"
-            except Exception as e:
-                composition_status = "INVALID"
-                result["composition_validation_error"] = str(e)
+    job_id = job_store.create_job("design", {
+        "target_props": target_props, "processing": processing,
+        "temp": temperature, "max_iter": max_iter,
+    })
+    job_store.run_in_background(
+        job_id, _run_design, target_props, processing, temperature, max_iter
+    )
+    logger.info("Job %s queued: design %s (%s, %s°C, max_iter=%s)",
+                job_id, target_props, processing, temperature, max_iter)
 
-        # Sanitize response - include ALL fields to match evaluate mode
-        sanitized_result = {
-            "composition": result.get("composition", {}),
-            "properties": result.get("properties", {}),
-            "property_intervals": result.get("property_intervals", {}),
-            "tcp_risk": result.get("tcp_risk", "Unknown"),
-            "confidence": result.get("confidence", {}),
-            "design_status": result.get("design_status", "success"),
-            "composition_status": composition_status,
-            "status": result.get("status", "UNKNOWN"),
-            "issues": result.get("issues", []),
-            "recommendations": result.get("recommendations", []),
-            "explanation": result.get("explanation", ""),
-            "audit_penalties": result.get("audit_penalties", []),
-            "metallurgy_metrics": result.get("metallurgy_metrics", {}),
-            "penalty_score": result.get("penalty_score", 0.0),
-            "corrections_applied": result.get("corrections_applied", []),
-            "corrections_explanation": result.get("corrections_explanation", ""),
-            "analyst_reasoning": result.get("analyst_reasoning", ""),
-            "reviewer_assessment": result.get("reviewer_assessment", ""),
-            "investigation_findings": result.get("investigation_findings", ""),
-            "source_reliability": result.get("source_reliability", ""),
-        }
-
-        # Include error field if present (for backwards compatibility)
-        if "error" in result:
-            sanitized_result["error"] = result["error"]
-
-        # Include composition validation error if present
-        if "composition_validation_error" in result:
-            sanitized_result["composition_validation_error"] = result["composition_validation_error"]
-
-        # Optionally include reasoning for debugging (but keep it short)
-        if "reasoning" in result and len(str(result["reasoning"])) < 500:
-            sanitized_result["reasoning"] = result["reasoning"]
-
-        return jsonify({"result": sanitized_result})
-    except Exception as e:
-        logger.error(f"Design failed: {e}")
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+    return jsonify({"job_id": job_id, "status": job_store.STATUS_PENDING}), 202
 
 
 @app.route('/api/chat', methods=['POST'])

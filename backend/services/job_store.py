@@ -44,12 +44,22 @@ DEFAULT_DB_PATH = "/tmp/alloygraph_jobs.db"
 #: after stepping away.
 FINISHED_TTL_SECONDS = 3600
 
-#: A job still marked "running" this long after it started is presumed dead:
-#: its worker was killed, recycled, or the container restarted mid-run. Without
-#: this, such a row stays "running" forever and the UI spins indefinitely. The
-#: ceiling is well above the ~200 s a real evaluation takes, so a slow-but-alive
-#: run is never reaped.
-STALE_RUNNING_SECONDS = 1800
+#: A job still marked pending/running this long after it started is presumed
+#: dead: its worker was killed, recycled, or the container restarted mid-run.
+#: Without this, such a row stays "running" forever and the UI spins
+#: indefinitely.
+#:
+#: Per kind, because the two workloads differ by an order of magnitude and a
+#: single ceiling cannot serve both. A validate is one Analyst -> Reviewer pass
+#: (~110-200 s observed). A design is up to max_iterations of those, each
+#: preceded by a Designer LLM call: the UI caps iterations at 10, so ~300 s per
+#: iteration worst case is ~50 min of legitimate work. Reaping that at 30 min
+#: would kill a healthy run and tell the user it crashed.
+STALE_RUNNING_SECONDS_BY_KIND = {
+    "validate": 1800,   # 30 min; ~9x the observed worst case
+    "design": 5400,     # 90 min; 10 iterations x ~300 s plus headroom
+}
+DEFAULT_STALE_RUNNING_SECONDS = 1800
 
 STATUS_PENDING = "pending"
 STATUS_RUNNING = "running"
@@ -227,14 +237,29 @@ def cleanup(now=None):
 
         # A pending job is also eligible: if the thread never started (worker
         # died between INSERT and spawn) it would otherwise sit pending forever.
-        reaped = conn.execute(
-            "UPDATE jobs SET status = ?, finished_at = ?, error = ? "
-            "WHERE status IN (?, ?) AND COALESCE(started_at, created_at) < ?",
-            (STATUS_FAILED, now,
-             "The worker running this job stopped before it finished. "
-             "Please submit it again.",
-             STATUS_RUNNING, STATUS_PENDING, now - STALE_RUNNING_SECONDS),
-        ).rowcount
+        #
+        # Reaped per kind against its own ceiling. Iterating rather than building
+        # a CASE expression: the kinds are few, the table is small, and the
+        # intent stays legible. Kinds with no entry fall back to the default, so
+        # a future kind is reaped conservatively rather than not at all.
+        stale_message = ("The worker running this job stopped before it "
+                         "finished. Please submit it again.")
+        kinds = [r["kind"] for r in conn.execute(
+            "SELECT DISTINCT kind FROM jobs WHERE status IN (?, ?)",
+            (STATUS_RUNNING, STATUS_PENDING),
+        ).fetchall()]
+
+        reaped = 0
+        for kind in kinds:
+            ceiling = STALE_RUNNING_SECONDS_BY_KIND.get(
+                kind, DEFAULT_STALE_RUNNING_SECONDS)
+            reaped += conn.execute(
+                "UPDATE jobs SET status = ?, finished_at = ?, error = ? "
+                "WHERE kind = ? AND status IN (?, ?) "
+                "AND COALESCE(started_at, created_at) < ?",
+                (STATUS_FAILED, now, stale_message, kind,
+                 STATUS_RUNNING, STATUS_PENDING, now - ceiling),
+            ).rowcount
         conn.commit()
     finally:
         conn.close()
