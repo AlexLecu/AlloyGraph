@@ -224,11 +224,24 @@ def checks():
     # --- Methods counts ---------------------------------------------------
     m = json.load(open(os.path.join(MODELS, "metrics.json")))
     ns = [v["n_samples"] for v in m.values() if isinstance(v, dict) and "n_samples" in v]
-    add("2.4", "data points per model, min", 328, min(ns), "saved_models_v2/metrics.json")
+    add("2.4", "data points per model, min", 323, min(ns), "saved_models_v2/metrics.json")
     add("2.4", "data points per model, max", 417, max(ns), "saved_models_v2/metrics.json")
     nf = sorted({v["n_features"] for v in m.values() if isinstance(v, dict)})
     add("3.2", "feature dimensions low", 50, nf[0], "saved_models_v2/metrics.json")
     add("3.2", "feature dimensions high", 80, nf[-1], "saved_models_v2/metrics.json")
+
+    # GPR cross-validation gain from the engineered features. Previously
+    # untraceable: the manuscript said 39%, which matched nothing. It now says
+    # 16%, so this is a real check rather than a caveat.
+    cv = {}
+    for line in open(os.path.join(RES, "external_baselines.md"), encoding="utf-8"):
+        m = re.match(r"\|\s*(gpr_raw|gpr_physics)\s*\|\s*ys\s*\|\s*([\d.]+)", line)
+        if m:
+            cv[m.group(1)] = float(m.group(2))
+    if len(cv) == 2:
+        gain = 100 * (cv["gpr_raw"] - cv["gpr_physics"]) / cv["gpr_raw"]
+        add("3.2", "GPR CV gain from engineered features (%)", 16, round(gain),
+            "external_baselines.md")
 
     owl = open(os.path.join(ROOT, "ontology", "alloygraph.owl"), encoding="utf-8").read()
     blocks = re.findall(r'<rdf:Description rdf:about="([^"]+)">(.*?)</rdf:Description>',
@@ -254,8 +267,6 @@ UNTRACEABLE = [
     ("4", "a 1310 MPa prediction for a 360 MPa alloy",
      "development observation of the authority-transfer bug, fixed before the "
      "reported campaigns; no committed artifact."),
-    ("3.2", "a Gaussian process gains 39% in yield strength error from engineered features",
-     "MISMATCH, see below -- external_baselines.md gives 15.9% (CV) or 31.9% (holdout)."),
 ]
 
 

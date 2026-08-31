@@ -19,7 +19,7 @@
                 <mxCell id="targets" value="&lt;b&gt;Target Properties&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:14px&#39;&gt;YS · UTS · EL · EM · Processing&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=16;strokeWidth=2;" parent="1" vertex="1">
                     <mxGeometry x="130" y="50" width="250" height="55" as="geometry"/>
                 </mxCell>
-                <mxCell id="designer" value="&lt;b&gt;Phase 1: Designer Agent&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:13px&#39;&gt;LLM synthesises candidate&lt;br&gt;composition with physics checks&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=15;" parent="1" vertex="1">
+                <mxCell id="designer" value="&lt;b&gt;Phase 1: Designer Agent&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:13px&#39;&gt;LLM synthesizes candidate&lt;br&gt;composition with physics checks&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=15;" parent="1" vertex="1">
                     <mxGeometry x="130" y="130" width="250" height="70" as="geometry"/>
                 </mxCell>
                 <mxCell id="optimizer" value="&lt;b&gt;Phase 2: Deterministic Optimizer&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:13px&#39;&gt;Guard + Tuner&lt;br&gt;Metallurgical constraint enforcement&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#E65100;fontColor=#BF360C;fontSize=15;" parent="1" vertex="1">
@@ -37,7 +37,7 @@
                 <mxCell id="phys" value="&lt;b&gt;Physics Models&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:14px&#39;&gt;VRH · TCP · γ′&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#1B5E20;fontSize=15;" parent="1" vertex="1">
                     <mxGeometry x="355" y="365" width="190" height="50" as="geometry"/>
                 </mxCell>
-                <mxCell id="kg" value="&lt;b&gt;KG Search&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:14px&#39;&gt;Top-3 neighbours&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#1B5E20;fontSize=15;" parent="1" vertex="1">
+                <mxCell id="kg" value="&lt;b&gt;KG Search&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:14px&#39;&gt;Top-3 neighbors&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#1B5E20;fontSize=15;" parent="1" vertex="1">
                     <mxGeometry x="580" y="365" width="190" height="50" as="geometry"/>
                 </mxCell>
                 <mxCell id="fusion" value="&lt;b&gt;Evidence Assembly&lt;/b&gt;  &lt;font style=&#39;font-size:13px&#39;&gt;ML · Physics · KG anchors + calibration proposals&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#1B5E20;fontSize=14;" parent="1" vertex="1">

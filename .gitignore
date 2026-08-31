@@ -305,6 +305,10 @@ docs/paper-acta.tex
 docs/cover-letter.tex
 docs/paper/*.md
 
+# latexdiff output against the previous submission — regenerated per revision
+# round from the Overleaf sources, so it is a build artefact, not a source.
+docs/paper/diff.pdf
+
 # Rendered figures under docs/paper/figures are ignored by default: most are
 # throwaway exports that go stale the moment the .drawio beside them is edited.
 # One such export shipped a wrong alloy count ("99 Ni superalloys") for months
