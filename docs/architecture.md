@@ -49,7 +49,7 @@ flowchart TB
     end
 
     subgraph External["External Services"]
-        Groq["Groq LLM API<br/>(Llama 3.3-70B)"]
+        Groq["LLM API — DeepInfra<br/>(Llama 3.3-70B, OpenAI-compatible)"]
     end
 
     Browser --> Nginx
@@ -475,7 +475,7 @@ flowchart TB
 | Vector DB | Weaviate | Semantic search (146K+ variants) |
 | Graph DB | GraphDB | RDF triplestore (ontology) |
 | Embeddings | MiniLM-L6 | Text-to-vector conversion |
-| LLM | Groq (Llama 3.3-70B) | Intent classification, response generation |
+| LLM | Llama 3.3-70B via any OpenAI-compatible provider (currently DeepInfra) | Intent classification, response generation |
 
 ## Key Data Flows
 

@@ -75,7 +75,7 @@ Evaluated on **88 independent alloys** from manufacturer datasheets (Special Met
 
 ### Prerequisites
 - [Docker](https://docs.docker.com/get-docker/) and Docker Compose
-- [Groq API key](https://groq.com) (free tier available) or any OpenAI-compatible endpoint
+- A [DeepInfra API key](https://deepinfra.com) (or Together AI / OpenAI / Groq — any OpenAI-compatible endpoint)
 
 ### Setup
 
@@ -181,7 +181,7 @@ All data used in this project is publicly available. The complete archive (KG da
 | 🐍 Backend | Python, Flask, CrewAI, XGBoost, scikit-learn, owlready2, rdflib |
 | 🖥️ Frontend | Vue.js, Nginx |
 | 🗄️ Databases | Weaviate 1.33, GraphDB 10.8 |
-| 🤖 LLM | Llama 3.3-70B (Groq API or Ollama for local deployment) |
+| 🤖 LLM | Llama 3.3-70B via any OpenAI-compatible provider (currently DeepInfra); Ollama for local deployment |
 | 📐 Ontology | OWL 2 DL, HermiT reasoner, Protégé |
 
 ---

@@ -80,8 +80,8 @@ docs/paper/figures/fig1_system_architecture_compact_UNUSED.drawio   terse-captio
 docs/paper/figures/fig2_agent_workflow.drawio                       landscape two-panel alternate
 ```
 
-`assets/system_architecture.png` is the same bytes as the tracked copy above,
-serving the README. If figure 1 is re-exported, replace both.
+`assets/system_architecture.png` is the **only** tracked raster of figure 1 and
+serves the README. `docs/paper/figures/` deliberately holds no PNG copy of it.
 
 ### Figure 2 (HAYNES 230 knowledge graph) has no source file
 
@@ -130,16 +130,16 @@ SRC=docs/paper/figures/fig1_system_architecture_big.drawio
 drawio --export --format pdf --crop --transparent \
   --output docs/paper/figures/system_architecture.pdf "$SRC"
 drawio --export --format png --crop --width 5500 \
-  --output docs/paper/figures/system_architecture.png "$SRC"
+  --output assets/system_architecture.png "$SRC"
 cp docs/paper/figures/system_architecture.pdf paper_src/Alloygraph_kbs/images/
-cp docs/paper/figures/system_architecture.png assets/system_architecture.png
 ```
 
 **The manuscript now compiles the PDF, not the PNG** -- `paper_src/images/`
 holds only `system_architecture.pdf`, so that is the copy a re-export must
-refresh. The PNG survives for one reader: the README. Four files move together
-(source, tracked PDF, manuscript PDF, README PNG), and missing one is exactly
-how the "99 Ni superalloys" export went stale.
+refresh. The PNG survives for one reader: the README, and is exported straight
+to `assets/`. Three files move together (source, tracked PDF, manuscript PDF)
+plus the README PNG, and missing one is exactly how the "99 Ni superalloys"
+export went stale.
 
 `--crop` sizes the canvas to the content bounding box, which makes it a free
 overflow test: if a font change pushes text outside its box, the exported

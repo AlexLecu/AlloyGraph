@@ -240,6 +240,17 @@ backend/scrape/Data/
 backend/scrape/Data_Grok/
 backend/alloy_crew/data/
 backend/alloy_crew/models/training_data/
+# ...except the three sets that are actually load-bearing. They were previously
+# force-added past this rule, so `git check-ignore` disagreed with the tree and
+# a `git add -A` after a retrain would silently skip them. Together ~0.4 MB.
+#
+# The models in saved_models/ and saved_models_v2/ are tracked binaries; without
+# their training rows nobody can reproduce or re-fit them, and
+# evaluation/prediction/scripts/verify_training_provenance.py checks the shipped
+# models against these exact files.
+!backend/alloy_crew/models/training_data/train_77alloys_v2.jsonl
+!backend/alloy_crew/models/training_data/train_77alloys.jsonl
+!backend/alloy_crew/models/training_data/final_alloy_data_enriched.jsonl
 
 # Archive folders
 backend/_archive/
@@ -305,11 +316,15 @@ docs/paper/*.md
 # screenshot with no source file and a non-deterministic view, so the PNG is
 # the artefact of record and losing it loses the figure outright.
 docs/paper/figures/*.png
-!docs/paper/figures/system_architecture.png
+# Figure 1's PNG is NOT here: the manuscript compiles the PDF below, and the
+# only consumer of the raster is the README, so the single tracked copy lives
+# at assets/system_architecture.png. There used to be a byte-identical second
+# copy in this directory (2.5 MB each); re-exports had to update both, and the
+# manifest's "four files move together" warning existed only because of it.
+!docs/paper/figures/system_architecture.pdf
 # The vector export of figure 1. KBS asks for vector artwork, so this, not the
 # PNG, is what goes to the publisher. Regenerate with the drawio CLI; see the
 # asset manifest.
-!docs/paper/figures/system_architecture.pdf
 !docs/paper/figures/agent_pipeline.png
 !docs/paper/figures/kg.png
 

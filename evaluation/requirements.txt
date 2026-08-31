@@ -1,0 +1,17 @@
+# Dependencies for the evaluation and campaign scripts only.
+#
+# These are NOT needed to serve the platform and are deliberately kept out of
+# backend/requirements.txt (and therefore out of the backend image): matplotlib
+# alone pulls in a sizeable rendering stack that a Flask API never loads.
+#
+# The scripts import the backend in place (sys.path.insert of backend/), so
+# install this ON TOP of the backend environment:
+#
+#   uv pip install -r backend/requirements.lock
+#   uv pip install -r evaluation/requirements.txt
+
+# Conformal prediction intervals (evaluation/prediction/scripts/conformal_intervals.py)
+mapie>=1.5.0
+
+# Manuscript figures (evaluation/prediction/scripts/*, evaluation/paper_assets/*)
+matplotlib>=3.10.0

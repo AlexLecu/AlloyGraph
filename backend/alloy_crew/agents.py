@@ -219,6 +219,66 @@ def valid_api_key(env_var: str) -> bool:
     return bool(_sanitised_key(env_var))
 
 
+#: OpenAI-compatible chat endpoints, in the same priority order as
+#: ``_resolve_llm``. CrewAI agents go through litellm, which knows these
+#: providers by prefix; the research-chat service talks to them directly with
+#: the ``openai`` SDK, so it needs the base URL spelled out. Keep the two
+#: orders in step -- agents and chat answering from different providers is a
+#: confusing thing to debug.
+_CHAT_PROVIDERS = (
+    ("DEEPINFRA_API_KEY", "DeepInfra", "https://api.deepinfra.com/v1/openai",
+     "meta-llama/Llama-3.3-70B-Instruct-Turbo"),
+    ("TOGETHER_API_KEY", "Together AI", "https://api.together.xyz/v1",
+     "meta-llama/Llama-3.3-70B-Instruct-Turbo"),
+    ("GROQ_API_KEY", "Groq", "https://api.groq.com/openai/v1",
+     "llama-3.3-70b-versatile"),
+    ("OPENAI_API_KEY", "OpenAI", "https://api.openai.com/v1",
+     "gpt-4o-mini"),
+)
+
+
+def resolve_chat_endpoint():
+    """Resolve an OpenAI-compatible endpoint for the research-chat service.
+
+    Returns ``(base_url, api_key, model, provider_name)``, or ``None`` when no
+    usable cloud key is present and no local Ollama host is configured.
+
+    This is the same provider resolution ``_resolve_llm`` performs, expressed
+    as a plain HTTP endpoint instead of a litellm model string. The chat
+    service previously hard-coded the Groq SDK and ``llama-3.3-70b-versatile``,
+    which Groq decommissioned on 2026-08-16: the agent modes had already moved
+    to DeepInfra, so Research Chat was the one surface still calling a dead
+    model.
+
+    ALLOYGRAPH_LLM_MODEL overrides the model for whichever provider wins,
+    matching ``_resolve_llm``.
+    """
+    override = (os.getenv("ALLOYGRAPH_LLM_MODEL") or "").strip()
+
+    for env_var, name, base_url, default_model in _CHAT_PROVIDERS:
+        key = _sanitised_key(env_var)
+        if key:
+            model = override or default_model
+            logger.info("Chat provider: %s -- %s", name, model)
+            return base_url, key, model, name
+
+    ollama_host = (os.getenv("OLLAMA_HOST") or "").strip().rstrip("/")
+    if ollama_host:
+        model = override or "llama3.1:8b"
+        logger.warning(
+            "Chat provider: local Ollama at %s -- %s. No usable cloud API key "
+            "was found; answers will NOT match a hosted run.", ollama_host, model
+        )
+        # Ollama needs a non-empty key to satisfy the openai SDK; it ignores it.
+        return f"{ollama_host}/v1", "ollama", model, "Ollama"
+
+    logger.error(
+        "No usable LLM API key for research chat. Set DEEPINFRA_API_KEY "
+        "(preferred), TOGETHER_API_KEY, GROQ_API_KEY or OPENAI_API_KEY."
+    )
+    return None
+
+
 def _resolve_llm(llm=None, temperature=0.1):
     """Resolve the agent LLM. Priority: DeepInfra > Together > Groq > OpenAI > Ollama.
 
@@ -313,7 +373,7 @@ def get_evaluation_agents(llm=None):
     metallurgical consistency — acting as a peer review mechanism.
 
     No memory - ensures deterministic, reproducible results.
-    Priority: Groq (llama-3.3-70b) > OpenAI (gpt-4o-mini) > Local
+    Priority: DeepInfra > Together AI > Groq > OpenAI > local Ollama (see _resolve_llm).
     """
     llm = _resolve_llm(llm)
 

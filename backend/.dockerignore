@@ -1,0 +1,43 @@
+# The backend image is built with context ./backend (see docker-compose.yml),
+# so the repository-root .dockerignore does NOT apply here -- Docker only reads
+# the one at the context root. Without this file `COPY . .` shipped ~1.5 GB of
+# junk: a macOS-built .venv, the local Weaviate volume, and the scrape corpus.
+#
+# Anything the running service needs must NOT be listed here. In particular
+# alloy_crew/models/saved_models_v2/ (the served models) and
+# alloy_crew/models/training_data/ stay in the image.
+
+# Local virtualenv — built for macOS/arm64 against a different Python; useless
+# in the image and 1.3 GB on its own.
+.venv/
+venv/
+env/
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# Local Weaviate volume and dev compose data (~147 MB)
+docker/weaviate_alloy_data/
+docker/weaviate_dev_data/
+
+# Scraped HTML corpus and intermediate parse output (~111 MB). The curated
+# JSONL the pipeline actually ingests lives in alloy_crew/, not here.
+scrape/
+
+# Superseded code kept for reference only
+_archive/
+
+# Local run artefacts
+output/
+*.log
+.env
+.env.local
+
+# OS noise
+.DS_Store

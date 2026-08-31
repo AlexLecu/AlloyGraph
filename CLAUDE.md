@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AlloyGraph is a multi-agent AI platform for nickel-based superalloy property prediction, inverse design, and knowledge-driven research. It combines a Knowledge Graph (77 alloys in Weaviate + GraphDB), physics-informed ML (XGBoost/RandomForest), and LLM agents (CrewAI with Llama 3.3-70B via Groq) in three modes: Research Chat, Property Evaluator, and Alloy Designer.
+AlloyGraph is a multi-agent AI platform for nickel-based superalloy property prediction, inverse design, and knowledge-driven research. It combines a Knowledge Graph (77 alloys in Weaviate + GraphDB), physics-informed ML (XGBoost/RandomForest), and LLM agents (CrewAI with Llama 3.3-70B via any OpenAI-compatible provider, currently DeepInfra) in three modes: Research Chat, Property Evaluator, and Alloy Designer.
 
 ## Commands
 
@@ -52,7 +52,7 @@ python backend/alloy_crew/models/train_ml_models.py
 ## Architecture
 
 ### Three-Mode System
-- **Research Chat** (`services/chat_service.py`): Streaming Groq LLM responses with KG context retrieval
+- **Research Chat** (`services/chat_service.py`): Streaming LLM responses with KG context retrieval. Uses an OpenAI-compatible client via `alloy_crew.agents.resolve_chat_endpoint()` — the same provider order as the agents.
 - **Property Evaluator** (`alloy_crew/alloy_evaluator.py`): Sequential Analyst → Reviewer agent pipeline
 - **Alloy Designer** (`alloy_crew/alloy_designer.py`): 3-phase loop — LLM synthesis → deterministic optimizer → LLM evaluation
 
@@ -84,7 +84,7 @@ Flask endpoints (`app.py`) → `AlloyEvaluationCrew` or `IterativeDesignCrew` �
 | File | Purpose |
 |------|---------|
 | `backend/app.py` | Flask API — `/api/validate`, `/api/design`, `/api/chat` |
-| `backend/alloy_crew/agents.py` | Agent definitions + LLM resolution (Groq → OpenAI → Ollama) |
+| `backend/alloy_crew/agents.py` | Agent definitions + LLM resolution (DeepInfra → Together → Groq → OpenAI → Ollama) |
 | `backend/alloy_crew/alloy_evaluator.py` | Evaluation crew + trust system |
 | `backend/alloy_crew/alloy_designer.py` | 3-phase design pipeline + CrewAI event bus reset |
 | `backend/alloy_crew/deterministic_optimizer.py` | Guard (surgical fixes) + Tuner (±2% gradient) |
@@ -125,4 +125,4 @@ The optimizer is intentionally light-touch. LLM chooses alloy architecture; opti
 
 ## Environment
 
-Requires `.env` with at minimum `GROQ_API_KEY`. See `.env.example`. Docker services: frontend (:3000), Weaviate (:8081), GraphDB (:7200). Backend is internal-only (proxied via Nginx).
+Requires `.env` in the repo root with at least one provider key — `DEEPINFRA_API_KEY` preferred (Groq withdrew llama-3.3-70b-versatile on 2026-08-16). See `.env.example`. Docker services: frontend (:3000), Weaviate (:8081), GraphDB (:7200). Backend is internal-only (proxied via Nginx).
