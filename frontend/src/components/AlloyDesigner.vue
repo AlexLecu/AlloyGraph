@@ -33,9 +33,32 @@ const DESIGN_TIMEOUT_BASE_MS = 5 * 60 * 1000
 const DESIGN_TIMEOUT_PER_ITER_MS = 5 * 60 * 1000
 let inFlight = null
 
+// Evaluation is now a background job: POST returns a job id in well under a
+// second and we poll for the outcome. This exists because the CloudUT reverse
+// proxy in front of the public site cuts connections at roughly 60 s, while a
+// real evaluation takes 100-200 s -- so the old single long request returned
+// 504 in the browser even though the backend was working fine. Nothing about
+// the UI changes: the progress indicator is driven by an elapsed-time timer,
+// not by the request, so it behaves identically while polling.
+const POLL_INTERVAL_MS = 2500
+// Individual HTTP calls are all short now, so they get short timeouts. The
+// overall patience for a job is VALIDATE_TIMEOUT_MS, enforced across polls.
+const SUBMIT_TIMEOUT_MS = 20 * 1000
+const POLL_TIMEOUT_MS = 15 * 1000
+// A transient network blip mid-poll should not kill a job that is still running
+// server-side; give up only after this many consecutive failed polls.
+const MAX_POLL_FAILURES = 5
+
+// Set by cancelRun so an in-progress polling loop stops between requests, not
+// just when a single HTTP call is aborted.
+let pollCancelled = false
+
 const cancelRun = () => {
+  pollCancelled = true
   if (inFlight) { inFlight.abort(); inFlight = null }
 }
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 
 // --- ERROR STATE ---
 const error = ref(null)
@@ -285,29 +308,97 @@ const clearHistory = () => {
   localStorage.removeItem('alloyDesignHistory')
 }
 
-// --- API: VALIDATE ---
+// --- API: VALIDATE (submit job, then poll) ---
+
+// Thrown when the job itself reports failure, so the polling loop can hand the
+// server's own message to the error panel instead of a generic HTTP message.
+class JobFailedError extends Error {}
+
+// Poll until the job reaches a terminal state. Returns the result object.
+const pollForResult = async (jobId) => {
+  const deadline = Date.now() + VALIDATE_TIMEOUT_MS
+  let consecutiveFailures = 0
+  let lastStatus = null
+
+  while (Date.now() < deadline) {
+    await sleep(POLL_INTERVAL_MS)
+    if (pollCancelled) { const e = new Error('canceled'); e.code = 'ERR_CANCELED'; throw e }
+
+    let res
+    try {
+      inFlight = new AbortController()
+      res = await axios.get(`${API_BASE_URL}/api/validate/status/${jobId}`,
+        { timeout: POLL_TIMEOUT_MS, signal: inFlight.signal })
+      consecutiveFailures = 0
+    } catch (err) {
+      // A cancel or a genuine 404 is final; anything else may be transient.
+      if (classifyError(err) === 'cancelled') throw err
+      if (err?.response?.status === 404) {
+        throw new JobFailedError(
+          err.response.data?.error ||
+          'The server lost track of this analysis. Please run it again.')
+      }
+      if (++consecutiveFailures >= MAX_POLL_FAILURES) throw err
+      continue
+    }
+
+    const { status, result: jobResult, error: jobError } = res.data || {}
+
+    if (status !== lastStatus) {
+      lastStatus = status
+      if (status === 'running') logs.value.push('Agents are analysing the composition...')
+    }
+
+    if (status === 'done') return jobResult
+    if (status === 'failed') {
+      throw new JobFailedError(jobError || 'The analysis failed on the server.')
+    }
+  }
+
+  const e = new Error('timeout')
+  e.code = 'ECONNABORTED'
+  throw e
+}
+
 const runValidation = async (isRetry = false) => {
   startLoading()
+  pollCancelled = false
   if (!isRetry) { logs.value = []; result.value = null; retryCount.value = 0 }
   logs.value.push(`Validating Composition at ${manualTemp.value}\u00B0C (${manualProcessing.value})...`)
 
   try {
     inFlight = new AbortController()
-    const res = await axios.post(`${API_BASE_URL}/api/validate`, {
+    const submit = await axios.post(`${API_BASE_URL}/api/validate`, {
       composition: manualComp.value, temp: manualTemp.value, processing: manualProcessing.value
-    }, { timeout: VALIDATE_TIMEOUT_MS, signal: inFlight.signal })
-    if (res.data?.result?.error) {
+    }, { timeout: SUBMIT_TIMEOUT_MS, signal: inFlight.signal })
+
+    const jobId = submit.data?.job_id
+    if (!jobId) throw new JobFailedError('The server did not return a job id.')
+    logs.value.push('Analysis queued on the server.')
+
+    const jobResult = await pollForResult(jobId)
+
+    // A completed job can still carry an in-band error from the pipeline; this
+    // is the same result.error contract the synchronous endpoint had.
+    if (jobResult?.error) {
       stopLoading()
       errorType.value = 'server'
-      error.value = messageFromResultError(res.data.result.error)
+      error.value = messageFromResultError(jobResult.error)
       return
     }
-    result.value = res.data.result
+
+    result.value = jobResult
     logs.value.push('Prediction Complete.')
-    if (res.data.result?.properties) saveToHistory(res.data.result)
+    if (jobResult?.properties) saveToHistory(jobResult)
     stopLoading(); retryCount.value = 0
   } catch (err) {
     stopLoading()
+    if (err instanceof JobFailedError) {
+      console.error('Validation job failed:', err.message)
+      errorType.value = 'server'
+      error.value = messageFromResultError(err.message)
+      return
+    }
     const kind = classifyError(err)
     if (kind === 'cancelled') { logs.value.push('Evaluation cancelled.'); return }
     console.error('Validation error:', err)
