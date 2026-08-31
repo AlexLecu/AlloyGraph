@@ -600,7 +600,17 @@ class AlloyEvaluationCrew:
                         raise ValueError("Could not recover output from any pipeline stage.")
 
         except Exception as e:
-            return {"status": "FAIL", "stage": "crew_execution", "error": str(e)}
+            # Root cause of a real data-loss bug: this early return skipped the
+            # extra_output_fields merge ~400 lines below, so a caller that passed
+            # the composition in (the Designer's Phase 3 does exactly that) got
+            # back a result with no composition at all. A rejected Reviewer
+            # output then looked indistinguishable from "we designed nothing".
+            # Merge the caller's fields here too, so the failure path keeps
+            # whatever context the caller supplied.
+            failure = {"status": "FAIL", "stage": "crew_execution", "error": str(e)}
+            if extra_output_fields:
+                failure.update(extra_output_fields)
+            return failure
 
         # === MERGE ANALYST CORRECTIONS ===
         # The Reviewer LLM sometimes produces a fresh PhysicsAuditWithCorrectionsOutput

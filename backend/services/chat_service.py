@@ -382,7 +382,25 @@ def process_target_query(params: dict, retriever: AlloyRetriever) -> list[AlloyD
 # ── Main streaming generator ────────────────────────────────────────────
 
 def stream_chat_response(prompt: str, session_id: str, history: list):
-    """Generator that streams alloy data + LLM response as NDJSON chunks."""
+    """Generator that streams alloy data + LLM response as NDJSON chunks.
+
+    The first line out is a keepalive, emitted before any work begins. Nothing
+    else here yields until the Weaviate connection is open and the routing LLM
+    call has returned -- measured at 2.9-4.4 s, but bounded only by provider
+    latency. The public site sits behind the CloudUT reverse proxy, which cuts
+    connections at roughly 60 s; a stalled routing call would therefore turn
+    into a 504 with no response at all. Once the first byte is out, the proxy's
+    read timeout measures the gap between reads rather than total duration, and
+    tokens then flow continuously, so this single line removes the whole class
+    of failure.
+
+    "keepalive" is a type the client does not know. The reader JSON-parses each
+    line, creates the assistant bubble only for data/chunk/error, and falls
+    through its if/else chain for anything else -- so this is inert on the
+    frontend by construction, and streaming behaviour is unchanged.
+    """
+
+    yield json.dumps({"type": "keepalive"}) + "\n"
 
     try:
         yield from _stream_chat_inner(prompt, session_id, history)

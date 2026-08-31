@@ -186,6 +186,12 @@ def _run_design(target_props, processing, temperature, max_iter):
         "tcp_risk": result.get("tcp_risk", "Unknown"),
         "confidence": result.get("confidence", {}),
         "design_status": result.get("design_status", "success"),
+        # Set when Phase 3's review produced nothing usable and the Phase 2
+        # composition was salvaged instead. The sanitiser is a whitelist, so
+        # these have to be listed explicitly or the marker never reaches the UI.
+        "review_status": result.get("review_status"),
+        "properties_source": result.get("properties_source"),
+        "review_error": result.get("review_error"),
         "composition_status": composition_status,
         "status": result.get("status", "UNKNOWN"),
         "issues": result.get("issues", []),

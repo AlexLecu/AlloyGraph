@@ -465,7 +465,12 @@ const runDesign = async (isRetry = false) => {
       'Designing and evaluating candidate compositions...')
     result.value = designResult
 
-    if (designResult.design_status === 'incomplete' && designResult.issues?.length > 0) {
+    if (designResult.design_status === 'unreviewed') {
+      // The composition is valid; only the agent review failed to parse. Not
+      // "completed with issues" -- that phrasing describes a design that ran
+      // and missed its targets, which is a different thing entirely.
+      logs.value.push('Design complete, but the agent review did not finish - showing physics estimates.')
+    } else if (designResult.design_status === 'incomplete' && designResult.issues?.length > 0) {
       logs.value.push('Design completed with issues.')
     } else if (designResult.error) {
       logs.value.push('Error: ' + designResult.error)

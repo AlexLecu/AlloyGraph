@@ -519,6 +519,110 @@ class IterativeDesignCrew:
 
         return result
 
+    # ── Phase 3 failure fallback ────────────────────────────────────
+
+    @staticmethod
+    def _phase3_output_unusable(result: dict) -> bool:
+        """True when Phase 3 produced no usable property values.
+
+        The Reviewer agent can exhaust CrewAI's internal iteration budget and
+        answer in prose instead of a tool call (seen as LaTeX \boxed{...}),
+        which the Pydantic conversion rejects. That is a known, still-open
+        issue; what this predicate exists for is to stop it destroying the run.
+
+        Emptiness of ``properties`` is the signal, not the presence of
+        ``error``: a result can carry an in-band error and still have perfectly
+        good numbers, and that case must keep flowing through the normal path.
+        """
+        props = result.get("properties") or {}
+        return not any(
+            v not in (None, 0, 0.0, "") for v in props.values()
+        )
+
+    def _degraded_result_from_phase2(
+        self,
+        failed_result: dict,
+        composition: dict,
+        opt_result: dict,
+        processing: str,
+        temperature: int,
+    ) -> dict:
+        """Salvage a run whose Phase 3 evaluation produced nothing usable.
+
+        Phase 1 and Phase 2 both succeeded here: there *is* a real, optimised,
+        physics-checked composition. Discarding it because the final LLM review
+        failed to parse threw away the entire run and reported it as though the
+        designer had invented nothing -- an empty composition, every target
+        "missed" by 0 MPa.
+
+        So the composition is returned with Phase 2's deterministic physics
+        predictions and an explicit marker saying the review did not complete.
+        These numbers are physics-only: no ML blending, no KG anchoring, no
+        Analyst/Reviewer correction. They are honest estimates, not the
+        pipeline's authoritative output, and are labelled as such.
+        """
+        physics_props = dict(opt_result.get("predicted_properties") or {})
+        review_error = failed_result.get("error") or "The review stage did not complete."
+
+        logger.warning(
+            "Phase 3 produced no usable properties; returning the Phase 2 "
+            "composition with physics-only estimates. Review error: %s",
+            str(review_error)[:200],
+        )
+
+        return {
+            "composition": composition,
+            "properties": physics_props,
+            "property_intervals": {},
+            "tcp_risk": opt_result.get("tcp_risk", "Unknown"),
+
+            # The marker the frontend keys off. A distinct design_status rather
+            # than reusing "incomplete": "incomplete" means the design ran and
+            # missed targets, which is a statement about the alloy. This is a
+            # statement about the pipeline, and the two need different words.
+            "design_status": "unreviewed",
+            "review_status": "incomplete",
+            "properties_source": "physics_only",
+            "status": "UNREVIEWED",
+            "confidence": {
+                "level": "Low",
+                "reason": "The agent review stage did not complete, so these "
+                          "are deterministic physics estimates without ML "
+                          "blending, knowledge-graph anchoring, or peer review.",
+            },
+            "issues": [{
+                "type": "Review Incomplete",
+                "severity": "Medium",
+                "description": "The agent review stage failed to return a "
+                               "usable assessment, so the properties below are "
+                               "physics-only estimates.",
+                "recommendation": "Re-run the design to get a full agent "
+                                  "review; the composition itself is valid.",
+            }],
+            "recommendations": [
+                "Re-run to obtain a full agent review of this composition",
+            ],
+            "explanation": (
+                f"Design completed through optimisation for a {processing} alloy "
+                f"at {temperature}\u00b0C, but the final agent review did not "
+                f"return a usable assessment. The composition shown is the "
+                f"optimised candidate; the properties are deterministic physics "
+                f"estimates rather than the full pipeline's output."
+            ),
+            "audit_penalties": [],
+            "metallurgy_metrics": {},
+            "penalty_score": 0.0,
+            "corrections_applied": [],
+            "corrections_explanation": "",
+            "analyst_reasoning": "",
+            "reviewer_assessment": "",
+            "investigation_findings": "",
+            "source_reliability": "",
+            "review_error": str(review_error),
+            "optimization_log": failed_result.get("optimization_log", {}),
+            "iterations_used": failed_result.get("iterations_used", 0),
+        }
+
     # ── Success checking ────────────────────────────────────────────
 
     def _is_design_successful(self, result: dict) -> bool:
@@ -972,6 +1076,15 @@ class IterativeDesignCrew:
             "phase1_log": phase1_log,
         }
         result["iterations_used"] = len(phase1_log)  # Phase 1 LLM attempts before Phase 2+3
+
+        # ── Phase 3 salvage ─────────────────────────────────────────
+        # Before judging the design, check whether it was actually judged. If
+        # Phase 3 returned nothing usable, the run still has a valid Phase 2
+        # composition and reporting it as a blank failure loses real work.
+        if self._phase3_output_unusable(result):
+            return self._degraded_result_from_phase2(
+                result, optimized_comp, opt_result, processing, temperature
+            )
 
         # ── Final success check ──────────────────────────────────────
         if self._is_design_successful(result):

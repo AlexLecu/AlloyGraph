@@ -83,6 +83,16 @@ const hasNoUsableOutput = (results) => {
     && !results.reviewerAssessment
 }
 
+// True when the design ran but its agent review stage produced nothing usable,
+// so the properties shown are Phase 2 physics estimates rather than the full
+// pipeline's output. The backend marks this with design_status 'unreviewed'.
+// Distinct from 'incomplete', which means the design finished and missed
+// targets -- a statement about the alloy rather than about the pipeline.
+const isUnreviewed = (results) => {
+  if (!results) return false
+  return results.status === 'UNREVIEWED' || results.reviewStatus === 'incomplete'
+}
+
 const formatMetricLabel = (key) => {
   const labelMap = {
     'md_average': 'Md Temperature (avg)', 'sss_wt_pct': 'Solid Solution Strengthening (wt%)',
@@ -310,7 +320,7 @@ const parsedResults = computed(() => {
     })
   }
 
-  return { comp, formattedProps, propertyIntervals, confidence, explanation, auditPenalties, metallurgyMetrics, physicsMetrics, status, tcpRisk, similar, summary, issues, reasoning, analystReasoning, reviewerAssessment, investigationFindings, sourceReliability, correctionsApplied, correctionsExplanation }
+  return { comp, formattedProps, propertyIntervals, confidence, explanation, auditPenalties, metallurgyMetrics, physicsMetrics, status, tcpRisk, similar, summary, issues, reasoning, analystReasoning, reviewerAssessment, investigationFindings, sourceReliability, correctionsApplied, correctionsExplanation, reviewStatus: data.review_status, propertiesSource: data.properties_source, reviewError: data.review_error }
 })
 
 const copyToEvaluation = () => {
@@ -386,13 +396,28 @@ const copyToEvaluation = () => {
 
     <div v-else-if="parsedResults" class="results-dashboard">
       <div class="dashboard-header">
-        <h3>Analysis Complete at {{ result.temperature || temperature }}°C</h3>
+        <h3 v-if="isUnreviewed(parsedResults)">Design Complete at {{ result.temperature || temperature }}°C &mdash; Review Incomplete</h3>
+        <h3 v-else>Analysis Complete at {{ result.temperature || temperature }}°C</h3>
         <p class="summary-text">{{ parsedResults.summary }}</p>
       </div>
 
       <!-- Status Badge -->
       <div v-if="parsedResults.status && parsedResults.status !== 'UNKNOWN'" class="status-badge" :class="parsedResults.status.toLowerCase()">
-        {{ parsedResults.status === 'PASS' ? 'PASS' : parsedResults.status === 'REJECT' ? 'REJECT' : 'FAIL' }}
+        {{ parsedResults.status === 'PASS' ? 'PASS' : parsedResults.status === 'REJECT' ? 'REJECT' : parsedResults.status === 'UNREVIEWED' ? 'REVIEW INCOMPLETE' : 'FAIL' }}
+      </div>
+
+      <!-- Review-incomplete notice. The composition below is real and
+           optimised; only the final agent review failed to return a usable
+           assessment, so the numbers are physics-only and less trustworthy. -->
+      <div v-if="isUnreviewed(parsedResults)" class="review-incomplete-panel" role="status">
+        <div class="review-incomplete-title">Lower confidence &mdash; agent review did not complete</div>
+        <p>
+          The composition below is the optimised candidate and is valid. The
+          final agent review stage did not return a usable assessment, so the
+          properties are <strong>deterministic physics estimates</strong>
+          without ML blending, knowledge-graph anchoring, or peer review.
+          Treat them as indicative and re-run the design for a full review.
+        </p>
       </div>
 
       <!-- Prediction Info Panel -->
@@ -644,6 +669,12 @@ const copyToEvaluation = () => {
 .status-badge.pass { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border-color: #20c997; animation: pulse-green 2s infinite; }
 .status-badge.reject { background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); color: #1a1a1a; border-color: #ff9800; font-weight: 900; animation: pulse-orange 2s infinite; }
 .status-badge.fail { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; border-color: #c82333; animation: pulse-red 2s infinite; }
+/* Neither success nor failure: the design is real but unverified. Deliberately
+   calm (no pulse) -- it is a caveat, not an alarm. */
+.status-badge.unreviewed { background: linear-gradient(135deg, #6c757d 0%, #868e96 100%); color: white; border-color: #adb5bd; font-size: 1.05rem; }
+.review-incomplete-panel { border: 1px solid #ff9800; border-left: 4px solid #ff9800; background: rgba(255, 152, 0, 0.08); border-radius: 8px; padding: 0.9rem 1.1rem; margin-bottom: 1.5rem; }
+.review-incomplete-title { font-weight: 700; color: #ff9800; margin-bottom: 0.4rem; }
+.review-incomplete-panel p { margin: 0; font-size: 0.92rem; line-height: 1.5; opacity: 0.92; }
 @keyframes pulse-green { 0%, 100% { box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4); } 50% { box-shadow: 0 4px 20px rgba(40, 167, 69, 0.7); } }
 @keyframes pulse-orange { 0%, 100% { box-shadow: 0 4px 12px rgba(255, 193, 7, 0.5); } 50% { box-shadow: 0 4px 20px rgba(255, 193, 7, 0.8); } }
 @keyframes pulse-red { 0%, 100% { box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4); } 50% { box-shadow: 0 4px 20px rgba(220, 53, 69, 0.7); } }
