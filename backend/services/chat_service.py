@@ -445,6 +445,10 @@ def _stream_chat_inner(prompt: str, session_id: str, history: list):
                     stream=True,
                 )
                 for chunk in stream:
+                    # Terminal/usage frames carry an empty choices list; see
+                    # the note at the third occurrence of this guard below.
+                    if not chunk.choices:
+                        continue
                     content = chunk.choices[0].delta.content
                     if content:
                         yield json.dumps({"type": "chunk", "content": content}) + "\n"
@@ -586,6 +590,10 @@ def _stream_chat_inner(prompt: str, session_id: str, history: list):
                     stream=True,
                 )
                 for chunk in stream:
+                    # Terminal/usage frames carry an empty choices list; see
+                    # the note at the third occurrence of this guard below.
+                    if not chunk.choices:
+                        continue
                     content = chunk.choices[0].delta.content
                     if content:
                         yield json.dumps({"type": "chunk", "content": content}) + "\n"
@@ -624,6 +632,18 @@ def _stream_chat_inner(prompt: str, session_id: str, history: list):
         )
 
         for chunk in stream:
+            # DeepInfra's OpenAI-compatible stream ends with a frame whose
+            # `choices` list is empty (it carries usage, not content).
+            # Indexing [0] on it raised IndexError on EVERY chat request, which
+            # the outer handler turned into a trailing
+            # "[Error: ... list index out of range]" appended to the finished
+            # answer in the UI. The Groq SDK this replaced did not surface
+            # those frames, so the bug arrived with the provider switch.
+            #
+            # Skipping them is not a behaviour change: they never carried any
+            # content to stream.
+            if not chunk.choices:
+                continue
             content = chunk.choices[0].delta.content
             if content:
                 yield json.dumps({"type": "chunk", "content": content}) + "\n"
