@@ -1,0 +1,2 @@
+# GitHub language stats: count the application code, not the analysis notebooks
+*.ipynb linguist-detectable=false

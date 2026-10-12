@@ -9,7 +9,9 @@ services:
     image: alloygraph-frontend
     container_name: alloygraph-frontend
     ports:
-      - "3000:80"  # Change to "80:80" for production
+      # localhost only by default; put a reverse proxy in front, or set
+      # BIND_ADDRESS=0.0.0.0 in .env to expose it directly
+      - "${BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-3000}:80"
     depends_on:
       backend:
         condition: service_healthy
@@ -105,8 +107,9 @@ services:
       - --scheme
       - http
     ports:
-      - "8081:8080"
-      - "50052:50051"
+      # for host-side scripts only; the backend uses the compose network
+      - "127.0.0.1:8081:8080"
+      - "127.0.0.1:50052:50051"
     volumes:
       - weaviate_data:/var/lib/weaviate
     environment:
@@ -144,7 +147,8 @@ services:
     image: ontotext/graphdb:10.8.0
     container_name: alloygraph-graphdb
     ports:
-      - "7200:7200"
+      # Workbench without authentication: localhost only (use an SSH tunnel)
+      - "127.0.0.1:7200:7200"
     volumes:
       - graphdb_data:/opt/graphdb/home
     environment:

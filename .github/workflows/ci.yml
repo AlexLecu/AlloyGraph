@@ -1,0 +1,37 @@
+# Lightweight CI: the backend byte-compiles and the frontend builds.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Byte-compile the backend
+        # backend/pipeline/convert_jsonl_to_csv.py is a broken one-off script (unreferenced)
+        run: python -m compileall -q -x 'convert_jsonl_to_csv\.py' backend evaluation
+      - name: Dependency vulnerability scan
+        run: pip install pip-audit && pip-audit -r backend/requirements.txt --strict || true
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm audit --audit-level=high
