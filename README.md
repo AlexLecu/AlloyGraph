@@ -4,10 +4,13 @@
 
 ### A Multi-Agent AI Platform for Nickel-Based Superalloy Property Prediction, Inverse Design, and Knowledge-Driven Research
 
+[![Preprint](https://img.shields.io/badge/SSRN-10.2139%2Fssrn.7022006-blue.svg)](https://doi.org/10.2139/ssrn.7022006)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Docker](https://img.shields.io/badge/docker-compose-2496ED.svg)](https://docs.docker.com/compose/)
+[![CI](https://github.com/AlexLecu/AlloyGraph/actions/workflows/ci.yml/badge.svg)](https://github.com/AlexLecu/AlloyGraph/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-[🌐 Live Demo](https://alloygraph.utcluj.ro) · [🎥 Video](https://youtu.be/2NUNi8fizJs) · [📐 Ontology](https://w3id.org/alloygraph/ont) · [📦 Data (figshare)](https://doi.org/10.6084/m9.figshare.31860466)
+[🌐 Live Demo](https://alloygraph.utcluj.ro) · [🎥 Video](https://youtu.be/2NUNi8fizJs) · [📐 Ontology](https://w3id.org/alloygraph/ont) · [📦 Data (figshare)](https://doi.org/10.6084/m9.figshare.31860466) · [📄 Preprint](https://doi.org/10.2139/ssrn.7022006) · [📚 Citation](#-citation)
 
 <img src="assets/system_architecture.png" alt="AlloyGraph System Architecture" width="90%">
 
@@ -192,3 +195,26 @@ All data used in this project is publicly available. The complete archive (KG da
 - **Accessible**: All code, data, and ontology are openly available. Docker Compose deployment requires no proprietary software.
 - **Interoperable**: Standards-aligned ontology (see [Ontology](#-ontology) section). RDF triples in GraphDB; standard SPARQL access.
 - **Reusable**: Modular pipeline (ontology builder, KG ingestion, ML training, agent evaluation) with documented configuration and reproducible Docker setup.
+
+## 📚 Citation
+
+If you use AlloyGraph, please cite the preprint (the citation will be updated once the paper is published):
+
+> Lecu, A., Hawizy, L., Birosca, S., & Groza, A. (2026). *AlloyGraph: A Knowledge-Graph-Grounded Multi-Agent System for Nickel-Based Superalloy Design.* SSRN preprint. [doi:10.2139/ssrn.7022006](https://doi.org/10.2139/ssrn.7022006)
+
+```bibtex
+@misc{lecu2026alloygraph,
+  title        = {AlloyGraph: A Knowledge-Graph-Grounded Multi-Agent System for Nickel-Based Superalloy Design},
+  author       = {Lecu, Alexandru and Hawizy, Lezan and Birosca, Soran and Groza, Adrian},
+  year         = {2026},
+  howpublished = {SSRN preprint},
+  doi          = {10.2139/ssrn.7022006},
+  url          = {https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7022006}
+}
+```
+
+GitHub's *Cite this repository* button reads the same entry from [`CITATION.cff`](CITATION.cff).
+
+## 📄 License
+
+Released under the [MIT License](LICENSE).

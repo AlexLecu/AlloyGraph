@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the preprint below."
+title: "AlloyGraph"
+type: software
+repository-code: "https://github.com/AlexLecu/AlloyGraph"
+license: MIT
+authors:
+  - family-names: Lecu
+    given-names: Alexandru
+  - family-names: Hawizy
+    given-names: Lezan
+  - family-names: Birosca
+    given-names: Soran
+  - family-names: Groza
+    given-names: Adrian
+preferred-citation:
+  type: article
+  status: preprint
+  title: "AlloyGraph: A Knowledge-Graph-Grounded Multi-Agent System for Nickel-Based Superalloy Design"
+  authors:
+    - family-names: Lecu
+      given-names: Alexandru
+    - family-names: Hawizy
+      given-names: Lezan
+    - family-names: Birosca
+      given-names: Soran
+    - family-names: Groza
+      given-names: Adrian
+  journal: "SSRN"
+  publisher:
+    name: "Elsevier"
+  year: 2026
+  doi: "10.2139/ssrn.7022006"
+  url: "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7022006"

@@ -1,0 +1,25 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: monthly }
+    groups:
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: pip
+    directory: /backend
+    schedule: { interval: monthly }
+    groups:
+      pip-minor-and-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: docker
+    directories: [/backend, /frontend]
+    schedule: { interval: monthly }
+    ignore:
+      - dependency-name: python
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }
