@@ -9,6 +9,9 @@ updates:
   - package-ecosystem: pip
     directory: /backend
     schedule: { interval: monthly }
+    # requirements.txt holds open floors; the image installs the pinned
+    # requirements.lock. Only touch a floor when a needed version falls outside it.
+    versioning-strategy: increase-if-necessary
     groups:
       pip-minor-and-patch:
         update-types: [minor, patch]
