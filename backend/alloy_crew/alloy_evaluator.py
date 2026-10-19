@@ -947,7 +947,8 @@ class AlloyEvaluationCrew:
             composition=composition,
             temperature_c=temperature,
             processing=processing,
-            confidence=output.confidence if isinstance(output.confidence, dict) else {}
+            confidence=output.confidence if isinstance(output.confidence, dict) else {},
+            conformal_intervals=True,
         )
 
         output.penalty_score = validation_result["penalty_score"]

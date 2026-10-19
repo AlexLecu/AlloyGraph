@@ -181,7 +181,7 @@ onUnmounted(() => {
                     <li><span class="status-pass">PASS</span> No critical violations. Md &lt; 0.98, lattice mismatch &lt; 0.8%, properties within known ranges.</li>
                     <li><span class="status-reject">REJECT</span> Physics constraints violated (TCP phase risk, excessive lattice mismatch, γ' incoherence).</li>
                     <li><strong>Confidence:</strong> HIGH (database match), MEDIUM (interpolation), LOW (extrapolation).</li>
-                    <li><strong>Intervals:</strong> Uncertainty ranges based on model confidence and nearest-neighbor distances.</li>
+                    <li><strong>Intervals:</strong> 90% conformal (CV+) intervals of the ML ensemble, calibrated on the 77 training alloys. Around the agent-adjusted value they are an empirical approximation rather than a guarantee. Their width is constant per property, and measured coverage is lower above 900&nbsp;°C.</li>
                   </ul>
                 </div>
               </div>

@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from typing import Type, Dict, Any, Literal
 import json
 from ..schemas import CompositionStr
+from ..conformal import conformal_interval
 from ..models.feature_engineering import compute_alloy_features, calculate_em_rule_of_mixtures, estimate_gamma_prime_vol_pct, wt_to_at_percent
 from ..config.alloy_parameters import (
     TCP,
@@ -260,7 +261,8 @@ def compute_metallurgy_validation(
     temperature_c: float,
     processing: str = "cast",
     confidence: Dict[str, Any] = None,
-    existing_intervals: Dict[str, Any] = None
+    existing_intervals: Dict[str, Any] = None,
+    conformal_intervals: bool = False
 ) -> Dict[str, Any]:
     """
     Compute complete metallurgy validation without modifying properties.
@@ -268,6 +270,12 @@ def compute_metallurgy_validation(
     Deterministic validation: computes metrics, penalties, intervals, and TCP risk.
     Does NOT apply corrections or blend ML/Physics predictions.
     Use this after agent-driven correction decisions.
+
+    conformal_intervals=True reports the 90% CV+ conformal interval
+    (alloy_crew.conformal) instead of the fixed-percentage band. Only the
+    evaluator's final, user-facing validation sets it: the Reviewer's
+    MetallurgyVerifierTool keeps the percentage band, so the agents see exactly
+    the evidence they saw in the evaluated campaigns.
     """
     confidence = confidence or {}
 
@@ -317,6 +325,11 @@ def compute_metallurgy_validation(
     for prop, unc_pct in uncertainty_pcts.items():
         if prop in properties and prop not in intervals:
             val = properties[prop]
+            if conformal_intervals and val is not None:
+                interval = conformal_interval(prop, val)
+                if interval is not None:
+                    intervals[prop] = interval
+                    continue
             if val and val != 0:
                 unc = val * unc_pct
                 intervals[prop] = {
