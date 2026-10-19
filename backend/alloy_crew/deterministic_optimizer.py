@@ -555,7 +555,7 @@ def _tune(
     processing: str,
     max_steps: int = MAX_TUNE_STEPS,
 ) -> dict:
-    """Fine-tune performance-sensitive elements within ±2% of LLM values.
+    """Fine-tune performance-sensitive elements within ±MAX_TUNE_DEVIATION wt% of LLM values.
 
     Only adjusts elements in TUNABLE_ELEMENTS that are already present
     (> 0.1 wt%) in the composition.  Uses ML model sensitivity (same
@@ -576,7 +576,7 @@ def _tune(
     comp = composition.copy()
     log = []
 
-    # Build per-element bounds: ±2% from LLM's original, capped by
+    # Build per-element bounds: ±MAX_TUNE_DEVIATION from LLM's original, capped by
     # physical bounds and wrought processing caps.
     tune_bounds = {}
     for el in TUNABLE_ELEMENTS:
@@ -824,7 +824,7 @@ def optimize(
     guard_result = _guard(initial_composition, targets, processing, temperature_c)
     guarded_comp = guard_result["composition"]
 
-    # Tier 2: Tune — light-touch adjustments within ±2%
+    # Tier 2: Tune — light-touch adjustments within ±MAX_TUNE_DEVIATION wt%
     tune_result = _tune(
         composition=guarded_comp,
         original_composition=original_comp,

@@ -38,7 +38,7 @@ AlloyGraph is an open-source platform that predicts mechanical properties of nic
 |------|-------|--------|----------|
 | 💬 **Research Assistant** | Natural language question | Grounded answer with citations | 91.2% on 250 factual questions |
 | 📊 **Property Evaluator** | Composition + temperature | YS, UTS, EL, EM predictions with 90% conformal intervals | MAE: 78.8 MPa (YS), 96.4 MPa (UTS) |
-| 🧪 **Alloy Designer** | Target properties | Optimised composition | 72% of targets met, 0 Critical TCP |
+| 🧪 **Alloy Designer** | Target properties | Optimised composition | 54% of targets met under a uniform physics scorer |
 
 ---
 
@@ -158,8 +158,8 @@ Registered at [w3id.org/alloygraph/ont](https://w3id.org/alloygraph/ont) under C
 
 ### 🔧 Inverse Design
 - 20 target specifications across wrought and cast processing
-- 72% of property targets met within 90% threshold
-- Zero Critical TCP risk violations; domain expert validated metallurgical soundness
+- 54.3 ± 1.7% of property targets met within the 90% threshold under a uniform physics scorer (in silico; no designed composition has been synthesized)
+- The LLM Designer's contribution is not demonstrated against a sparsity-matched random-sampling baseline
 
 ---
 

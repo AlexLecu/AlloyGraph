@@ -344,7 +344,7 @@ def revision_checks(add):
     add("3.2", "solid-solution alloys in MID", 6, mix["MID"]["SSS"], src)
     sweep = [r["ys_full_vs_kg_pct"] for r in rb["boundary_sweep"]]
     add("3.2", "MID boundary sweep, best agent effect (%)", -9, round(min(sweep)), src)
-    add("3.2", "MID boundary sweep, worst agent effect (%)", 12, round(max(sweep)), src)
+    add("3.2", "MID boundary sweep, worst agent effect (%)", 12.5, round(max(sweep), 1), src)
     mc = {(c["property"], c["new"]): c for c in rb["mid_contributions"]}
     em_full = mc[("em", "full")]
     add("3.2", "RENE N5 share of MID EM agent excess (%)", 95,
