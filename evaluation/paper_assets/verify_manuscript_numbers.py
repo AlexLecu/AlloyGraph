@@ -377,6 +377,10 @@ def revision_checks(add):
         add("3.2", f"T5 {cls} {st} ML MAE", ml, r and round(r["mae_ml"], 1), src)
         add("3.2", f"T5 {cls} {st} physics MAE", ph, r and round(r["mae_physics"], 1), src)
         add("3.2", f"T5 {cls} {st} position", pos, r and abs(round(r["median_position_t"], 2)), src)
+    rule = {r["stratum"]: r for r in json.load(open(os.path.join(RES, "revision_agent_mechanism.json")))["posthoc_routing_rule"]}
+    for st, (rv, fv) in {"NEAR": (89.3, 63.2), "MID": (64.4, 71.8), "FAR": (81.4, 89.8), "ALL": (77.5, 78.8)}.items():
+        add("3.2", f"post-hoc routing rule {st} MAE", rv, round(rule[st]["mae_rule_sss_physics"], 1), src)
+        add("3.2", f"post-hoc routing rule {st} full-system MAE", fv, round(rule[st]["mae_full"], 1), src)
 
     # --- LLM identification probe ------------------------------------------
     pr = load_csv(os.path.join(RES, "llm_identification_probe.csv"))
