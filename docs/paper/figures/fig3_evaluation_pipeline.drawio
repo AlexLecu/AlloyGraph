@@ -13,17 +13,17 @@
                 <mxCell id="design_title" value="&lt;b&gt;Design Mode Only&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=16;fontColor=#E65100;spacingLeft=8;" parent="1" vertex="1">
                     <mxGeometry x="110" y="15" width="250" height="25" as="geometry"/>
                 </mxCell>
-                <mxCell id="eval_title" value="&lt;b&gt;Evaluation Pipeline&lt;/b&gt;  (Phase 3 in Design Mode)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=16;fontColor=#1565C0;spacingLeft=8;" parent="1" vertex="1">
+                <mxCell id="eval_title" value="&lt;b&gt;Evaluation Pipeline&lt;/b&gt;  (Phase 3 in Design Mode, run once)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=16;fontColor=#1565C0;spacingLeft=8;" parent="1" vertex="1">
                     <mxGeometry x="110" y="245" width="450" height="25" as="geometry"/>
                 </mxCell>
                 <mxCell id="targets" value="&lt;b&gt;Target Properties&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:14px&#39;&gt;YS · UTS · EL · EM · Processing&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=16;strokeWidth=2;" parent="1" vertex="1">
                     <mxGeometry x="130" y="50" width="250" height="55" as="geometry"/>
                 </mxCell>
-                <mxCell id="designer" value="&lt;b&gt;Phase 1: Designer Agent&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:13px&#39;&gt;LLM synthesizes candidate&lt;br&gt;composition with physics checks&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=15;" parent="1" vertex="1">
-                    <mxGeometry x="130" y="130" width="250" height="70" as="geometry"/>
+                <mxCell id="designer" value="&lt;b&gt;Phase 1: Designer Agent&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:13px&#39;&gt;LLM synthesizes candidate&lt;br&gt;composition, up to 5 attempts&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=15;" parent="1" vertex="1">
+                    <mxGeometry x="130" y="116" width="250" height="70" as="geometry"/>
                 </mxCell>
-                <mxCell id="optimizer" value="&lt;b&gt;Phase 2: Deterministic Optimizer&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:13px&#39;&gt;Guard + Tuner&lt;br&gt;Metallurgical constraint enforcement&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#E65100;fontColor=#BF360C;fontSize=15;" parent="1" vertex="1">
-                    <mxGeometry x="520" y="130" width="250" height="70" as="geometry"/>
+                <mxCell id="optimizer" value="&lt;b&gt;Phase 2: Optimizer&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:13px&#39;&gt;Deterministic Guard + Tuner&lt;br&gt;Metallurgical constraint enforcement&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#E65100;fontColor=#BF360C;fontSize=15;" parent="1" vertex="1">
+                    <mxGeometry x="540" y="116" width="235" height="70" as="geometry"/>
                 </mxCell>
                 <mxCell id="input" value="&lt;b&gt;Composition · Processing · Temperature&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontColor=#0D47A1;fontSize=16;strokeWidth=2;" parent="1" vertex="1">
                     <mxGeometry x="260" y="280" width="380" height="42" as="geometry"/>
@@ -61,22 +61,19 @@
                 <mxCell id="output" value="&lt;b&gt;Predicted Properties&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:14px&#39;&gt;YS · UTS · EL · EM · Density · γ′&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontColor=#0D47A1;fontSize=16;strokeWidth=2;" parent="1" vertex="1">
                     <mxGeometry x="260" y="720" width="380" height="50" as="geometry"/>
                 </mxCell>
-                <mxCell id="check" value="&lt;b&gt;Targets&lt;br&gt;met?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=15;" parent="1" vertex="1">
-                    <mxGeometry x="375" y="800" width="130" height="75" as="geometry"/>
-                </mxCell>
                 <mxCell id="design_output" value="&lt;b&gt;Designed Alloy&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:14px&#39;&gt;Final composition + properties&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=15;strokeWidth=2;" parent="1" vertex="1">
-                    <mxGeometry x="320" y="920" width="240" height="50" as="geometry"/>
+                    <mxGeometry x="320" y="820" width="240" height="50" as="geometry"/>
                 </mxCell>
                 <mxCell id="d1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#E65100;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=blockThin;endFill=1;" parent="1" source="targets" target="designer" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="d2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#E65100;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=blockThin;endFill=1;" parent="1" source="designer" target="optimizer" edge="1">
+                <mxCell id="d2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#E65100;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=blockThin;endFill=1;" parent="1" source="designer" target="screen" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="d3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#E65100;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.8;entryY=0;endArrow=blockThin;endFill=1;" parent="1" source="optimizer" target="input" edge="1">
                     <mxGeometry relative="1" as="geometry">
                         <Array as="points">
-                            <mxPoint x="645" y="251"/>
+                            <mxPoint x="657" y="251"/>
                             <mxPoint x="564" y="251"/>
                         </Array>
                     </mxGeometry>
@@ -111,20 +108,27 @@
                 <mxCell id="e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#1565C0;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=blockThin;endFill=1;" parent="1" source="post" target="output" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="f1" value="&lt;font style=&#39;font-size:14px;color:#E65100&#39;&gt;&lt;b&gt;Design mode only&lt;/b&gt;&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#E65100;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=blockThin;endFill=1;labelBackgroundColor=#FFF3E0;" parent="1" source="output" target="check" edge="1">
+                <mxCell id="f1" value="&lt;font style=&#39;font-size:14px;color:#E65100&#39;&gt;&lt;b&gt;Design mode: reported once, no feedback&lt;/b&gt;&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#E65100;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=blockThin;endFill=1;labelBackgroundColor=#FFF3E0;" parent="1" source="output" target="design_output" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="f2" value="&lt;font style=&#39;font-size:15px;color:#2E7D32&#39;&gt;&lt;b&gt;yes&lt;/b&gt;&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#2E7D32;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=blockThin;endFill=1;" parent="1" source="check" target="design_output" edge="1">
+            
+                <mxCell id="screen" value="&lt;b&gt;Physics&lt;br&gt;screen&lt;br&gt;passed?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="400" y="106" width="115" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="s_yes" value="&lt;font style=&#39;font-size:11px;color:#2E7D32&#39;&gt;&lt;b&gt;yes&lt;/b&gt;, or best&lt;br&gt;after 5 attempts&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#2E7D32;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=blockThin;endFill=1;labelBackgroundColor=#FFF3E0;" parent="1" source="screen" target="optimizer" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="f3" value="&lt;font style=&#39;font-size:15px;color:#C62828&#39;&gt;&lt;b&gt;no&lt;/b&gt;&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#C62828;strokeWidth=2;dashed=1;dashPattern=10 5;exitX=0;exitY=0.5;entryX=0;entryY=0.5;endArrow=blockThin;endFill=1;" parent="1" source="check" target="designer" edge="1">
-                    <mxGeometry x="0.0223" relative="1" as="geometry">
+                <mxCell id="s_no" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#C62828;strokeWidth=2;dashed=1;dashPattern=10 5;exitX=0.5;exitY=1;entryX=0.5;entryY=1;endArrow=blockThin;endFill=1;labelBackgroundColor=#FFF3E0;" parent="1" source="screen" target="designer" edge="1">
+                    <mxGeometry relative="1" as="geometry">
                         <Array as="points">
-                            <mxPoint x="60" y="837"/>
-                            <mxPoint x="60" y="165"/>
+                            <mxPoint x="457" y="204"/>
+                            <mxPoint x="255" y="204"/>
                         </Array>
-                        <mxPoint as="offset"/>
                     </mxGeometry>
+                </mxCell>
+            
+                <mxCell id="s_no_label" value="&lt;b&gt;no:&lt;/b&gt; targeted feedback (TCP, strength, γ′)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontColor=#C62828;" parent="1" vertex="1">
+                    <mxGeometry x="240" y="206" width="235" height="20" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>
