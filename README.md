@@ -26,7 +26,7 @@ AlloyGraph is an open-source platform that predicts mechanical properties of nic
 
 | Component | Description |
 |-----------|-------------|
-| 🧠 **Knowledge Graph** | 77 experimentally characterised alloys in GraphDB (RDF) + Weaviate (vector search), structured by an OWL 2 DL ontology with HermiT reasoning |
+| 🧠 **Knowledge Graph** | 77 experimentally characterised alloys in GraphDB (RDF) + Weaviate (vector search), structured by an OWL 2 DL ontology that provides the schema and ingestion-time data validation |
 | ⚙️ **Physics-Informed ML** | XGBoost + Random Forest ensemble trained on 50–80 physics-based features (Morinaga Md, lattice mismatch, SSS strengthening) |
 | 🤖 **Multi-Agent LLM** | Analyst and Reviewer agents (Llama 3.3-70B via CrewAI) triangulating ML, physics, and KG experimental data |
 
@@ -37,7 +37,7 @@ AlloyGraph is an open-source platform that predicts mechanical properties of nic
 | Mode | Input | Output | Accuracy |
 |------|-------|--------|----------|
 | 💬 **Research Assistant** | Natural language question | Grounded answer with citations | 91.2% on 250 factual questions |
-| 📊 **Property Evaluator** | Composition + temperature | YS, UTS, EL, EM predictions | MAE: 80.6 MPa (YS), 95.2 MPa (UTS) |
+| 📊 **Property Evaluator** | Composition + temperature | YS, UTS, EL, EM predictions with 90% conformal intervals | MAE: 78.8 MPa (YS), 96.4 MPa (UTS) |
 | 🧪 **Alloy Designer** | Target properties | Optimised composition | 72% of targets met, 0 Critical TCP |
 
 ---
@@ -136,8 +136,8 @@ AlloyGraph/
 The AlloyGraph ontology (v1.2.0) formalises nickel-based superalloys as an OWL 2 DL knowledge model:
 
 - 🏗️ **32 classes** organised around materials, phases, properties, and metadata
-- 🔄 **Classification axioms** — automatic alloy type (SSS / γ') and TCP risk level via HermiT
-- ✅ **Data validation** — physical plausibility bounds checked at ingestion
+- ✅ **Data validation** — declared plausibility ranges (density, γ′ fraction, Md, lattice mismatch) checked for every ingested variant; on the uncorrected source corpus they flag three records, each a documented erratum
+- 🔄 **Classification axioms** — alloy type (SSS / γ') and TCP risk level via HermiT, used for consistency checking; the prediction pipeline computes these quantities itself and does not consume the inferred classes
 - 🔗 **Interoperable** — aligned to EMMO, ChEBI, and QUDT via `skos:closeMatch`
 
 Registered at [w3id.org/alloygraph/ont](https://w3id.org/alloygraph/ont) under CC-BY 4.0.
