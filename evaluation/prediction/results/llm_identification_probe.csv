@@ -1,0 +1,89 @@
+alloy,stratum,alloy_class,answer,confidence,identified,said_unknown
+NIMOCAST* 75,MID,SSS,Inconel 600,0.8,False,False
+NIMOCAST* 242,MID,SSS,Inconel 718,0.8,False,False
+INCONEL* 600,MID,SSS,Inconel 600,0.8,True,False
+HASTELLOY* X,FAR,SSS,Inconel 718,0.8,False,False
+HAYNES* 242,FAR,SSS,Hastelloy X,0.8,False,False
+Alloy 718 (AMS 5596 sheet),NEAR,SSS,Inconel 718,0.8,True,False
+Alloy 725,FAR,SSS,Inconel 718,0.8,False,False
+Haynes 244,FAR,SSS,HAYNES 230,0.8,False,False
+ATI Allegheny Ludlum AL 22™ Nickel-Base Alloy,FAR,SSS,Hastelloy X,0.8,False,False
+ATI Allegheny Ludlum AL 276™ Nickel-Base Alloy,FAR,SSS,Hastelloy X,0.8,False,False
+ATI Allegheny Ludlum AL 600™ Nickel-Base Alloy,MID,SSS,Inconel 600,0.8,True,False
+ATI Allegheny Ludlum AL 601™ Nickel-Base Alloy,NEAR,SSS,Inconel 600,0.8,False,False
+ATI Allegheny Ludlum AL 625HP™ Stainless Steel,FAR,SSS,Waspaloy,0.8,False,False
+ATI Allegheny Ludlum Altemp® 718 Nickel-Base Superalloy,NEAR,SSS,Inconel 718,0.8,True,False
+ATI Allegheny Ludlum Altemp® HX Nickel-Based superalloy,FAR,SSS,Inconel 718,0.8,False,False
+Haynes 625 alloy,MID,SSS,Inconel 718,0.8,False,False
+Haynes 718 alloy,NEAR,SSS,Inconel 718,0.8,True,False
+Haynes CABVAL Hastelloy® G-50™ Grade 100 Ni-Cr-Fe-Mo Alloy,FAR,SSS,Inconel 718,0.8,False,False
+Haynes Hastelloy® B-2 alloy,FAR,SSS,Hastelloy C-276,0.8,False,False
+Haynes Hastelloy® B-3® alloy,FAR,SSS,Hastelloy X,0.8,False,False
+Haynes Hastelloy® C-2000® alloy,FAR,SSS,Inconel 718,0.8,False,False
+Haynes Hastelloy® C-22® alloy,FAR,SSS,Waspaloy,0.8,False,False
+Haynes Hastelloy® C-276 alloy,FAR,SSS,Hastelloy X,0.8,False,False
+Haynes Hastelloy® C-4 alloy,FAR,SSS,Waspaloy,0.8,False,False
+Haynes Hastelloy® G-30® alloy,FAR,SSS,Inconel 718,0.8,False,False
+Haynes Hastelloy® N,FAR,SSS,Hastelloy X,0.8,False,False
+Nickel Alloy 59,FAR,SSS,Hastelloy X,0.8,False,False
+Special Metals INCOLOY® alloy 890 Ni-Cr-Fe Superalloy,FAR,SSS,Inconel 718,0.0,False,False
+Special Metals INCONEL® 622 Nickel Superalloy (UNS N06022) Plate 0.250 in (6.4 mm),FAR,SSS,Waspaloy,0.8,False,False
+Special Metals INCONEL® 725 Nickel Superalloy (UNS N07725),FAR,SSS,Waspaloy,0.9,False,False
+Special Metals INCONEL® Alloy 686 Nickel Superalloy Sheet (UNS N06686),FAR,SSS,Waspaloy,0.8,False,False
+Special Metals INCONEL® Alloy N06230 Ni-Cr-W-Mo Alloy,MID,SSS,Waspaloy,0.8,False,False
+Special Metals INCONEL® C276 Nickel Superalloy Sheet,FAR,SSS,Hastelloy X,0.8,False,False
+Special Metals INCONEL® G-3 Nickel Superalloy (UNS N06985),FAR,SSS,Inconel 718,0.8,False,False
+Special Metals NIMONIC® Alloy 86,NEAR,SSS,Inconel 625,0.8,False,False
+MAR-M* 247,MID,Precip,Inconel 738,0.8,False,False
+MAR-M* 200,NEAR,Precip,Inconel 718,0.2,False,False
+TRW-NASA VI A,MID,Precip,INCONEL 713C,0.8,False,False
+IN-738,MID,Precip,Inconel 713C,0.8,False,False
+NIMOCAST* 263,MID,Precip,INCONEL 713C,0.8,False,False
+IN-731,FAR,Precip,Inconel 738,0.8,False,False
+WASPALOY*,MID,Precip,Waspaloy,0.9,True,False
+NIMONIC* 901,MID,Precip,Inconel 718,0.8,False,False
+NIMONIC* 90,FAR,Precip,Waspaloy,0.8,False,False
+RGT* 13,FAR,Precip,Waspaloy,0.8,False,False
+UDIMET* 520,MID,Precip,Waspaloy,0.8,False,False
+D-979,FAR,Precip,Inconel 718,0.8,False,False
+NIMONIC* 81,FAR,Precip,Inconel 600,0.8,False,False
+ASTROLOY,MID,Precip,Waspaloy,0.9,False,False
+NIMONIC* PE16,FAR,Precip,Inconel 718,0.8,False,False
+AF2-1DA,MID,Precip,Inconel 713C,0.8,False,False
+Alloy 263 (C263),NEAR,Precip,Waspaloy,0.8,False,False
+CM 247 LC,MID,Precip,René 108,0.8,False,False
+GTD-111,MID,Precip,Inconel 738,0.8,False,False
+GTD-262,MID,Precip,Waspaloy,0.8,False,False
+GTD-444,MID,Precip,René 108,0.8,False,False
+Haynes 233,FAR,Precip,Waspaloy,0.9,False,False
+Haynes 282,MID,Precip,Waspaloy,0.8,False,False
+Inconel 718Plus,FAR,Precip,Inconel 718,0.9,False,False
+Inconel X-750,NEAR,Precip,Inconel 718,0.8,False,False
+MAR-M 002,MID,Precip,INCONEL 718,0.0,False,False
+MERL 76,MID,Precip,Waspaloy,0.9,False,False
+Rene 100,NEAR,Precip,Inconel 738,0.8,False,False
+Rene 108,MID,Precip,René 108,0.8,True,False
+Rene 95,NEAR,Precip,Inconel 718,0.8,False,False
+RR1000,MID,Precip,Waspaloy,0.9,False,False
+Udimet 720,NEAR,Precip,Inconel 718,0.8,False,False
+ATI Allegheny Ludlum Altemp® X-750 Nickel-Based superalloy,MID,Precip,Inconel 718,0.8,False,False
+Haynes 214® alloy,NEAR,Precip,Inconel 718,0.2,False,False
+Haynes 263® alloy,NEAR,Precip,Waspaloy,0.8,False,False
+Haynes R-41 alloy,FAR,Precip,Waspaloy,0.9,False,False
+Special Metals INCONEL® alloy 693,FAR,Precip,Inconel 718,0.8,False,False
+Special Metals INCONEL® alloy 740 Precipitation-Hardenable Ni-Cr-Co Superalloy,MID,Precip,Inconel 718,0.8,False,False
+PWA*1480(SC),FAR,SC/DS,INCONEL 713C,0.8,False,False
+RENÉ* N5(SC),MID,SC/DS,INCONEL 713C,0.8,False,False
+CMSX-10,FAR,SC/DS,CMSX-4,0.8,False,False
+CMSX-8,MID,SC/DS,René 108,0.8,False,False
+DD5,MID,SC/DS,René 108,0.8,False,False
+DD6,MID,SC/DS,René 108,0.8,False,False
+DD9,FAR,SC/DS,René 108,0.8,False,False
+DD98M,FAR,SC/DS,René N6,0.8,False,False
+PWA 1497,FAR,SC/DS,René 108,0.8,False,False
+Rene N500,FAR,SC/DS,René 108,0.8,False,False
+Rene N6,FAR,SC/DS,René N5,0.9,False,False
+RR3000,MID,SC/DS,René 108,0.8,False,False
+RR3010,FAR,SC/DS,René N6,0.8,False,False
+TMS-138,FAR,SC/DS,Rene N6,0.8,False,False
+TMS-162,FAR,SC/DS,CMSX-4,0.8,False,False
