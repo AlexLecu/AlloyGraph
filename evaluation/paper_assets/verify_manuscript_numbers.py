@@ -377,6 +377,14 @@ def revision_checks(add):
         add("3.2", f"T5 {cls} {st} ML MAE", ml, r and round(r["mae_ml"], 1), src)
         add("3.2", f"T5 {cls} {st} physics MAE", ph, r and round(r["mae_physics"], 1), src)
         add("3.2", f"T5 {cls} {st} position", pos, r and abs(round(r["median_position_t"], 2)), src)
+    nn = load_csv(os.path.join(RES, "nn_distance.csv")).set_index("alloy")
+    src = "nn_distance.csv"
+    for name, (d, nearest) in {"Special Metals INCONEL\u00ae Alloy N06230 Ni-Cr-W-Mo Alloy": (3.0, "HAYNES* 230"),
+                               "Haynes 625 alloy": (3.7, "INCONEL* 625")}.items():
+        row = nn.loc[name]
+        add("4", f"renamed MID grade {nearest} distance", d, round(float(row.distance), 1), src)
+        add("4", f"renamed MID grade nearest is {nearest}", 1, int(row.nearest_training_alloy == nearest), src)
+    src = "revision_agent_mechanism.json"
     rule = {r["stratum"]: r for r in json.load(open(os.path.join(RES, "revision_agent_mechanism.json")))["posthoc_routing_rule"]}
     for st, (rv, fv) in {"NEAR": (89.3, 63.2), "MID": (64.4, 71.8), "FAR": (81.4, 89.8), "ALL": (77.5, 78.8)}.items():
         add("3.2", f"post-hoc routing rule {st} MAE", rv, round(rule[st]["mae_rule_sss_physics"], 1), src)
