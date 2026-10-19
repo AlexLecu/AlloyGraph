@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
 """What the Reviewer agent adds: the Analyst-only ablation, scored against the full system.
 
-Reviewer 2.4 asked what separates the two agents. The pipeline runs Analyst then
-Reviewer then a deterministic layer, and a difference between the full system
-and ML+physics+KG cannot say which of the three produced it. This ablation
-removes exactly one thing: the Reviewer task leaves the crew, the Analyst's
-output goes straight to deterministic post-processing, and every guard -- the
-evidence envelope, the trust system, the correction reconciliation, the
-density/gamma-prime override -- still runs. Prompts, tools, anchors and agents
-are untouched.
+The pipeline runs Analyst then Reviewer then a deterministic layer, and a
+difference between the full system and ML+physics+KG cannot say which of the
+three produced it. This ablation removes exactly one thing: the Reviewer task
+leaves the crew, the Analyst's output goes straight to deterministic
+post-processing, and every guard -- the evidence envelope, the trust system,
+the correction reconciliation, the density/gamma-prime override -- still runs.
+Prompts, tools, anchors and agents are untouched.
 
-One seed only. The full system is a five-seed mean with a seed standard
-deviation of 1.1-3.7 MPa depending on stratum, so a single-seed ablation carries
-that much noise and differences smaller than roughly two standard deviations
-should not be read as real. This is stated in the output rather than left for
-the reader to work out.
+Both arms are five campaigns (seed labels 42-46, temperature 0.0, same provider,
+model and prompts). The provider exposes no seed control, so the campaigns of
+each arm are independent repeats and each arm's run-to-run noise is estimated
+from its own five campaigns -- not borrowed from the other arm, which is what the
+earlier single-campaign version had to do (Expert Systems R1.2).
+
+The comparison per cell is the difference of the two five-campaign mean MAEs,
+judged against the standard error sqrt(sd_a^2/5 + sd_f^2/5) and a Welch t-test
+over the five per-campaign MAEs of each arm. Campaign seeds are labels, not
+shared randomness, so the arms are not paired by seed.
 
 Usage:
     python analyst_ablation_report.py
@@ -26,6 +30,7 @@ import os
 
 import numpy as np
 import pandas as pd
+from scipy import stats
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(SCRIPT_DIR)
@@ -37,6 +42,8 @@ SEEDS = (42, 43, 44, 45, 46)
 PROPS = (("ys", "YS", "MPa"), ("uts", "UTS", "MPa"),
          ("el", "EL", "%"), ("em", "EM", "GPa"))
 STRATA = ("NEAR", "MID", "FAR")
+
+ARM_FILES = {"analyst": "seed{s}_analyst_only", "full": "stageb_seed{s}_full_system"}
 
 #: DeepInfra list price for Llama-3.3-70B at the time of the campaign,
 #: USD per million tokens. Prompt and completion are billed at the same rate.
@@ -55,20 +62,23 @@ def mae(df, key):
     return int(m.sum()), (float(np.mean(np.abs(a[m] - p[m]))) if m.sum() else np.nan)
 
 
-def full_system_stats(dist):
-    """Per-seed MAE for the full system, so the ablation can be read against its noise."""
-    frames = [load(f"stageb_seed{s}_full_system") for s in SEEDS]
+def per_campaign(dist):
+    """MAE per (arm, property, scope) for each of the five campaigns."""
+    frames = {arm: [load(pat.format(s=s)) for s in SEEDS] for arm, pat in ARM_FILES.items()}
     out = {}
-    for key, _, _ in PROPS:
-        for scope in ("ALL",) + STRATA:
-            vals = []
-            for f in frames:
-                f = f.copy()
-                f["stratum"] = f.alloy.map(dist)
-                sub = f if scope == "ALL" else f[f.stratum == scope]
-                vals.append(mae(sub, key)[1])
-            out[(key, scope)] = (float(np.mean(vals)), float(np.std(vals)))
-    return out
+    for arm, dfs in frames.items():
+        for df in dfs:
+            df["stratum"] = df.alloy.map(dist)
+        for key, _, _ in PROPS:
+            for scope in ("ALL",) + STRATA:
+                vals, ns = [], []
+                for df in dfs:
+                    sub = df if scope == "ALL" else df[df.stratum == scope]
+                    n, m = mae(sub, key)
+                    vals.append(m)
+                    ns.append(n)
+                out[(arm, key, scope)] = (np.array(vals), ns)
+    return frames, out
 
 
 def main():
@@ -79,95 +89,121 @@ def main():
 
     nn = pd.read_csv(os.path.join(RESULTS, "nn_distance.csv"))
     dist = nn.set_index("alloy")["stratum"]
-
-    ab = load("seed42_analyst_only")
     kg = load("seed42_v2prod_ml_physics_kg")
-    for d in (ab, kg):
-        d["stratum"] = d.alloy.map(dist)
-    fs = full_system_stats(dist)
+    kg["stratum"] = kg.alloy.map(dist)
+
+    frames, pc = per_campaign(dist)
+    for arm, dfs in frames.items():
+        keys = [set(zip(d.alloy, d.temperature)) for d in dfs]
+        if any(k != keys[0] for k in keys):
+            raise RuntimeError(f"{arm}: campaigns do not cover the same cases")
+    if set(zip(frames["analyst"][0].alloy, frames["analyst"][0].temperature)) != \
+            set(zip(frames["full"][0].alloy, frames["full"][0].temperature)):
+        raise RuntimeError("the two arms do not cover the same cases")
 
     rows = []
     for key, prop, unit in PROPS:
         for scope in ("ALL",) + STRATA:
-            a = ab if scope == "ALL" else ab[ab.stratum == scope]
+            a, ns_a = pc[("analyst", key, scope)]
+            f, ns_f = pc[("full", key, scope)]
+            if len(set(ns_a + ns_f)) != 1:
+                raise RuntimeError(f"{prop} {scope}: scored case counts differ {ns_a} {ns_f}")
             k = kg if scope == "ALL" else kg[kg.stratum == scope]
-            n, m_ab = mae(a, key)
-            _, m_kg = mae(k, key)
-            m_fs, sd_fs = fs[(key, scope)]
-            rows.append({"property": prop, "unit": unit, "scope": scope, "n": n,
-                         "kg": m_kg, "analyst_only": m_ab,
-                         "full": m_fs, "full_sd": sd_fs,
-                         "reviewer_delta": m_ab - m_fs,
-                         # The ablation is ONE seed and the full system a
-                         # five-seed mean, so the difference carries
-                         # sqrt(1 + 1/5) = 1.095 times the single-seed sigma.
-                         # Dividing by sigma alone overstates significance by
-                         # about 10%.
-                         "reviewer_delta_sd": ((m_ab - m_fs) / (sd_fs * np.sqrt(1 + 1 / len(SEEDS)))
-                                               if sd_fs else np.nan)})
+            sd_a, sd_f = a.std(ddof=1), f.std(ddof=1)
+            se = np.sqrt(sd_a ** 2 / len(a) + sd_f ** 2 / len(f))
+            delta = a.mean() - f.mean()
+            p = stats.ttest_ind(a, f, equal_var=False).pvalue
+            rows.append({
+                "property": prop, "unit": unit, "scope": scope, "n": ns_a[0],
+                "kg": mae(k, key)[1],
+                "analyst_mean": a.mean(), "analyst_sd": sd_a,
+                "analyst_min": a.min(), "analyst_max": a.max(),
+                "full_mean": f.mean(), "full_sd": sd_f,
+                "full_min": f.min(), "full_max": f.max(),
+                "reviewer_delta": delta, "delta_se": se,
+                "delta_in_se": delta / se if se else np.nan,
+                "welch_p": p,
+                "ranges_disjoint": bool(a.min() > f.max() or a.max() < f.min()),
+            })
     df = pd.DataFrame(rows)
     df.to_csv(os.path.join(RESULTS, "analyst_ablation.csv"), index=False)
 
-    stages = ab.pipeline_stage.value_counts().to_dict() if "pipeline_stage" in ab else {}
-    env = int(pd.to_numeric(ab.get("envelope_overrides"), errors="coerce").fillna(0).gt(0).sum())
-    env_n = int(pd.to_numeric(ab.get("envelope_overrides"), errors="coerce").fillna(0).sum())
-    tok = pd.to_numeric(ab.get("total_tokens"), errors="coerce").fillna(0)
-    req = pd.to_numeric(ab.get("llm_requests"), errors="coerce").fillna(0)
-    secs = pd.to_numeric(ab.get("eval_time_sec"), errors="coerce").fillna(0)
+    ab_all = pd.concat(frames["analyst"], ignore_index=True)
+    fs_all = pd.concat(frames["full"], ignore_index=True)
 
-    fs42 = load("stageb_seed42_full_system")
-    tok_fs = pd.to_numeric(fs42.get("total_tokens"), errors="coerce").fillna(0)
-    req_fs = pd.to_numeric(fs42.get("llm_requests"), errors="coerce").fillna(0)
-    env_fs = int(pd.to_numeric(fs42.get("envelope_overrides"), errors="coerce").fillna(0).gt(0).sum())
+    def num(d, col):
+        return pd.to_numeric(d.get(col), errors="coerce").fillna(0)
 
-    L = ["# Analyst-only ablation", "",
+    stages = ab_all.pipeline_stage.value_counts().to_dict() if "pipeline_stage" in ab_all else {}
+    env = int(num(ab_all, "envelope_overrides").gt(0).sum())
+    env_fs = int(num(fs_all, "envelope_overrides").gt(0).sum())
+    tok_ab, tok_fs = num(ab_all, "total_tokens"), num(fs_all, "total_tokens")
+    req_ab, req_fs = num(ab_all, "llm_requests"), num(fs_all, "llm_requests")
+    secs = num(ab_all, "eval_time_sec")
+
+    L = ["# Analyst-only ablation, five campaigns per arm", "",
          "Generated by `evaluation/prediction/scripts/analyst_ablation_report.py`.", "",
          "The full pipeline with the Reviewer agent removed: the Analyst's output goes "
-         "straight to deterministic post-processing, and every guard still runs. One "
-         "seed (42), 471 cases, sampling temperature 0.0, the same provider and prompts "
-         "as the reported campaigns.", "",
-         "**Read the differences against seed noise.** The full system is a five-seed "
-         "mean; its seed standard deviation is given so that a difference can be judged "
-         "against it. The ablation is a single seed and carries the same noise, so it "
-         "is only worth calling a difference real when it clears roughly two standard "
-         "deviations. The \"in SE\" column divides by "
-         "sigma*sqrt(1 + 1/5) = 1.095*sigma, the standard error of a "
-         "single-seed value minus a five-seed mean, not by sigma alone.", "",
-         "| property | scope | n | ML+physics+KG | Analyst only | Full system (5 seeds) | Reviewer adds | in SE |",
-         "|---|---|---:|---:|---:|---:|---:|---:|"]
+         "straight to deterministic post-processing, and every guard still runs. Both arms "
+         "are five campaigns (seed labels 42-46), 471 cases each, sampling temperature 0.0, "
+         "the same provider, model and prompts. The provider exposes no seed control, so "
+         "the campaigns are independent repeats and each arm's standard deviation is "
+         "estimated from its own five campaigns.", "",
+         "*Reviewer adds* = Analyst-only MAE minus full-system MAE (positive: the Reviewer "
+         "helps). *SE* = sqrt(sd_a²/5 + sd_f²/5). *p* = Welch t-test over the five "
+         "per-campaign MAEs of each arm. *Disjoint* = the two arms' five-campaign ranges do "
+         "not overlap.", "",
+         "| property | scope | n | ML+physics+KG | Analyst only (5) | Full system (5) | Reviewer adds | in SE | p | disjoint |",
+         "|---|---|---:|---:|---:|---:|---:|---:|---:|:---:|"]
     for _, r in df.iterrows():
         L.append(f"| {r.property} ({r.unit}) | {r.scope} | {r.n} | {r.kg:.2f} | "
-                 f"{r.analyst_only:.2f} | {r.full:.2f} ± {r.full_sd:.2f} | "
-                 f"{r.reviewer_delta:+.2f} | {r.reviewer_delta_sd:+.1f} |")
-    L += ["",
-          "\"Reviewer adds\" is Analyst-only MAE minus full-system MAE: positive means "
-          "the Reviewer improved the result, negative means the Analyst alone was better.",
-          "", "## Pipeline stages and guards", "",
-          f"- pipeline_stage: {stages}",
-          f"- envelope guard fired on **{env} of {len(ab)} cases** "
-          f"({100 * env / max(len(ab), 1):.2f}%), {env_n} property overrides in total; "
-          f"full system seed 42 fired on {env_fs} of {len(fs42)}",
-          "", "## Cost", "",
-          f"| | Analyst only | Full system (seed 42) |",
-          f"|---|---:|---:|",
-          f"| LLM requests, median per case | {req.median():.0f} | {req_fs.median():.0f} |",
-          f"| tokens, total | {tok.sum():,.0f} | {tok_fs.sum():,.0f} |",
-          f"| tokens, median per case | {tok.median():,.0f} | {tok_fs.median():,.0f} |",
-          f"| cost at ${USD_PER_MTOK}/Mtok | ${tok.sum() / 1e6 * USD_PER_MTOK:.2f} | "
+                 f"{r.analyst_mean:.2f} ± {r.analyst_sd:.2f} | {r.full_mean:.2f} ± {r.full_sd:.2f} | "
+                 f"{r.reviewer_delta:+.2f} | {r.delta_in_se:+.1f} | {r.welch_p:.3g} | "
+                 f"{'yes' if r.ranges_disjoint else 'no'} |")
+    # The same comparison resolved by alloy class (yield strength only): the
+    # stratum cells mix classes in different proportions, and the class
+    # analysis (revision_robustness.py) shows the agent effect follows class.
+    cls = nn.set_index("alloy")["alloy_class"]
+    L += ["", "## Yield strength by stratum and alloy class", "",
+          "| stratum | class | n | Analyst only (5) | Full system (5) | Reviewer adds |",
+          "|---|---|---:|---:|---:|---:|"]
+    class_rows = []
+    for scope in STRATA:
+        for c in ("SSS", "Precip", "SC/DS"):
+            vals = {}
+            for arm, dfs in frames.items():
+                ms = []
+                for d in dfs:
+                    sub = d[(d.stratum == scope) & (d.alloy.map(cls) == c)]
+                    n, m = mae(sub, "ys")
+                    ms.append(m)
+                vals[arm] = np.array(ms)
+            if n == 0:
+                continue
+            delta = vals["analyst"].mean() - vals["full"].mean()
+            class_rows.append({"stratum": scope, "class": c, "n": n,
+                               "analyst_mean": vals["analyst"].mean(),
+                               "full_mean": vals["full"].mean(), "reviewer_delta": delta})
+            L.append(f"| {scope} | {c} | {n} | {vals['analyst'].mean():.1f} | "
+                     f"{vals['full'].mean():.1f} | {delta:+.1f} |")
+    pd.DataFrame(class_rows).to_csv(os.path.join(RESULTS, "analyst_ablation_by_class.csv"), index=False)
+
+    L += ["", "## Pipeline stages and guards", "",
+          f"- pipeline_stage over the five Analyst-only campaigns: {stages}",
+          f"- envelope guard fired on {env} of {len(ab_all)} Analyst-only rows; "
+          f"{env_fs} of {len(fs_all)} full-system rows",
+          "", "## Cost, five campaigns per arm", "",
+          "| | Analyst only | Full system |", "|---|---:|---:|",
+          f"| LLM requests, median per case | {req_ab.median():.0f} | {req_fs.median():.0f} |",
+          f"| tokens, total | {tok_ab.sum():,.0f} | {tok_fs.sum():,.0f} |",
+          f"| tokens, median per case | {tok_ab.median():,.0f} | {tok_fs.median():,.0f} |",
+          f"| token ratio, full / Analyst only | | {tok_fs.sum() / max(tok_ab.sum(), 1):.1f}x |",
+          f"| cost at ${USD_PER_MTOK}/Mtok | ${tok_ab.sum() / 1e6 * USD_PER_MTOK:.2f} | "
           f"${tok_fs.sum() / 1e6 * USD_PER_MTOK:.2f} |",
-          f"| wall clock, median per case | {secs.median():.0f} s | — |",
-          ""]
+          f"| wall clock, median per case | {secs.median():.0f} s | — |", ""]
     with open(args.md, "w", encoding="utf-8") as fh:
         fh.write("\n".join(L))
-
-    print(df.to_string(index=False, float_format=lambda v: f"{v:.2f}"))
-    print(f"\npipeline_stage: {stages}")
-    print(f"envelope guard: {env}/{len(ab)} cases, {env_n} overrides "
-          f"(full system seed 42: {env_fs}/{len(fs42)})")
-    print(f"tokens {tok.sum():,.0f} vs {tok_fs.sum():,.0f}; "
-          f"cost ${tok.sum() / 1e6 * USD_PER_MTOK:.2f} vs "
-          f"${tok_fs.sum() / 1e6 * USD_PER_MTOK:.2f}")
-    print(f"\nWritten to {args.md}")
+    print("\n".join(L))
 
 
 if __name__ == "__main__":
