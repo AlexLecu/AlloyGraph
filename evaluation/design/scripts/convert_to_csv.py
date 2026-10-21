@@ -52,7 +52,7 @@ header += [f"{el} (wt%)" for el in used_elements]
 for p in PROPERTIES:
     s, u = SHORT[p], UNITS[p]
     header += [f"Target {s} ({u})", f"Predicted {s} ({u})",
-               f"{s} Achievement (%)", f"{s} 95% CI ({u})"]
+               f"{s} Achievement (%)", f"{s} interval ({u})"]
 
 # Density and γ' (with optional targets)
 header += ["Target Density (g/cm³)", "Predicted Density (g/cm³)",

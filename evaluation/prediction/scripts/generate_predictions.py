@@ -95,9 +95,11 @@ def seed_everything(seed):
         here.
 
       - Remote LLM calls are NOT made deterministic by a local seed. --seed
-        additionally drives sampling temperature to 0.0 and forwards the seed
-        to litellm, which passes it to providers that honour a `seed` parameter
-        (OpenAI, Groq). Both are best-effort, and neither is guaranteed.
+        additionally drives sampling temperature to 0.0. Only the --llm-only
+        path forwards the seed to litellm, for providers that honour a `seed`
+        parameter; the agent path (full system, --analyst-only) never passes it,
+        and DeepInfra exposes no seed control in any case. Agent campaigns at
+        different seeds are therefore independent repeats at temperature 0.0.
     """
     os.environ['PYTHONHASHSEED'] = str(seed)
 
@@ -884,8 +886,9 @@ def parse_args():
     parser.add_argument('--rate-max-wait', type=float, default=300.0,
                         help='Ceiling on the 429 backoff window.')
     parser.add_argument('--seed', type=int, default=None,
-                        help='Seed Python/numpy RNGs, drive LLM sampling temperature to 0.0, '
-                             'and forward the seed to litellm where the provider supports it. '
+                        help='Seed Python/numpy RNGs and drive LLM sampling temperature to 0.0. '
+                             'Forwarded to the provider only in --llm-only mode, and only where '
+                             'it is supported; agent runs are not seeded at the provider. '
                              'Recorded in the output filename and in a `seed` column.')
 
     # Output

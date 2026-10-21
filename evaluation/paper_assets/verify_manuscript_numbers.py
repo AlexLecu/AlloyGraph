@@ -26,6 +26,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))
 PRED = os.path.join(ROOT, "evaluation", "prediction")
 RES = os.path.join(PRED, "results")
+OUT = os.path.join(PRED, "output")
 CHAT = os.path.join(ROOT, "evaluation", "chatbot", "results")
 DESIGN = os.path.join(ROOT, "evaluation", "design", "results")
 MODELS = os.path.join(ROOT, "backend", "alloy_crew", "models", "saved_models_v2")
@@ -252,7 +253,167 @@ def checks():
         add("2.2", f"ontology {label}", claim,
             sum(1 for _, b in blocks if marker in b), "ontology/alloygraph.owl")
 
+    revision_checks(add)
     return out
+
+
+def revision_checks(add):
+    """Numbers introduced by the Expert Systems revision (R1.2-R1.4, R2.2, R2.3)."""
+    # --- Table 6, Analyst-only ablation, five campaigns per arm ------------
+    ab = load_csv(os.path.join(RES, "analyst_ablation.csv"))
+
+    def ab_row(prop, scope):
+        r = ab[(ab.property == prop) & (ab.scope == scope)]
+        return None if r.empty else r.iloc[0]
+
+    T6 = {("YS", "ALL"): (79.41, 0.31, 78.84, 1.13, 0.58, 0.32),
+          ("YS", "NEAR"): (71.24, 3.81, 63.15, 3.41, 8.09, 0.008),
+          ("YS", "MID"): (58.52, 1.96, 71.81, 2.95, -13.29, None),
+          ("YS", "FAR"): (96.51, 1.59, 89.83, 1.48, 6.67, None),
+          ("EM", "ALL"): (8.73, 0.01, 8.94, 0.06, -0.21, None),
+          ("EM", "NEAR"): (8.92, 0.06, 7.73, 0.36, 1.19, 0.002),
+          ("EM", "MID"): (11.98, 0.00, 12.02, 0.28, -0.04, 0.75),
+          ("EM", "FAR"): (7.52, 0.00, 8.22, 0.12, -0.70, None)}
+    for (prop, scope), (am, asd, fm, fsd, d, p) in T6.items():
+        r = ab_row(prop, scope)
+        src = "analyst_ablation.csv"
+        for claim, tex, col, nd in (("Analyst-only mean", am, "analyst_mean", 2),
+                                    ("Analyst-only SD", asd, "analyst_sd", 2),
+                                    ("full-system mean", fm, "full_mean", 2),
+                                    ("full-system SD", fsd, "full_sd", 2),
+                                    ("Reviewer adds", d, "reviewer_delta", 2)):
+            add("3.2", f"T6 {prop} {scope} {claim}", tex,
+                None if r is None else round(float(r[col]), nd), src)
+        if p is not None and r is not None:
+            nd = 2 if p >= 0.1 else 3
+            add("3.2", f"T6 {prop} {scope} Welch p", p, round(float(r["welch_p"]), nd), src)
+        elif r is not None:
+            add("3.2", f"T6 {prop} {scope} Welch p < 0.001", 1, int(float(r["welch_p"]) < 0.001), src)
+    bc = load_csv(os.path.join(RES, "analyst_ablation_by_class.csv"))
+    for st, cls, tex in (("MID", "Precip", -22.8), ("FAR", "SSS", 14.6)):
+        r = bc[(bc.stratum == st) & (bc["class"] == cls)]
+        add("3.2", f"Reviewer adds, {st} {cls}", tex,
+            None if r.empty else round(float(r.iloc[0].reviewer_delta), 1),
+            "analyst_ablation_by_class.csv")
+    tok = {}
+    for arm, pat in (("ab", "seed{s}_analyst_only_{d}.csv"),
+                     ("fs", "stageb_seed{s}_full_system_{d}.csv")):
+        tok[arm] = sum(pd.read_csv(os.path.join(OUT, pat.format(s=s, d=d))).total_tokens.sum()
+                       for s in (42, 43, 44, 45, 46) for d in ("sss", "precip", "sc_ds"))
+    add("3.2", "Reviewer token-cost ratio", 4.5, round(tok["fs"] / tok["ab"], 1),
+        "seed4x output CSVs, total_tokens")
+
+    # --- Robustness: NEAR fragility, FAR interval, class table, MID -------
+    rb = json.load(open(os.path.join(RES, "revision_robustness.json")))
+    bs = rb["bootstrap"]
+    near = bs["YS, KG anchoring vs ML+physics [NEAR]"]
+    far = bs["YS, full system vs ML+physics+KG [FAR]"]
+    src = "revision_robustness.json"
+    add("3.2", "NEAR KG gain 95% CI, upper (%)", -2.0, round(near["ci95"][1], 1), src)
+    add("3.2", "NEAR KG gain 95% CI, lower (%)", -40.5, round(near["ci95"][0], 1), src)
+    add("3.2", "NEAR KG gain LOAO, weakest (%)", -21, round(near["loao_max"]), src)
+    add("3.2", "NEAR KG gain LOAO, strongest (%)", -34, round(near["loao_min"]), src)
+    add("3.2", "FAR agent gain 95% CI, lower (%)", -33.8, round(far["ci95"][0], 1), src)
+    add("3.2", "FAR agent gain 95% CI, upper (%)", 1.1, round(far["ci95"][1], 1), src)
+    add("3.2", "FAR agent gain LOAO, weakest (%)", -15, round(far["loao_max"]), src)
+    add("3.2", "FAR agent gain LOAO, strongest (%)", -22, round(far["loao_min"]), src)
+    ev = rb["anchoring_events"]
+    add("3.2", "YS cases altered by anchoring", 21, ev["rows_moved"], src)
+    add("3.2", "NEAR YS cases altered", 19, ev["near_rows_moved"], src)
+    add("3.2", "NEAR alloys altered", 5, ev["near_alloys_moved"], src)
+    add("3.2", "HAYNES 214 share of NEAR gain (%)", 55,
+        round(100 * ev["near_gain_share_top_alloy"]), src)
+    h625 = [r for r in ev["per_alloy"] if r["stratum"] == "MID"]
+    add("3.2", "MID anchoring cases (HAYNES 625)", 2, h625[0]["rows"] if h625 else None, src)
+    add("3.2", "MID anchoring error change (MPa)", 11,
+        round(abs(h625[0]["err_change_mpa"])) if h625 else None, src)
+    T5 = {("SSS", "NEAR"): (5, 18, 95.5, 87.3, -8.5), ("SSS", "MID"): (6, 27, 72.6, 35.6, -51.0),
+          ("SSS", "FAR"): (23, 84, 111.8, 71.2, -36.3), ("Precip", "NEAR"): (8, 38, 65.9, 51.7, -21.6),
+          ("Precip", "MID"): (19, 53, 74.8, 86.9, 16.2), ("Precip", "FAR"): (10, 38, 106.8, 124.4, 16.4),
+          ("SC/DS", "MID"): (5, 11, 89.8, 88.1, -1.9), ("SC/DS", "FAR"): (10, 16, 109.0, 105.8, -2.9)}
+    abc = {(b["class"], b["stratum"]): b for b in rb["agent_by_class"]}
+    for (cls, st), (na, nr, kg, full, ch) in T5.items():
+        b = abc.get((cls, st))
+        for claim, tex, got in (("alloys", na, b and b["n_alloys"]), ("cases", nr, b and b["n_rows"]),
+                                ("KG arm MAE", kg, b and round(b["mae_ref"], 1)),
+                                ("full MAE", full, b and round(b["mae_new"], 1)),
+                                ("change (%)", ch, b and round(b["rel_change_pct"], 1))):
+            add("3.2", f"T5 {cls} {st} {claim}", tex, got, src)
+    mix = rb["class_mix"]
+    add("3.2", "solid-solution alloys in FAR", 24, mix["FAR"]["SSS"], src)
+    add("3.2", "solid-solution alloys in MID", 6, mix["MID"]["SSS"], src)
+    sweep = [r["ys_full_vs_kg_pct"] for r in rb["boundary_sweep"]]
+    add("3.2", "MID boundary sweep, best agent effect (%)", -9, round(min(sweep)), src)
+    add("3.2", "MID boundary sweep, worst agent effect (%)", 12.5, round(max(sweep), 1), src)
+    mc = {(c["property"], c["new"]): c for c in rb["mid_contributions"]}
+    em_full = mc[("em", "full")]
+    add("3.2", "RENE N5 share of MID EM agent excess (%)", 95,
+        round(100 * em_full["top"][0]["share_of_net"]), src)
+    add("3.2", "HAYNES 230 share of MID EM physics excess (%)", 100,
+        round(100 * mc[("em", "phys")]["top"][0]["share_of_net"]), src)
+    cv = {(r["property"], r["stratum"]): r for r in rb["conformal_vs_error"]}
+    add("3.3", "EM MID 90th pct residual (GPa)", 21, round(cv[("em", "MID")]["resid_p90"]), src)
+    add("3.3", "EM NEAR 90th pct residual (GPa)", 42, round(cv[("em", "NEAR")]["resid_p90"]), src)
+    add("3.3", "EM FAR 90th pct residual (GPa)", 42, round(cv[("em", "FAR")]["resid_p90"]), src)
+    add("3.3", "EM half-width (GPa)", 38, round(cv[("em", "MID")]["median_half_width"]), src)
+    dm = {r["metric"]: r for r in rb["distance_metrics"]["metrics"]}
+    for metric, tex in (("at_pct", 86), ("feature_space", 73), ("z_wt_pct", 57)):
+        add("4", f"stratum agreement, {metric} (%)", tex,
+            round(100 * dm[metric]["stratum_agreement"]), src)
+    add("4", "NEAR overlap, atomic percent", 12, dm["at_pct"]["near_overlap"], src)
+    gains = [-r["far_full_vs_kg_pct"] for r in dm.values()]
+    add("4", "FAR agent gain across metrics, min (%)", 18, int(min(gains)), src)
+    add("4", "FAR agent gain across metrics, max (%)", 28, round(max(gains)), src)
+
+    # --- Mechanism ----------------------------------------------------------
+    mech = {(r["class"], r["stratum"]): r
+            for r in json.load(open(os.path.join(RES, "revision_agent_mechanism.json")))["by_class"]}
+    for (cls, st), (ml, ph, pos) in {("SSS", "NEAR"): (125.8, 138.5, 0.70), ("SSS", "MID"): (73.0, 33.9, 0.70),
+                                     ("SSS", "FAR"): (111.8, 64.5, 0.70), ("Precip", "NEAR"): (98.9, 164.1, 0.31),
+                                     ("Precip", "MID"): (74.8, 164.1, 0.30), ("Precip", "FAR"): (106.8, 147.1, 0.63),
+                                     ("SC/DS", "MID"): (89.8, 71.0, 0.69), ("SC/DS", "FAR"): (109.0, 143.7, 0.00)}.items():
+        r = mech.get((cls, st))
+        src = "revision_agent_mechanism.json"
+        add("3.2", f"T5 {cls} {st} ML MAE", ml, r and round(r["mae_ml"], 1), src)
+        add("3.2", f"T5 {cls} {st} physics MAE", ph, r and round(r["mae_physics"], 1), src)
+        add("3.2", f"T5 {cls} {st} position", pos, r and abs(round(r["median_position_t"], 2)), src)
+    nn = load_csv(os.path.join(RES, "nn_distance.csv")).set_index("alloy")
+    src = "nn_distance.csv"
+    for name, (d, nearest) in {"Special Metals INCONEL\u00ae Alloy N06230 Ni-Cr-W-Mo Alloy": (3.0, "HAYNES* 230"),
+                               "Haynes 625 alloy": (3.7, "INCONEL* 625")}.items():
+        row = nn.loc[name]
+        add("4", f"renamed MID grade {nearest} distance", d, round(float(row.distance), 1), src)
+        add("4", f"renamed MID grade nearest is {nearest}", 1, int(row.nearest_training_alloy == nearest), src)
+    src = "revision_agent_mechanism.json"
+    rule = {r["stratum"]: r for r in json.load(open(os.path.join(RES, "revision_agent_mechanism.json")))["posthoc_routing_rule"]}
+    for st, (rv, fv) in {"NEAR": (89.3, 63.2), "MID": (64.4, 71.8), "FAR": (81.4, 89.8), "ALL": (77.5, 78.8)}.items():
+        add("3.2", f"post-hoc routing rule {st} MAE", rv, round(rule[st]["mae_rule_sss_physics"], 1), src)
+        add("3.2", f"post-hoc routing rule {st} full-system MAE", fv, round(rule[st]["mae_full"], 1), src)
+
+    # --- LLM identification probe ------------------------------------------
+    pr = load_csv(os.path.join(RES, "llm_identification_probe.csv"))
+    src = "llm_identification_probe.csv"
+    add("4", "alloys identified by the LLM", 7, int(pr.identified.sum()), src)
+    add("4", "FAR alloys identified", 0, int(pr[pr.stratum == "FAR"].identified.sum()), src)
+    add("4", "FAR alloys", 44, int((pr.stratum == "FAR").sum()), src)
+    add("4", "answers INCONEL 718 or WASPALOY", 46,
+        int(pr.answer.str.lower().isin(["inconel 718", "waspaloy"]).sum()), src)
+
+    # --- Conformal at the delivered points ---------------------------------
+    cd = load_csv(os.path.join(RES, "conformal_delivered.csv"))
+    src = "conformal_delivered.csv"
+    for prop, col, tex in (("YS", "coverage_delivered_row_offsets", 91.6),
+                           ("UTS", "coverage_delivered_row_offsets", 90.7),
+                           ("EM", "coverage_delivered_row_offsets", 97.7),
+                           ("YS", "coverage_delivered_constant_offsets", 91.2),
+                           ("UTS", "coverage_delivered_constant_offsets", 90.0),
+                           ("EL", "coverage_delivered_constant_offsets", 85.6),
+                           ("EM", "coverage_delivered_constant_offsets", 97.7)):
+        r = cd[(cd.property == prop) & (cd.stratum == "ALL")]
+        add("3.3", f"{prop} coverage, {col}", tex, None if r.empty else float(r.iloc[0][col]), src)
+    r = cd[(cd.property == "YS") & (cd.stratum == "NEAR")]
+    add("3.3", "YS NEAR coverage at delivered points", 92.9,
+        None if r.empty else float(r.iloc[0].coverage_delivered_row_offsets), src)
 
 
 UNTRACEABLE = [

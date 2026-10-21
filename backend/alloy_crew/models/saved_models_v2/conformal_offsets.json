@@ -1,0 +1,56 @@
+{
+  "description": "Per-property offsets of the 90% cross-conformal (CV+) interval of the ML ensemble, applied by the platform around the delivered prediction. The CV+ marginal guarantee holds at the ensemble's own prediction; at the agent-adjusted value it is an empirical approximation, measured in evaluation/prediction/results/conformal_delivered.md.",
+  "nominal_coverage": 0.9,
+  "method": "CV+ (MAPIE CrossConformalRegressor, method='plus'), GroupKFold(5) on alloy",
+  "calibration_data": "backend/alloy_crew/models/training_data/train_77alloys_v2.jsonl",
+  "models": "saved_models_v2",
+  "source": "evaluation/prediction/results/conformal_intervals.csv",
+  "source_sha256": "7229e49f3cf71af2d651b668a636a28f139e8201647400106b9459cc8163421a",
+  "generated_by": "evaluation/prediction/scripts/conformal_delivered.py",
+  "properties": {
+    "Yield Strength": {
+      "lower_offset": -182.719,
+      "upper_offset": 190.153,
+      "unit": "MPa",
+      "physical_min": 0.0,
+      "physical_max": null,
+      "row_width_range": [
+        359.432,
+        458.041
+      ]
+    },
+    "Tensile Strength": {
+      "lower_offset": -217.685,
+      "upper_offset": 218.006,
+      "unit": "MPa",
+      "physical_min": 0.0,
+      "physical_max": null,
+      "row_width_range": [
+        418.865,
+        512.032
+      ]
+    },
+    "Elongation": {
+      "lower_offset": -19.173,
+      "upper_offset": 19.423,
+      "unit": "%",
+      "physical_min": 0.0,
+      "physical_max": 100.0,
+      "row_width_range": [
+        37.357,
+        40.863
+      ]
+    },
+    "Elastic Modulus": {
+      "lower_offset": -38.125,
+      "upper_offset": 37.793,
+      "unit": "GPa",
+      "physical_min": 0.0,
+      "physical_max": null,
+      "row_width_range": [
+        70.433,
+        82.931
+      ]
+    }
+  }
+}

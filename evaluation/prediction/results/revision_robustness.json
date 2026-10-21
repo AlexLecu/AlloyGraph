@@ -1,0 +1,1003 @@
+{
+  "bootstrap": {
+    "YS, KG anchoring vs ML+physics [NEAR]": {
+      "n_rows": 56,
+      "n_alloys": 13,
+      "mae_new": 75.4242551396112,
+      "mae_ref": 107.55768251461167,
+      "rel_change_pct": -29.875529691368303,
+      "ci95": [
+        -40.5187275667935,
+        -1.9670471592812313
+      ],
+      "p_boot_ge0": 0.0222,
+      "loao_min": -33.699900144147314,
+      "loao_max": -21.110297152407025,
+      "loao_most_influential": "Haynes 214\u00ae alloy",
+      "loao_most_influential_value": -21.110297152407025,
+      "stratum": "NEAR"
+    },
+    "YS, KG anchoring vs ML+physics [MID]": {
+      "n_rows": 91,
+      "n_alloys": 30,
+      "mae_new": 75.9298687263845,
+      "mae_ref": 76.05054637785058,
+      "rel_change_pct": -0.15868084742811073,
+      "ci95": [
+        -0.5115566167790024,
+        2.1870728060856284e-14
+      ],
+      "p_boot_ge0": 0.3462,
+      "loao_min": -0.17938538793980532,
+      "loao_max": 0.0,
+      "loao_most_influential": "Haynes 625 alloy",
+      "loao_most_influential_value": 0.0,
+      "stratum": "MID"
+    },
+    "YS, full system vs ML+physics+KG [NEAR]": {
+      "n_rows": 56,
+      "n_alloys": 13,
+      "mae_new": 63.15328373660778,
+      "mae_ref": 75.4242551396112,
+      "rel_change_pct": -16.269264284134735,
+      "ci95": [
+        -35.07783979161519,
+        12.92819427880494
+      ],
+      "p_boot_ge0": 0.0915,
+      "loao_min": -20.60973548965536,
+      "loao_max": -9.565710839274711,
+      "loao_most_influential": "ATI Allegheny Ludlum Altemp\u00ae 718 Nickel-Base Superalloy",
+      "loao_most_influential_value": -9.565710839274711,
+      "stratum": "NEAR"
+    },
+    "YS, full system vs ML+physics+KG [MID]": {
+      "n_rows": 91,
+      "n_alloys": 30,
+      "mae_new": 71.8089068517791,
+      "mae_ref": 75.9298687263845,
+      "rel_change_pct": -5.4273264839366515,
+      "ci95": [
+        -28.84971447362295,
+        20.914477558750153
+      ],
+      "p_boot_ge0": 0.3686,
+      "loao_min": -10.164016450882501,
+      "loao_max": 5.15122399866536,
+      "loao_most_influential": "INCONEL* 600",
+      "loao_most_influential_value": 5.15122399866536,
+      "stratum": "MID"
+    },
+    "YS, full system vs ML+physics+KG [FAR]": {
+      "n_rows": 138,
+      "n_alloys": 43,
+      "mae_new": 89.83481447520381,
+      "mae_ref": 110.0969406893423,
+      "rel_change_pct": -18.40389577337268,
+      "ci95": [
+        -33.81954172329208,
+        1.0654556216294933
+      ],
+      "p_boot_ge0": 0.0315,
+      "loao_min": -21.634104127945154,
+      "loao_max": -14.757779029315444,
+      "loao_most_influential": "Haynes Hastelloy\u00ae C-22\u00ae alloy",
+      "loao_most_influential_value": -14.757779029315444,
+      "stratum": "FAR"
+    },
+    "EM, full system vs ML-only [MID]": {
+      "n_rows": 65,
+      "n_alloys": 10,
+      "mae_new": 12.021916922452897,
+      "mae_ref": 9.916102230411232,
+      "rel_change_pct": 21.23631486556724,
+      "ci95": [
+        -6.0039493679876115,
+        67.55602565852543
+      ],
+      "p_boot_ge0": 0.8578,
+      "loao_min": 1.201454685141506,
+      "loao_max": 31.368125052017536,
+      "loao_most_influential": "REN\u00c9* N5(SC)",
+      "loao_most_influential_value": 1.201454685141506,
+      "stratum": "MID"
+    },
+    "EM, ML+physics vs ML-only [MID]": {
+      "n_rows": 65,
+      "n_alloys": 10,
+      "mae_new": 10.478845220150106,
+      "mae_ref": 9.916102230411232,
+      "rel_change_pct": 5.6750422359808255,
+      "ci95": [
+        -2.2339477119458903e-14,
+        15.327202579189935
+      ],
+      "p_boot_ge0": 0.9128,
+      "loao_min": -1.9076334467659912e-14,
+      "loao_max": 7.611392002667974,
+      "loao_most_influential": "Special Metals INCONEL\u00ae Alloy N06230 Ni-Cr-W-Mo Alloy",
+      "loao_most_influential_value": -1.9076334467659912e-14,
+      "stratum": "MID"
+    }
+  },
+  "agent_by_class": [
+    {
+      "class": "SSS",
+      "stratum": "NEAR",
+      "n_rows": 18,
+      "n_alloys": 5,
+      "mae_new": 87.32380395834862,
+      "mae_ref": 95.47145228963687,
+      "rel_change_pct": -8.534120028435614,
+      "ci95": [
+        -38.035714294723014,
+        448.37595901521746
+      ],
+      "p_boot_ge0": 0.3906,
+      "loao_min": -19.11267381301124,
+      "loao_max": 19.50519390263357,
+      "loao_most_influential": "ATI Allegheny Ludlum Altemp\u00ae 718 Nickel-Base Superalloy",
+      "loao_most_influential_value": 19.50519390263357
+    },
+    {
+      "class": "SSS",
+      "stratum": "MID",
+      "n_rows": 27,
+      "n_alloys": 6,
+      "mae_new": 35.56128580444359,
+      "mae_ref": 72.58673139602064,
+      "rel_change_pct": -51.00855883642511,
+      "ci95": [
+        -81.38787822895952,
+        -10.122639304860117
+      ],
+      "p_boot_ge0": 0.0011,
+      "loao_min": -65.61531668751078,
+      "loao_max": -26.690541128171496,
+      "loao_most_influential": "INCONEL* 600",
+      "loao_most_influential_value": -26.690541128171496
+    },
+    {
+      "class": "SSS",
+      "stratum": "FAR",
+      "n_rows": 84,
+      "n_alloys": 23,
+      "mae_new": 71.16149634382398,
+      "mae_ref": 111.77107581454034,
+      "rel_change_pct": -36.33281613760171,
+      "ci95": [
+        -51.3824056800602,
+        -18.40709368347484
+      ],
+      "p_boot_ge0": 0.0001,
+      "loao_min": -42.76976240249758,
+      "loao_max": -32.58575663566295,
+      "loao_most_influential": "HAYNES* 242",
+      "loao_most_influential_value": -42.76976240249758
+    },
+    {
+      "class": "SSS",
+      "stratum": "ALL",
+      "n_rows": 129,
+      "n_alloys": 34,
+      "mae_new": 65.96549520039896,
+      "mae_ref": 101.29533532811945,
+      "rel_change_pct": -34.87805239330993,
+      "ci95": [
+        -48.73339233816199,
+        -19.41088272824462
+      ],
+      "p_boot_ge0": 0.0,
+      "loao_min": -39.27311919063333,
+      "loao_max": -31.526371342594526,
+      "loao_most_influential": "HAYNES* 242",
+      "loao_most_influential_value": -39.27311919063333
+    },
+    {
+      "class": "Precip",
+      "stratum": "NEAR",
+      "n_rows": 38,
+      "n_alloys": 8,
+      "mae_new": 51.704089947362114,
+      "mae_ref": 65.9282143843359,
+      "rel_change_pct": -21.575170160157324,
+      "ci95": [
+        -54.91274315593271,
+        -4.015998695585298
+      ],
+      "p_boot_ge0": 0.0097,
+      "loao_min": -26.755511083439924,
+      "loao_max": -13.531021318653845,
+      "loao_most_influential": "Udimet 720",
+      "loao_most_influential_value": -13.531021318653845
+    },
+    {
+      "class": "Precip",
+      "stratum": "MID",
+      "n_rows": 53,
+      "n_alloys": 19,
+      "mae_new": 86.89556487597316,
+      "mae_ref": 74.75043527811863,
+      "rel_change_pct": 16.247570402322093,
+      "ci95": [
+        -9.824945574113926,
+        49.34569333947463
+      ],
+      "p_boot_ge0": 0.888,
+      "loao_min": 10.202058449676702,
+      "loao_max": 29.707271281904656,
+      "loao_most_influential": "ASTROLOY",
+      "loao_most_influential_value": 29.707271281904656
+    },
+    {
+      "class": "Precip",
+      "stratum": "FAR",
+      "n_rows": 38,
+      "n_alloys": 10,
+      "mae_new": 124.37414613995337,
+      "mae_ref": 106.84923487483563,
+      "rel_change_pct": 16.40153182720177,
+      "ci95": [
+        -21.311723632092715,
+        75.50027260669317
+      ],
+      "p_boot_ge0": 0.7878,
+      "loao_min": 6.739946105270355,
+      "loao_max": 44.15066015675753,
+      "loao_most_influential": "NIMONIC* PE16",
+      "loao_most_influential_value": 44.15066015675753
+    },
+    {
+      "class": "Precip",
+      "stratum": "ALL",
+      "n_rows": 129,
+      "n_alloys": 37,
+      "mae_new": 87.56928612205091,
+      "mae_ref": 81.60710187278144,
+      "rel_change_pct": 7.305962486652215,
+      "ci95": [
+        -12.205569496377631,
+        32.08900518365222
+      ],
+      "p_boot_ge0": 0.7617,
+      "loao_min": 3.543354214368993,
+      "loao_max": 14.654185462944517,
+      "loao_most_influential": "NIMONIC* PE16",
+      "loao_most_influential_value": 14.654185462944517
+    },
+    {
+      "class": "SC/DS",
+      "stratum": "MID",
+      "n_rows": 11,
+      "n_alloys": 5,
+      "mae_new": 88.09007894230385,
+      "mae_ref": 89.8184760607404,
+      "rel_change_pct": -1.9243224715455047,
+      "ci95": [
+        -41.83723180190094,
+        63.013368688765944
+      ],
+      "p_boot_ge0": 0.4475,
+      "loao_min": -14.484546874568228,
+      "loao_max": 8.212022787509108,
+      "loao_most_influential": "REN\u00c9* N5(SC)",
+      "loao_most_influential_value": -14.484546874568228
+    },
+    {
+      "class": "SC/DS",
+      "stratum": "FAR",
+      "n_rows": 16,
+      "n_alloys": 10,
+      "mae_new": 105.83882196116772,
+      "mae_ref": 109.02103259150596,
+      "rel_change_pct": -2.9188960650021993,
+      "ci95": [
+        -17.648503030774442,
+        19.96351020935883
+      ],
+      "p_boot_ge0": 0.4199,
+      "loao_min": -8.290882721270622,
+      "loao_max": 8.151158967745063,
+      "loao_most_influential": "PWA*1480(SC)",
+      "loao_most_influential_value": 8.151158967745063
+    },
+    {
+      "class": "SC/DS",
+      "stratum": "ALL",
+      "n_rows": 27,
+      "n_alloys": 15,
+      "mae_new": 98.60785258311206,
+      "mae_ref": 101.19776881971258,
+      "rel_change_pct": -2.559262192049455,
+      "ci95": [
+        -17.337477497352683,
+        17.090399580641904
+      ],
+      "p_boot_ge0": 0.3929,
+      "loao_min": -6.25428774009179,
+      "loao_max": 3.6754941424525844,
+      "loao_most_influential": "PWA*1480(SC)",
+      "loao_most_influential_value": 3.6754941424525844
+    }
+  ],
+  "anchoring_events": {
+    "rows_scored": 285,
+    "rows_moved": 21,
+    "alloys_moved": 6,
+    "near_rows": 56,
+    "near_rows_moved": 19,
+    "near_alloys_moved": 5,
+    "near_gain_share_top_alloy": 0.5532251525772374,
+    "per_alloy": [
+      {
+        "alloy": "MAR-M* 200",
+        "stratum": "NEAR",
+        "distance": 0.024,
+        "rows": 1,
+        "err_change_mpa": 109.53110482193591
+      },
+      {
+        "alloy": "Special Metals NIMONIC\u00ae Alloy 86",
+        "stratum": "NEAR",
+        "distance": 0.037,
+        "rows": 1,
+        "err_change_mpa": -84.45879284967415
+      },
+      {
+        "alloy": "Haynes 214\u00ae alloy",
+        "stratum": "NEAR",
+        "distance": 0.526,
+        "rows": 9,
+        "err_change_mpa": -995.5131346923955
+      },
+      {
+        "alloy": "Haynes 263\u00ae alloy",
+        "stratum": "NEAR",
+        "distance": 1.145,
+        "rows": 5,
+        "err_change_mpa": -368.4043818822643
+      },
+      {
+        "alloy": "Haynes 718 alloy",
+        "stratum": "NEAR",
+        "distance": 1.663,
+        "rows": 3,
+        "err_change_mpa": -460.62672839762774
+      },
+      {
+        "alloy": "Haynes 625 alloy",
+        "stratum": "MID",
+        "distance": 3.679,
+        "rows": 2,
+        "err_change_mpa": -10.981666283413446
+      }
+    ]
+  },
+  "class_mix": {
+    "NEAR": {
+      "Precip": 8,
+      "SC/DS": 0,
+      "SSS": 5
+    },
+    "MID": {
+      "Precip": 20,
+      "SC/DS": 5,
+      "SSS": 6
+    },
+    "FAR": {
+      "Precip": 10,
+      "SC/DS": 10,
+      "SSS": 24
+    }
+  },
+  "within_class": [
+    {
+      "stratum": "NEAR",
+      "class": "Precip",
+      "n_alloys": 8,
+      "ys_n": 38,
+      "ys_kg": 65.9282143843359,
+      "ys_full": 51.704089947362114,
+      "em_n": 33,
+      "em_ml": 21.164323138521816,
+      "em_phys": 8.080055332571915,
+      "em_full": 10.181199786439219
+    },
+    {
+      "stratum": "NEAR",
+      "class": "SSS",
+      "n_alloys": 5,
+      "ys_n": 18,
+      "ys_kg": 95.47145228963687,
+      "ys_full": 87.32380395834862,
+      "em_n": 22,
+      "em_ml": 4.764668437523496,
+      "em_phys": 4.764668437523496,
+      "em_full": 4.045138529901252
+    },
+    {
+      "stratum": "NEAR",
+      "class": "SC/DS",
+      "n_alloys": 0,
+      "ys_n": 0,
+      "em_n": 0
+    },
+    {
+      "stratum": "MID",
+      "class": "Precip",
+      "n_alloys": 20,
+      "ys_n": 53,
+      "ys_kg": 74.75043527811863,
+      "ys_full": 86.89556487597316,
+      "em_n": 27,
+      "em_ml": 6.272756736477536,
+      "em_phys": 6.272756736477536,
+      "em_full": 7.392152029361044
+    },
+    {
+      "stratum": "MID",
+      "class": "SSS",
+      "n_alloys": 6,
+      "ys_n": 27,
+      "ys_kg": 72.58673139602064,
+      "ys_full": 35.56128580444359,
+      "em_n": 33,
+      "em_ml": 11.439089707819397,
+      "em_phys": 12.547522869426272,
+      "em_full": 10.722318035354244
+    },
+    {
+      "stratum": "MID",
+      "class": "SC/DS",
+      "n_alloys": 5,
+      "ys_n": 11,
+      "ys_kg": 89.8184760607404,
+      "ys_full": 88.09007894230385,
+      "em_n": 5,
+      "em_ml": 19.538450546759314,
+      "em_phys": 19.538450546759314,
+      "em_full": 45.60000000000001
+    },
+    {
+      "stratum": "FAR",
+      "class": "Precip",
+      "n_alloys": 10,
+      "ys_n": 38,
+      "ys_kg": 106.84923487483563,
+      "ys_full": 124.37414613995337,
+      "em_n": 58,
+      "em_ml": 7.685283628438889,
+      "em_phys": 7.68528362843889,
+      "em_full": 8.249943817923336
+    },
+    {
+      "stratum": "FAR",
+      "class": "SSS",
+      "n_alloys": 24,
+      "ys_n": 84,
+      "ys_kg": 111.77107581454034,
+      "ys_full": 71.16149634382398,
+      "em_n": 121,
+      "em_ml": 15.146735213638008,
+      "em_phys": 6.727953632864181,
+      "em_full": 7.039511012090703
+    },
+    {
+      "stratum": "FAR",
+      "class": "SC/DS",
+      "n_alloys": 10,
+      "ys_n": 16,
+      "ys_kg": 109.02103259150596,
+      "ys_full": 105.83882196116772,
+      "em_n": 5,
+      "em_ml": 36.699547156526435,
+      "em_phys": 36.699547156526435,
+      "em_full": 36.45280948996179
+    }
+  ],
+  "boundary_sweep": [
+    {
+      "lower": 1.5,
+      "upper": 4.0,
+      "n_alloys": 26,
+      "ys_full_vs_kg_pct": 0.05752111925056032,
+      "em_ml": 7.931842289391093,
+      "em_phys": 8.494585279129966,
+      "em_full": 10.190553026057648,
+      "em_full_vs_ml_pct": 28.476495803346975
+    },
+    {
+      "lower": 1.5,
+      "upper": 4.25,
+      "n_alloys": 27,
+      "ys_full_vs_kg_pct": 1.514243289777643,
+      "em_ml": 7.931842289391093,
+      "em_phys": 8.494585279129966,
+      "em_full": 10.190553026057648,
+      "em_full_vs_ml_pct": 28.476495803346975
+    },
+    {
+      "lower": 1.5,
+      "upper": 4.5,
+      "n_alloys": 33,
+      "ys_full_vs_kg_pct": -7.7703403155550035,
+      "em_ml": 9.20256543285808,
+      "em_phys": 9.683858779345277,
+      "em_full": 10.95251074529478,
+      "em_full_vs_ml_pct": 19.015842106250723
+    },
+    {
+      "lower": 1.5,
+      "upper": 4.75,
+      "n_alloys": 34,
+      "ys_full_vs_kg_pct": -7.545753172986313,
+      "em_ml": 8.457398682928288,
+      "em_phys": 8.887731557434485,
+      "em_full": 10.03369960242495,
+      "em_full_vs_ml_pct": 18.638129507581446
+    },
+    {
+      "lower": 1.5,
+      "upper": 5.0,
+      "n_alloys": 35,
+      "ys_full_vs_kg_pct": -7.461382860197494,
+      "em_ml": 8.457398682928288,
+      "em_phys": 8.887731557434485,
+      "em_full": 10.03369960242495,
+      "em_full_vs_ml_pct": 18.638129507581446
+    },
+    {
+      "lower": 1.75,
+      "upper": 4.0,
+      "n_alloys": 24,
+      "ys_full_vs_kg_pct": 4.817359343506394,
+      "em_ml": 8.531878164628463,
+      "em_phys": 9.209253985610442,
+      "em_full": 11.32258759279226,
+      "em_full_vs_ml_pct": 32.70920393276999
+    },
+    {
+      "lower": 1.75,
+      "upper": 4.25,
+      "n_alloys": 25,
+      "ys_full_vs_kg_pct": 6.524227464243309,
+      "em_ml": 8.531878164628463,
+      "em_phys": 9.209253985610442,
+      "em_full": 11.32258759279226,
+      "em_full_vs_ml_pct": 32.70920393276999
+    },
+    {
+      "lower": 1.75,
+      "upper": 4.5,
+      "n_alloys": 31,
+      "ys_full_vs_kg_pct": -5.4273264839366515,
+      "em_ml": 9.916102230411232,
+      "em_phys": 10.478845220150106,
+      "em_full": 12.021916922452897,
+      "em_full_vs_ml_pct": 21.23631486556724
+    },
+    {
+      "lower": 1.75,
+      "upper": 4.75,
+      "n_alloys": 32,
+      "ys_full_vs_kg_pct": -5.24758493275876,
+      "em_ml": 8.973385947681358,
+      "em_phys": 9.46768722245199,
+      "em_full": 10.836462831393998,
+      "em_full_vs_ml_pct": 20.762250666305537
+    },
+    {
+      "lower": 1.75,
+      "upper": 5.0,
+      "n_alloys": 33,
+      "ys_full_vs_kg_pct": -5.180405334523556,
+      "em_ml": 8.973385947681358,
+      "em_phys": 9.46768722245199,
+      "em_full": 10.836462831393998,
+      "em_full_vs_ml_pct": 20.762250666305537
+    },
+    {
+      "lower": 2.0,
+      "upper": 4.0,
+      "n_alloys": 24,
+      "ys_full_vs_kg_pct": 4.817359343506394,
+      "em_ml": 8.531878164628463,
+      "em_phys": 9.209253985610442,
+      "em_full": 11.32258759279226,
+      "em_full_vs_ml_pct": 32.70920393276999
+    },
+    {
+      "lower": 2.0,
+      "upper": 4.25,
+      "n_alloys": 25,
+      "ys_full_vs_kg_pct": 6.524227464243309,
+      "em_ml": 8.531878164628463,
+      "em_phys": 9.209253985610442,
+      "em_full": 11.32258759279226,
+      "em_full_vs_ml_pct": 32.70920393276999
+    },
+    {
+      "lower": 2.0,
+      "upper": 4.5,
+      "n_alloys": 31,
+      "ys_full_vs_kg_pct": -5.4273264839366515,
+      "em_ml": 9.916102230411232,
+      "em_phys": 10.478845220150106,
+      "em_full": 12.021916922452897,
+      "em_full_vs_ml_pct": 21.23631486556724
+    },
+    {
+      "lower": 2.0,
+      "upper": 4.75,
+      "n_alloys": 32,
+      "ys_full_vs_kg_pct": -5.24758493275876,
+      "em_ml": 8.973385947681358,
+      "em_phys": 9.46768722245199,
+      "em_full": 10.836462831393998,
+      "em_full_vs_ml_pct": 20.762250666305537
+    },
+    {
+      "lower": 2.0,
+      "upper": 5.0,
+      "n_alloys": 33,
+      "ys_full_vs_kg_pct": -5.180405334523556,
+      "em_ml": 8.973385947681358,
+      "em_phys": 9.46768722245199,
+      "em_full": 10.836462831393998,
+      "em_full_vs_ml_pct": 20.762250666305537
+    },
+    {
+      "lower": 2.25,
+      "upper": 4.0,
+      "n_alloys": 20,
+      "ys_full_vs_kg_pct": 2.088581916303397,
+      "em_ml": 7.788796937709936,
+      "em_phys": 8.53529274042477,
+      "em_full": 10.52915366986503,
+      "em_full_vs_ml_pct": 35.18331205795711
+    },
+    {
+      "lower": 2.25,
+      "upper": 4.25,
+      "n_alloys": 21,
+      "ys_full_vs_kg_pct": 4.182340625819924,
+      "em_ml": 7.788796937709936,
+      "em_phys": 8.53529274042477,
+      "em_full": 10.52915366986503,
+      "em_full_vs_ml_pct": 35.18331205795711
+    },
+    {
+      "lower": 2.25,
+      "upper": 4.5,
+      "n_alloys": 27,
+      "ys_full_vs_kg_pct": -8.867641121162595,
+      "em_ml": 9.424604567243,
+      "em_phys": 10.03424280612678,
+      "em_full": 11.432223329534045,
+      "em_full_vs_ml_pct": 21.30188856165812
+    },
+    {
+      "lower": 2.25,
+      "upper": 4.75,
+      "n_alloys": 28,
+      "ys_full_vs_kg_pct": -8.531648890620225,
+      "em_ml": 8.477683901250293,
+      "em_phys": 9.007804108975323,
+      "em_full": 10.23778332370667,
+      "em_full_vs_ml_pct": 20.761559913749526
+    },
+    {
+      "lower": 2.25,
+      "upper": 5.0,
+      "n_alloys": 29,
+      "ys_full_vs_kg_pct": -8.407059956989697,
+      "em_ml": 8.477683901250293,
+      "em_phys": 9.007804108975323,
+      "em_full": 10.23778332370667,
+      "em_full_vs_ml_pct": 20.761559913749526
+    },
+    {
+      "lower": 2.5,
+      "upper": 4.0,
+      "n_alloys": 18,
+      "ys_full_vs_kg_pct": 10.052716005058072,
+      "em_ml": 7.788796937709936,
+      "em_phys": 8.53529274042477,
+      "em_full": 10.52915366986503,
+      "em_full_vs_ml_pct": 35.18331205795711
+    },
+    {
+      "lower": 2.5,
+      "upper": 4.25,
+      "n_alloys": 19,
+      "ys_full_vs_kg_pct": 12.45336910317262,
+      "em_ml": 7.788796937709936,
+      "em_phys": 8.53529274042477,
+      "em_full": 10.52915366986503,
+      "em_full_vs_ml_pct": 35.18331205795711
+    },
+    {
+      "lower": 2.5,
+      "upper": 4.5,
+      "n_alloys": 25,
+      "ys_full_vs_kg_pct": -5.046159843418813,
+      "em_ml": 9.424604567243,
+      "em_phys": 10.03424280612678,
+      "em_full": 11.432223329534045,
+      "em_full_vs_ml_pct": 21.30188856165812
+    },
+    {
+      "lower": 2.5,
+      "upper": 4.75,
+      "n_alloys": 26,
+      "ys_full_vs_kg_pct": -4.830747782854631,
+      "em_ml": 8.477683901250293,
+      "em_phys": 9.007804108975323,
+      "em_full": 10.23778332370667,
+      "em_full_vs_ml_pct": 20.761559913749526
+    },
+    {
+      "lower": 2.5,
+      "upper": 5.0,
+      "n_alloys": 27,
+      "ys_full_vs_kg_pct": -4.751309663646643,
+      "em_ml": 8.477683901250293,
+      "em_phys": 9.007804108975323,
+      "em_full": 10.23778332370667,
+      "em_full_vs_ml_pct": 20.761559913749526
+    }
+  ],
+  "mid_contributions": [
+    {
+      "stratum": "MID",
+      "property": "ys",
+      "new": "full",
+      "ref": "kg",
+      "n_rows": 91,
+      "n_alloys": 30,
+      "net_mae_diff": -4.120961874605398,
+      "net_mae_diff_without_top3": 4.868574028906978,
+      "top": [
+        {
+          "alloy": "INCONEL* 600",
+          "rows": 6,
+          "sum_d": -689.7909529835975,
+          "share_of_net": 1.839405603135542
+        },
+        {
+          "alloy": "ASTROLOY",
+          "rows": 6,
+          "sum_d": -324.1027869604026,
+          "share_of_net": 0.8642567429280061
+        },
+        {
+          "alloy": "WASPALOY*",
+          "rows": 6,
+          "sum_d": 283.4803052446995,
+          "share_of_net": -0.7559323003444395
+        },
+        {
+          "alloy": "TRW-NASA VI A",
+          "rows": 6,
+          "sum_d": 185.1879550212529,
+          "share_of_net": -0.49382462994901766
+        },
+        {
+          "alloy": "RR1000",
+          "rows": 1,
+          "sum_d": -156.49790195013003,
+          "share_of_net": 0.41731935810539816
+        },
+        {
+          "alloy": "IN-738",
+          "rows": 5,
+          "sum_d": 146.79519756842683,
+          "share_of_net": -0.39144599933187857
+        }
+      ]
+    },
+    {
+      "stratum": "MID",
+      "property": "em",
+      "new": "full",
+      "ref": "ml",
+      "n_rows": 65,
+      "n_alloys": 10,
+      "net_mae_diff": 2.1058146920416645,
+      "net_mae_diff_without_top3": -0.5720070784705344,
+      "top": [
+        {
+          "alloy": "REN\u00c9* N5(SC)",
+          "rows": 5,
+          "sum_d": 130.30774726620348,
+          "share_of_net": 0.9519995187147943
+        },
+        {
+          "alloy": "Special Metals INCONEL\u00ae alloy 740 Precipitation-Hardenable Ni-Cr-Co Superalloy",
+          "rows": 5,
+          "sum_d": 16.420829245245436,
+          "share_of_net": 0.11996693877637112
+        },
+        {
+          "alloy": "WASPALOY*",
+          "rows": 10,
+          "sum_d": 15.889697002433326,
+          "share_of_net": 0.11608660433625469
+        },
+        {
+          "alloy": "INCONEL* 600",
+          "rows": 10,
+          "sum_d": -13.868782332319379,
+          "share_of_net": -0.10132224969368825
+        },
+        {
+          "alloy": "ATI Allegheny Ludlum Altemp\u00ae X-750 Nickel-Based superalloy",
+          "rows": 1,
+          "sum_d": -11.88155462641065,
+          "share_of_net": -0.0868040045448637
+        },
+        {
+          "alloy": "IN-738",
+          "rows": 10,
+          "sum_d": 9.631739302634537,
+          "share_of_net": 0.07036735246264686
+        }
+      ]
+    },
+    {
+      "stratum": "MID",
+      "property": "em",
+      "new": "phys",
+      "ref": "ml",
+      "n_rows": 65,
+      "n_alloys": 10,
+      "net_mae_diff": 0.5627429897388748,
+      "net_mae_diff_without_top3": 0.0,
+      "top": [
+        {
+          "alloy": "Special Metals INCONEL\u00ae Alloy N06230 Ni-Cr-W-Mo Alloy",
+          "rows": 11,
+          "sum_d": 36.57829433302689,
+          "share_of_net": 1.0000000000000007
+        },
+        {
+          "alloy": "Haynes 625 alloy",
+          "rows": 11,
+          "sum_d": -2.842170943040401e-14,
+          "share_of_net": -7.770102446997316e-16
+        },
+        {
+          "alloy": "ATI Allegheny Ludlum AL 600\u2122 Nickel-Base Alloy",
+          "rows": 1,
+          "sum_d": 0.0,
+          "share_of_net": 0.0
+        },
+        {
+          "alloy": "ATI Allegheny Ludlum Altemp\u00ae X-750 Nickel-Based superalloy",
+          "rows": 1,
+          "sum_d": 0.0,
+          "share_of_net": 0.0
+        },
+        {
+          "alloy": "IN-738",
+          "rows": 10,
+          "sum_d": 0.0,
+          "share_of_net": 0.0
+        },
+        {
+          "alloy": "INCONEL* 600",
+          "rows": 10,
+          "sum_d": 0.0,
+          "share_of_net": 0.0
+        }
+      ]
+    }
+  ],
+  "conformal_vs_error": [
+    {
+      "property": "ys",
+      "stratum": "NEAR",
+      "n": 56,
+      "median_half_width": 183.95134324145909,
+      "resid_median": 94.4165937547109,
+      "resid_p90": 227.45914104392736,
+      "resid_max": 304.32618528291135,
+      "coverage": 0.75
+    },
+    {
+      "property": "ys",
+      "stratum": "MID",
+      "n": 91,
+      "median_half_width": 187.09642720479388,
+      "resid_median": 58.74568630344493,
+      "resid_p90": 162.28574661707978,
+      "resid_max": 254.65420625206366,
+      "coverage": 0.9340659340659341
+    },
+    {
+      "property": "ys",
+      "stratum": "FAR",
+      "n": 138,
+      "median_half_width": 186.74140886568208,
+      "resid_median": 103.25991556990675,
+      "resid_p90": 189.3109888088204,
+      "resid_max": 397.1931787180921,
+      "coverage": 0.8985507246376812
+    },
+    {
+      "property": "em",
+      "stratum": "NEAR",
+      "n": 55,
+      "median_half_width": 37.998152810086594,
+      "resid_median": 8.069227174036683,
+      "resid_p90": 42.49226251700315,
+      "resid_max": 62.98383316765646,
+      "coverage": 0.8727272727272727
+    },
+    {
+      "property": "em",
+      "stratum": "MID",
+      "n": 65,
+      "median_half_width": 38.11376126678532,
+      "resid_median": 9.625447392055406,
+      "resid_p90": 20.67426472850439,
+      "resid_max": 28.796209342687348,
+      "coverage": 1.0
+    },
+    {
+      "property": "em",
+      "stratum": "FAR",
+      "n": 184,
+      "median_half_width": 37.95176569517052,
+      "resid_median": 7.548841806699528,
+      "resid_p90": 41.72550155270706,
+      "resid_max": 62.709506624172974,
+      "coverage": 0.8695652173913043
+    }
+  ],
+  "distance_metrics": {
+    "stratum_sizes": {
+      "NEAR": 13,
+      "MID": 31,
+      "FAR": 44
+    },
+    "metrics": [
+      {
+        "metric": "wt_production",
+        "spearman_vs_production": 1.0,
+        "stratum_agreement": 1.0,
+        "near_overlap": 13,
+        "far_overlap": 44,
+        "near_kg_vs_phys_pct": -29.875529691368303,
+        "far_full_vs_kg_pct": -18.40389577337268
+      },
+      {
+        "metric": "at_pct",
+        "spearman_vs_production": 0.9448768976083973,
+        "stratum_agreement": 0.8636363636363636,
+        "near_overlap": 12,
+        "far_overlap": 39,
+        "near_kg_vs_phys_pct": -28.355426520963228,
+        "far_full_vs_kg_pct": -27.774107413246604
+      },
+      {
+        "metric": "z_wt_pct",
+        "spearman_vs_production": 0.6470888661899898,
+        "stratum_agreement": 0.5681818181818182,
+        "near_overlap": 6,
+        "far_overlap": 31,
+        "near_kg_vs_phys_pct": -9.685273520114226,
+        "far_full_vs_kg_pct": -19.481107523301926
+      },
+      {
+        "metric": "feature_space",
+        "spearman_vs_production": 0.8736923672994965,
+        "stratum_agreement": 0.7272727272727273,
+        "near_overlap": 8,
+        "far_overlap": 37,
+        "near_kg_vs_phys_pct": -22.69111072732375,
+        "far_full_vs_kg_pct": -27.07762296780005
+      }
+    ]
+  }
+}

@@ -104,6 +104,11 @@ const formatMetricLabel = (key) => {
   return labelMap[key] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 }
 
+// Matches backend/alloy_crew/conformal.py: what the ± actually is, in one line.
+const intervalTooltip = '90% conformal (CV+) interval of the ML ensemble, calibrated on the ' +
+  '77 training alloys. Around the agent-adjusted value shown it is an empirical approximation, ' +
+  'not a guarantee.'
+
 const getIntervalQuality = (lower, upper, actual) => {
   if (lower == null || upper == null || actual == null) return 'unknown'
   const relativeWidth = ((upper - lower) / actual) * 100
@@ -458,7 +463,7 @@ const copyToEvaluation = () => {
               <span class="comparison-target">Target: {{ comp.isMax ? '\u2264' : '\u2265' }} {{ comp.target }} {{ comp.unit }}</span>
               <span class="comparison-actual">
                 Predicted: <AnimatedNumber :value="comp.actual" :decimals="comp.key.includes('Density') ? 2 : 1" /> {{ comp.unit }}
-                <span v-if="comp.plusMinus" class="comparison-interval-discrete">±{{ comp.plusMinus }}</span>
+                <span v-if="comp.plusMinus" class="comparison-interval-discrete" :title="intervalTooltip">±{{ comp.plusMinus }} (90%)</span>
               </span>
             </div>
             <div class="comparison-bar-container">
@@ -480,7 +485,7 @@ const copyToEvaluation = () => {
               <AnimatedNumber :value="prop.val" :decimals="prop.label.includes('Density') ? 2 : 1" />
               <small>{{ prop.unit }}</small>
             </div>
-            <div v-if="prop.interval" class="prop-interval-discrete">±{{ prop.interval }} {{ prop.unit }}</div>
+            <div v-if="prop.interval" class="prop-interval-discrete" :title="intervalTooltip">±{{ prop.interval }} {{ prop.unit }} (90%)</div>
           </div>
         </div>
       </div>
